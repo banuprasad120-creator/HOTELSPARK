@@ -267,3 +267,4 @@ export function UpiQrPayment({ quote, guestName, onPaid, submitting }: UpiQrPaym
     </div>
   );
 }
+
