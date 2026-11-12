@@ -10,7 +10,7 @@ export function FullScreenScrollVideo({ children }: FullScreenScrollVideoProps) 
   const animationFrameRef = useRef<number | null>(null);
 
   const [scrollProgress, setScrollProgress] = useState(0);
-  const [isAutoPlayMode, setIsAutoPlayMode] = useState(false);
+  const [isAutoPlayMode, setIsAutoPlayMode] = useState(true);
   const [isMuted, setIsMuted] = useState(true);
   const [videoDuration, setVideoDuration] = useState(9);
 
@@ -111,8 +111,8 @@ export function FullScreenScrollVideo({ children }: FullScreenScrollVideoProps) 
           src="/booking/spark.mp4"
           playsInline
           muted={isMuted}
-          loop={isAutoPlayMode}
-          autoPlay={isAutoPlayMode}
+          loop
+          autoPlay
           preload="auto"
           onLoadedMetadata={handleLoadedMetadata}
           className="h-full w-full object-cover scale-[1.02] transition-transform duration-1000 ease-out"

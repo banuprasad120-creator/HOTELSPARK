@@ -8,3 +8,4 @@ export const SUPABASE_ANON_KEY =
   'sb_publishable_Xj6AOAgd-OBYJLMNtZtn9Q_GvIbIOYd';
 
 export const isSupabaseConfigured = Boolean(SUPABASE_URL && SUPABASE_ANON_KEY);
+

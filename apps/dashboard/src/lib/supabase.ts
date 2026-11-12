@@ -45,3 +45,4 @@ export async function supabaseFetch<T = any>(
     return { data: null, error: err };
   }
 }
+
