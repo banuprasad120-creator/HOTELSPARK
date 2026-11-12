@@ -31,12 +31,24 @@ export function Layout({ children }: { children: React.ReactNode }) {
               <span>{displayName}</span>
             </Link>
 
-            <Link
-              to="/manage"
-              className="rounded-full border border-white/20 bg-white/10 px-4 py-1.5 text-xs font-semibold text-white backdrop-blur-sm transition hover:bg-white/20 hover:border-white/40"
-            >
-              Manage booking
-            </Link>
+            <div className="flex items-center gap-3">
+              <a
+                href="http://localhost:5173/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="rounded-full border border-teal-400/40 bg-teal-500/20 px-3.5 py-1.5 text-xs font-semibold text-teal-200 backdrop-blur-sm transition hover:bg-teal-500/30 hover:border-teal-400 flex items-center gap-1.5"
+                title="Open Hotel Spark SaaS PMS Dashboard"
+              >
+                <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                PMS Dashboard
+              </a>
+              <Link
+                to="/manage"
+                className="rounded-full border border-white/20 bg-white/10 px-4 py-1.5 text-xs font-semibold text-white backdrop-blur-sm transition hover:bg-white/20 hover:border-white/40"
+              >
+                Manage booking
+              </Link>
+            </div>
           </div>
         </header>
 
@@ -76,15 +88,27 @@ export function Layout({ children }: { children: React.ReactNode }) {
             >
               {displayName}
             </Link>
-            {!isRequestFlow && (
-              <Link
-                to="/manage"
-                className="text-sm font-medium"
-                style={{ color: 'var(--haip-accent, #f2641b)' }}
+            <div className="flex items-center gap-3">
+              <a
+                href="http://localhost:5173/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 text-xs font-semibold text-teal-800 bg-teal-50 border border-teal-200 px-3 py-1.5 rounded-lg hover:bg-teal-100 transition shadow-xs"
+                title="Open Hotel Spark SaaS PMS Dashboard"
               >
-                Manage booking
-              </Link>
-            )}
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                PMS Dashboard
+              </a>
+              {!isRequestFlow && (
+                <Link
+                  to="/manage"
+                  className="text-sm font-medium"
+                  style={{ color: 'var(--haip-accent, #f2641b)' }}
+                >
+                  Manage booking
+                </Link>
+              )}
+            </div>
           </div>
         </header>
       )}
