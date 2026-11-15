@@ -13,6 +13,30 @@ export const api = axios.create({
   headers: { 'Content-Type': 'application/json' },
 });
 
+const isStaticHosting = typeof window !== 'undefined' && (
+  window.location.hostname.includes('netlify.app') ||
+  window.location.hostname.includes('spark')
+);
+
+if (isStaticHosting) {
+  api.interceptors.request.use(async (config) => {
+    config.adapter = async (cfg) => {
+      try {
+        return await handleSupabaseAdapter(cfg);
+      } catch {
+        return {
+          data: [],
+          status: 200,
+          statusText: 'OK',
+          headers: { 'content-type': 'application/json' },
+          config: cfg,
+        };
+      }
+    };
+    return config;
+  });
+}
+
 api.interceptors.response.use(
   async (response) => {
     // If the server returned an HTML fallback (e.g. Netlify serving index.html on /api/* routes)

@@ -290,9 +290,8 @@ export default function DirectBookings() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div
           onClick={() => handleTabChange('all')}
-          className={`p-4 rounded-xl border bg-white shadow-xs cursor-pointer transition ${
-            activeTab === 'all' ? 'border-telivity-teal ring-2 ring-telivity-teal/20' : 'border-gray-200 hover:border-gray-300'
-          }`}
+          className={`p-4 rounded-xl border bg-white shadow-xs cursor-pointer transition ${activeTab === 'all' ? 'border-telivity-teal ring-2 ring-telivity-teal/20' : 'border-gray-200 hover:border-gray-300'
+            }`}
         >
           <div className="flex items-center justify-between text-gray-500 text-xs font-semibold">
             <span>Total Requests</span>
@@ -304,9 +303,8 @@ export default function DirectBookings() {
 
         <div
           onClick={() => handleTabChange('pending')}
-          className={`p-4 rounded-xl border bg-white shadow-xs cursor-pointer transition ${
-            activeTab === 'pending' ? 'border-amber-500 ring-2 ring-amber-500/20' : 'border-gray-200 hover:border-gray-300'
-          }`}
+          className={`p-4 rounded-xl border bg-white shadow-xs cursor-pointer transition ${activeTab === 'pending' ? 'border-amber-500 ring-2 ring-amber-500/20' : 'border-gray-200 hover:border-gray-300'
+            }`}
         >
           <div className="flex items-center justify-between text-amber-700 text-xs font-bold">
             <span className="flex items-center gap-1.5">
@@ -321,9 +319,8 @@ export default function DirectBookings() {
 
         <div
           onClick={() => handleTabChange('approved')}
-          className={`p-4 rounded-xl border bg-white shadow-xs cursor-pointer transition ${
-            activeTab === 'approved' ? 'border-emerald-500 ring-2 ring-emerald-500/20' : 'border-gray-200 hover:border-gray-300'
-          }`}
+          className={`p-4 rounded-xl border bg-white shadow-xs cursor-pointer transition ${activeTab === 'approved' ? 'border-emerald-500 ring-2 ring-emerald-500/20' : 'border-gray-200 hover:border-gray-300'
+            }`}
         >
           <div className="flex items-center justify-between text-emerald-700 text-xs font-bold">
             <span>Approved & Confirmed</span>
@@ -335,9 +332,8 @@ export default function DirectBookings() {
 
         <div
           onClick={() => handleTabChange('rejected')}
-          className={`p-4 rounded-xl border bg-white shadow-xs cursor-pointer transition ${
-            activeTab === 'rejected' ? 'border-rose-500 ring-2 ring-rose-500/20' : 'border-gray-200 hover:border-gray-300'
-          }`}
+          className={`p-4 rounded-xl border bg-white shadow-xs cursor-pointer transition ${activeTab === 'rejected' ? 'border-rose-500 ring-2 ring-rose-500/20' : 'border-gray-200 hover:border-gray-300'
+            }`}
         >
           <div className="flex items-center justify-between text-rose-700 text-xs font-bold">
             <span>Rejected / Denied</span>
@@ -353,11 +349,10 @@ export default function DirectBookings() {
         <div className="flex items-center gap-2">
           <button
             onClick={() => handleTabChange('all')}
-            className={`px-4 py-2.5 text-xs font-bold border-b-2 flex items-center gap-2 transition whitespace-nowrap ${
-              activeTab === 'all'
-                ? 'border-telivity-teal text-telivity-teal'
-                : 'border-transparent text-gray-500 hover:text-gray-700'
-            }`}
+            className={`px-4 py-2.5 text-xs font-bold border-b-2 flex items-center gap-2 transition whitespace-nowrap ${activeTab === 'all'
+              ? 'border-telivity-teal text-telivity-teal'
+              : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
           >
             <Inbox className="w-4 h-4" />
             <span>Booking Requests</span>
@@ -368,11 +363,10 @@ export default function DirectBookings() {
 
           <button
             onClick={() => handleTabChange('pending')}
-            className={`px-4 py-2.5 text-xs font-bold border-b-2 flex items-center gap-2 transition whitespace-nowrap ${
-              activeTab === 'pending'
-                ? 'border-amber-600 text-amber-700'
-                : 'border-transparent text-gray-500 hover:text-gray-700'
-            }`}
+            className={`px-4 py-2.5 text-xs font-bold border-b-2 flex items-center gap-2 transition whitespace-nowrap ${activeTab === 'pending'
+              ? 'border-amber-600 text-amber-700'
+              : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
           >
             <Clock className="w-4 h-4 text-amber-600" />
             <span>Pending Approvals</span>
@@ -385,11 +379,10 @@ export default function DirectBookings() {
 
           <button
             onClick={() => handleTabChange('approved')}
-            className={`px-4 py-2.5 text-xs font-bold border-b-2 flex items-center gap-2 transition whitespace-nowrap ${
-              activeTab === 'approved'
-                ? 'border-emerald-600 text-emerald-700'
-                : 'border-transparent text-gray-500 hover:text-gray-700'
-            }`}
+            className={`px-4 py-2.5 text-xs font-bold border-b-2 flex items-center gap-2 transition whitespace-nowrap ${activeTab === 'approved'
+              ? 'border-emerald-600 text-emerald-700'
+              : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
           >
             <CheckCircle2 className="w-4 h-4 text-emerald-600" />
             <span>Approved Bookings</span>
@@ -400,11 +393,10 @@ export default function DirectBookings() {
 
           <button
             onClick={() => handleTabChange('rejected')}
-            className={`px-4 py-2.5 text-xs font-bold border-b-2 flex items-center gap-2 transition whitespace-nowrap ${
-              activeTab === 'rejected'
-                ? 'border-rose-600 text-rose-700'
-                : 'border-transparent text-gray-500 hover:text-gray-700'
-            }`}
+            className={`px-4 py-2.5 text-xs font-bold border-b-2 flex items-center gap-2 transition whitespace-nowrap ${activeTab === 'rejected'
+              ? 'border-rose-600 text-rose-700'
+              : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
           >
             <XCircle className="w-4 h-4 text-rose-600" />
             <span>Rejected Bookings</span>
@@ -415,11 +407,10 @@ export default function DirectBookings() {
 
           <button
             onClick={() => handleTabChange('history')}
-            className={`px-4 py-2.5 text-xs font-bold border-b-2 flex items-center gap-2 transition whitespace-nowrap ${
-              activeTab === 'history'
-                ? 'border-telivity-teal text-telivity-teal'
-                : 'border-transparent text-gray-500 hover:text-gray-700'
-            }`}
+            className={`px-4 py-2.5 text-xs font-bold border-b-2 flex items-center gap-2 transition whitespace-nowrap ${activeTab === 'history'
+              ? 'border-telivity-teal text-telivity-teal'
+              : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
           >
             <History className="w-4 h-4" />
             <span>Booking History & Audit</span>
@@ -464,9 +455,8 @@ export default function DirectBookings() {
                 return (
                   <div key={log.id} className="p-4 flex items-start gap-4 hover:bg-gray-50/60 transition">
                     <div
-                      className={`p-2 rounded-xl flex-shrink-0 ${
-                        isApprove ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'
-                      }`}
+                      className={`p-2 rounded-xl flex-shrink-0 ${isApprove ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'
+                        }`}
                     >
                       {isApprove ? <CheckCircle2 className="w-5 h-5" /> : <XCircle className="w-5 h-5" />}
                     </div>
@@ -474,9 +464,8 @@ export default function DirectBookings() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between gap-2">
                         <span
-                          className={`text-xs font-bold uppercase tracking-wide px-2 py-0.5 rounded ${
-                            isApprove ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'
-                          }`}
+                          className={`text-xs font-bold uppercase tracking-wide px-2 py-0.5 rounded ${isApprove ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'
+                            }`}
                         >
                           {log.action}
                         </span>
@@ -525,25 +514,23 @@ export default function DirectBookings() {
               return (
                 <div
                   key={item.id}
-                  className={`bg-white rounded-xl border p-5 shadow-xs transition hover:shadow-md ${
-                    isPending
-                      ? 'border-amber-300 ring-1 ring-amber-200'
-                      : isApproved
+                  className={`bg-white rounded-xl border p-5 shadow-xs transition hover:shadow-md ${isPending
+                    ? 'border-amber-300 ring-1 ring-amber-200'
+                    : isApproved
                       ? 'border-emerald-200'
                       : 'border-rose-200'
-                  }`}
+                    }`}
                 >
                   <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-gray-100">
                     {/* Guest info & reference */}
                     <div className="flex items-start gap-3">
                       <div
-                        className={`w-11 h-11 rounded-xl flex items-center justify-center font-bold text-sm ${
-                          isPending
-                            ? 'bg-amber-100 text-amber-800'
-                            : isApproved
+                        className={`w-11 h-11 rounded-xl flex items-center justify-center font-bold text-sm ${isPending
+                          ? 'bg-amber-100 text-amber-800'
+                          : isApproved
                             ? 'bg-emerald-100 text-emerald-800'
                             : 'bg-rose-100 text-rose-800'
-                        }`}
+                          }`}
                       >
                         {item.guestFirstName[0]}
                         {item.guestLastName[0]}
@@ -641,7 +628,7 @@ export default function DirectBookings() {
                           1,
                           Math.round(
                             (new Date(item.departureDate).getTime() - new Date(item.arrivalDate).getTime()) /
-                              (1000 * 60 * 60 * 24),
+                            (1000 * 60 * 60 * 24),
                           ),
                         )}{' '}
                         Nights Stay

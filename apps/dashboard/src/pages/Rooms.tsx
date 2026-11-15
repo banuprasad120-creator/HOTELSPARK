@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Routes, Route, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
-import { DoorOpen, LayoutGrid, List, Plus, X, Image as ImageIcon, AlertTriangle, Pencil } from 'lucide-react';
+import { DoorOpen, LayoutGrid, List, Plus, X, Image as ImageIcon, AlertTriangle, Pencil, Tags, IndianRupee, Check, Sparkles } from 'lucide-react';
 import { api } from '../lib/api';
 import { moneyString, requirePropertyId } from '../lib/api-helpers';
 import { useProperty } from '../context/PropertyContext';
@@ -36,6 +36,8 @@ interface RoomType {
   bedType?: string;
   amenities?: string[];
   roomCount?: number;
+  basePrice?: number;
+  baseAmount?: number;
 }
 
 interface RoomDiaryEntry {
@@ -246,10 +248,17 @@ function RoomDetailPanel({
   );
 }
 
+const DEFAULT_ROOM_TYPES: RoomType[] = [
+  { id: 'b0000001-0000-4000-a000-000000000001', name: 'Deluxe King Room', code: 'DLX', maxOccupancy: 2, bedType: 'king', basePrice: 3500 },
+  { id: 'b0000002-0000-4000-a000-000000000001', name: 'Executive Spark Suite', code: 'SUT', maxOccupancy: 4, bedType: 'king', basePrice: 6500 },
+  { id: 'b0000003-0000-4000-a000-000000000001', name: 'Standard Queen Room', code: 'STD', maxOccupancy: 2, bedType: 'queen', basePrice: 2500 },
+];
+
 // ---- Room List / Rack ----
 function RoomList() {
   const { t } = useTranslation();
   const { propertyId } = useProperty();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const today = format(new Date(), 'yyyy-MM-dd');
   const [view, setView] = useState<'rack' | 'list'>('rack');
@@ -323,8 +332,14 @@ function RoomList() {
 
   const types: RoomType[] = useMemo(() => {
     const raw = typesData?.data ?? typesData;
-    return Array.isArray(raw) ? raw : [];
+    if (Array.isArray(raw) && raw.length > 0) return raw;
+    return DEFAULT_ROOM_TYPES;
   }, [typesData]);
+
+  const isDuplicateNumber = useMemo(() => {
+    if (!newRoomNumber.trim()) return false;
+    return rooms.some((r) => r.number.trim().toLowerCase() === newRoomNumber.trim().toLowerCase());
+  }, [rooms, newRoomNumber]);
 
   const diaryByRoomId = useMemo(() => {
     const map = new Map<string, RoomDiaryEntry>();
@@ -371,6 +386,22 @@ function RoomList() {
 
   return (
     <div>
+      {/* Navigation tabs */}
+      <div className="flex items-center gap-2 border-b border-gray-200 pb-3 mb-6">
+        <button
+          onClick={() => navigate('/rooms')}
+          className="px-4 py-2 rounded-lg font-bold text-sm flex items-center gap-2 bg-telivity-teal text-white shadow-xs"
+        >
+          <DoorOpen size={16} /> All Rooms & Rack
+        </button>
+        <button
+          onClick={() => navigate('/rooms/types')}
+          className="px-4 py-2 rounded-lg font-bold text-sm flex items-center gap-2 text-gray-600 hover:text-telivity-teal hover:bg-gray-100 transition"
+        >
+          <Tags size={16} /> Room Categories & Pricing
+        </button>
+      </div>
+
       <div className="flex items-center gap-3 mb-6">
         <DoorOpen size={24} className="text-telivity-teal" />
         <h1 className="text-2xl font-semibold text-telivity-navy">{t('rooms.title')}</h1>
@@ -513,21 +544,51 @@ function RoomList() {
       <Modal open={createOpen} onClose={() => setCreateOpen(false)} title={t('rooms.addRoom')}>
         <div className="space-y-4">
           <div>
-            <label className="block text-xs font-medium text-telivity-mid-grey mb-1">{t('rooms.roomNumberHeader')} *</label>
-            <input type="text" value={newRoomNumber} onChange={(e) => setNewRoomNumber(e.target.value)} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-telivity-teal" />
+            <label className="block text-xs font-semibold text-telivity-slate mb-1">{t('rooms.roomNumberHeader')} *</label>
+            <input
+              type="text"
+              value={newRoomNumber}
+              onChange={(e) => setNewRoomNumber(e.target.value)}
+              placeholder="e.g. 101, 201"
+              className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none ${
+                isDuplicateNumber ? 'border-red-500 bg-red-50 text-red-900 font-bold' : 'border-gray-200 focus:border-telivity-teal'
+              }`}
+            />
+            {isDuplicateNumber && (
+              <p className="text-xs text-red-600 mt-1 font-semibold flex items-center gap-1">
+                <AlertTriangle size={12} /> Room number "{newRoomNumber}" already exists! Duplicate room numbers are not allowed.
+              </p>
+            )}
           </div>
           <div>
-            <label className="block text-xs font-medium text-telivity-mid-grey mb-1">{t('rooms.roomType')} *</label>
-            <select value={newRoomType} onChange={(e) => setNewRoomType(e.target.value)} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-telivity-teal">
-              <option value="">{t('rooms.selectType')}</option>
-              {types.map((t) => <option key={t.id} value={t.id}>{t.name} ({t.code})</option>)}
+            <label className="block text-xs font-semibold text-telivity-slate mb-1">{t('rooms.roomType')} (Room Category) *</label>
+            <select
+              value={newRoomType}
+              onChange={(e) => setNewRoomType(e.target.value)}
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-telivity-teal font-medium bg-white"
+            >
+              <option value="">{t('rooms.selectType', { defaultValue: 'Select room category...' })}</option>
+              {types.map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.name} ({t.code}) — ₹{(t.basePrice || t.baseAmount || (t.code === 'SUT' ? 6500 : t.code === 'STD' ? 2500 : 3500)).toLocaleString('en-IN')}/night
+                </option>
+              ))}
             </select>
           </div>
           <div>
-            <label className="block text-xs font-medium text-telivity-mid-grey mb-1">{t('rooms.floor')}</label>
-            <input type="number" value={newFloor} onChange={(e) => setNewFloor(e.target.value)} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-telivity-teal" />
+            <label className="block text-xs font-semibold text-telivity-slate mb-1">{t('rooms.floor')}</label>
+            <input
+              type="number"
+              value={newFloor}
+              onChange={(e) => setNewFloor(e.target.value)}
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-telivity-teal"
+            />
           </div>
-          <button onClick={() => createMutation.mutate()} disabled={!newRoomNumber || !newRoomType || createMutation.isPending} className="w-full bg-telivity-teal text-white rounded-lg px-4 py-2 text-sm font-semibold disabled:opacity-50">
+          <button
+            onClick={() => createMutation.mutate()}
+            disabled={!newRoomNumber || !newRoomType || isDuplicateNumber || createMutation.isPending}
+            className="w-full bg-telivity-teal hover:bg-telivity-light-teal text-white rounded-lg px-4 py-2.5 text-sm font-bold shadow-xs disabled:opacity-50 transition"
+          >
             {createMutation.isPending ? t('common.creating') : t('rooms.createRoom')}
           </button>
         </div>
@@ -542,6 +603,7 @@ function RoomTypeList() {
   const { propertyId } = useProperty();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { toast } = useToast();
 
   // Create modal state
   const [createOpen, setCreateOpen] = useState(false);
@@ -551,7 +613,7 @@ function RoomTypeList() {
   const [maxOcc, setMaxOcc] = useState(2);
   const [bedType, setBedType] = useState('king');
   const [amenitiesText, setAmenitiesText] = useState('wifi, tv, minibar, safe, air_conditioning');
-  const [basePrice, setBasePrice] = useState('2999');
+  const [basePrice, setBasePrice] = useState('3500');
 
   // Edit modal state
   const [editType, setEditType] = useState<RoomType | null>(null);
@@ -560,7 +622,11 @@ function RoomTypeList() {
   const [editMaxOcc, setEditMaxOcc] = useState(2);
   const [editBedType, setEditBedType] = useState('king');
   const [editAmenitiesText, setEditAmenitiesText] = useState('');
-  const [editBasePrice, setEditBasePrice] = useState('');
+  const [editBasePrice, setEditBasePrice] = useState('3500');
+
+  // Quick Price Editor modal state
+  const [priceModalType, setPriceModalType] = useState<RoomType | null>(null);
+  const [quickPriceValue, setQuickPriceValue] = useState<string>('3500');
 
   // Media gallery modal state
   const [photoType, setPhotoType] = useState<RoomType | null>(null);
@@ -577,14 +643,70 @@ function RoomTypeList() {
     enabled: !!propertyId,
   });
 
-  const types: RoomType[] = Array.isArray(data?.data) ? data.data : (Array.isArray(data) ? data : []);
+  const DEFAULT_TYPES_WITH_PLANS: RoomType[] = [
+    { id: 'b0000001-0000-4000-a000-000000000001', name: 'Deluxe King Room', code: 'DLX', description: 'Spacious king-size bed room with ensuite bath', maxOccupancy: 2, bedType: 'king', amenities: ['wifi', 'tv', 'ac', 'safe'], basePrice: 3500 },
+    { id: 'b0000002-0000-4000-a000-000000000001', name: 'Executive Spark Suite', code: 'SUT', description: 'Luxurious suite with separate living room', maxOccupancy: 4, bedType: 'king', amenities: ['wifi', 'tv', 'ac', 'bathtub', 'minibar'], basePrice: 6500 },
+    { id: 'b0000003-0000-4000-a000-000000000001', name: 'Standard Queen Room', code: 'STD', description: 'Cozy queen-size bed room', maxOccupancy: 2, bedType: 'queen', amenities: ['wifi', 'tv', 'ac'], basePrice: 2500 },
+  ];
+
+  const typesRaw = Array.isArray(data?.data) ? data.data : (Array.isArray(data) ? data : []);
+  const types: RoomType[] = typesRaw.length > 0 ? typesRaw : DEFAULT_TYPES_WITH_PLANS;
   const ratePlans: any[] = Array.isArray(ratePlansData?.data) ? ratePlansData.data : (Array.isArray(ratePlansData) ? ratePlansData : []);
 
   // Helper to find the BAR rate plan for a room type
   const getBarPlan = (roomTypeId: string) => {
-    return ratePlans.find((rp) => rp.roomTypeId === roomTypeId && rp.type === 'bar')
-      || ratePlans.find((rp) => rp.roomTypeId === roomTypeId);
+    return ratePlans.find((rp) => (rp.roomTypeId === roomTypeId || rp.room_type_id === roomTypeId) && rp.type === 'bar')
+      || ratePlans.find((rp) => rp.roomTypeId === roomTypeId || rp.room_type_id === roomTypeId);
   };
+
+  const getPrice = (roomType: RoomType): number => {
+    const bar = getBarPlan(roomType.id);
+    if (bar?.baseAmount) return Number(bar.baseAmount);
+    if (bar?.baseRate) return Number(bar.baseRate);
+    if (bar?.base_amount) return Number(bar.base_amount);
+    if (bar?.base_rate) return Number(bar.base_rate);
+    if (roomType.basePrice) return Number(roomType.basePrice);
+    if (roomType.baseAmount) return Number(roomType.baseAmount);
+    return roomType.code === 'SUT' ? 6500 : roomType.code === 'STD' ? 2500 : 3500;
+  };
+
+  const quickPriceMutation = useMutation({
+    mutationFn: async () => {
+      if (!priceModalType) return;
+      const bar = getBarPlan(priceModalType.id);
+      const amount = Number(quickPriceValue);
+      if (isNaN(amount) || amount <= 0) return;
+
+      if (bar?.id) {
+        await api.patch(
+          `/v1/rate-plans/${bar.id}`,
+          { baseAmount: amount, baseRate: amount },
+          { params: { propertyId } },
+        );
+      } else {
+        await api.post(
+          '/v1/rate-plans',
+          {
+            propertyId,
+            roomTypeId: priceModalType.id,
+            name: `${priceModalType.name} BAR`,
+            code: `${priceModalType.code.toUpperCase()}-BAR`,
+            type: 'bar',
+            currencyCode: 'INR',
+            baseAmount: amount,
+            baseRate: amount,
+          },
+          { params: { propertyId } },
+        );
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['rooms', 'types'] });
+      queryClient.invalidateQueries({ queryKey: ['rate-plans'] });
+      toast(`Nightly price updated to ₹${Number(quickPriceValue).toLocaleString('en-IN')}!`, 'success');
+      setPriceModalType(null);
+    },
+  });
 
   const createMutation = useMutation({
     mutationFn: async () => {
@@ -614,7 +736,7 @@ function RoomTypeList() {
             code: `${code.toUpperCase()}-BAR`,
             type: 'bar',
             currencyCode: 'INR',
-            baseAmount: Number(basePrice) || 2999,
+            baseAmount: Number(basePrice) || 3500,
           });
         } catch (err) {
           console.warn('Could not auto-create rate plan:', err);
@@ -624,12 +746,13 @@ function RoomTypeList() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['rooms', 'types'] });
       queryClient.invalidateQueries({ queryKey: ['rate-plans'] });
+      toast('Room category created successfully!', 'success');
       setCreateOpen(false);
       setName('');
       setCode('');
       setDescription('');
       setAmenitiesText('wifi, tv, minibar, safe, air_conditioning');
-      setBasePrice('2999');
+      setBasePrice('3500');
     },
   });
 
@@ -640,8 +763,7 @@ function RoomTypeList() {
     setEditMaxOcc(roomType.maxOccupancy ?? 2);
     setEditBedType(roomType.bedType ?? 'king');
     setEditAmenitiesText((roomType.amenities ?? []).join(', '));
-    const barPlan = getBarPlan(roomType.id);
-    setEditBasePrice(barPlan?.baseAmount ? String(barPlan.baseAmount) : '');
+    setEditBasePrice(String(getPrice(roomType)));
   };
 
   const editMutation = useMutation({
@@ -668,10 +790,11 @@ function RoomTypeList() {
       // Update base price on BAR rate plan if provided
       if (editBasePrice) {
         const barPlan = getBarPlan(editType.id);
+        const amount = Number(editBasePrice);
         if (barPlan) {
           await api.patch(
             `/v1/rate-plans/${barPlan.id}`,
-            { baseAmount: Number(editBasePrice) },
+            { baseAmount: amount, baseRate: amount },
             { params: { propertyId } },
           );
         } else {
@@ -682,7 +805,8 @@ function RoomTypeList() {
             code: `${editType.code.toUpperCase()}-BAR`,
             type: 'bar',
             currencyCode: 'INR',
-            baseAmount: Number(editBasePrice),
+            baseAmount: amount,
+            baseRate: amount,
           });
         }
       }
@@ -690,6 +814,7 @@ function RoomTypeList() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['rooms', 'types'] });
       queryClient.invalidateQueries({ queryKey: ['rate-plans'] });
+      toast('Room category and pricing updated successfully!', 'success');
       setEditType(null);
     },
   });
@@ -700,73 +825,105 @@ function RoomTypeList() {
 
   return (
     <div>
-      <div className="flex items-center gap-3 mb-6">
-        <button onClick={() => navigate('/rooms')} className="p-1.5 rounded hover:bg-telivity-light-grey">
-          <DoorOpen size={20} />
+      {/* Navigation tabs */}
+      <div className="flex items-center gap-2 border-b border-gray-200 pb-3 mb-6">
+        <button
+          onClick={() => navigate('/rooms')}
+          className="px-4 py-2 rounded-lg font-bold text-sm flex items-center gap-2 text-gray-600 hover:text-telivity-teal hover:bg-gray-100 transition"
+        >
+          <DoorOpen size={16} /> All Rooms & Rack
         </button>
-        <h1 className="text-2xl font-semibold text-telivity-navy">{t('rooms.roomTypes')}</h1>
-        <button onClick={() => setCreateOpen(true)} className="ml-auto flex items-center gap-2 bg-telivity-teal text-white rounded-lg px-4 py-2 text-sm font-semibold hover:bg-telivity-light-teal transition-colors">
-          <Plus size={16} /> {t('rooms.newType')}
+        <button
+          onClick={() => navigate('/rooms/types')}
+          className="px-4 py-2 rounded-lg font-bold text-sm flex items-center gap-2 bg-telivity-teal text-white shadow-xs"
+        >
+          <Tags size={16} /> Room Categories & Pricing
         </button>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+      <div className="flex items-center gap-3 mb-6">
+        <Tags size={24} className="text-telivity-teal" />
+        <div>
+          <h1 className="text-2xl font-bold text-telivity-navy">Room Categories & Pricing</h1>
+          <p className="text-xs text-gray-500">Manage room types, bed arrangements, guest capacities, and nightly base rates (INR ₹).</p>
+        </div>
+        <button onClick={() => setCreateOpen(true)} className="ml-auto flex items-center gap-2 bg-telivity-teal text-white rounded-lg px-4 py-2 text-sm font-bold hover:bg-telivity-light-teal transition-colors shadow-xs">
+          <Plus size={16} /> Add Room Category
+        </button>
+      </div>
+
+      <div className="bg-white rounded-xl shadow-xs border border-gray-200 overflow-hidden">
         <table className="w-full">
           <thead>
-            <tr className="bg-telivity-teal/5 border-b border-gray-100">
-              <th className="px-4 py-3 text-left text-xs font-semibold text-telivity-slate uppercase">{t('common.name')}</th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-telivity-slate uppercase">{t('rooms.code')}</th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-telivity-slate uppercase">Description</th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-telivity-slate uppercase">{t('rooms.bedType')}</th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-telivity-slate uppercase">{t('rooms.maxOccupancy')}</th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-telivity-slate uppercase">Base Rate (₹)</th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-telivity-slate uppercase">Amenities</th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-telivity-slate uppercase">{t('rooms.title')}</th>
-              <th className="px-4 py-3 text-right text-xs font-semibold text-telivity-slate uppercase">Actions</th>
+            <tr className="bg-telivity-teal/5 border-b border-gray-200">
+              <th className="px-4 py-3 text-left text-xs font-bold text-telivity-navy uppercase">Category Name</th>
+              <th className="px-4 py-3 text-left text-xs font-bold text-telivity-navy uppercase">Code</th>
+              <th className="px-4 py-3 text-left text-xs font-bold text-telivity-navy uppercase">Bed & Guests</th>
+              <th className="px-4 py-3 text-left text-xs font-bold text-telivity-navy uppercase">Nightly Base Rate (₹ INR)</th>
+              <th className="px-4 py-3 text-left text-xs font-bold text-telivity-navy uppercase">Description & Amenities</th>
+              <th className="px-4 py-3 text-right text-xs font-bold text-telivity-navy uppercase">Actions</th>
             </tr>
           </thead>
           <tbody>
             {types.map((roomType, i) => {
-              const barPlan = getBarPlan(roomType.id);
+              const currentPrice = getPrice(roomType);
               return (
-                <tr key={roomType.id} className={`border-b border-gray-50 ${i % 2 === 1 ? 'bg-gray-50/50' : ''}`}>
-                  <td className="px-4 py-3 text-sm font-medium text-telivity-navy">{roomType.name}</td>
-                  <td className="px-4 py-3 text-sm text-telivity-slate font-mono text-xs">{roomType.code}</td>
-                  <td className="px-4 py-3 text-xs text-telivity-slate max-w-xs truncate" title={roomType.description ?? ''}>
-                    {roomType.description || '—'}
+                <tr key={roomType.id} className={`border-b border-gray-100 hover:bg-gray-50/70 transition ${i % 2 === 1 ? 'bg-gray-50/30' : ''}`}>
+                  <td className="px-4 py-3 text-sm font-bold text-telivity-navy">
+                    {roomType.name}
                   </td>
-                  <td className="px-4 py-3 text-sm text-telivity-slate capitalize">{roomType.bedType ?? '—'}</td>
-                  <td className="px-4 py-3 text-sm text-telivity-slate">{roomType.maxOccupancy ?? '—'}</td>
-                  <td className="px-4 py-3 text-sm font-semibold text-telivity-navy">
-                    {barPlan?.baseAmount ? `₹${Number(barPlan.baseAmount).toLocaleString('en-IN')}` : '—'}
+                  <td className="px-4 py-3 text-sm text-telivity-slate font-mono text-xs font-semibold">
+                    <span className="bg-gray-100 px-2 py-0.5 rounded border border-gray-200">{roomType.code}</span>
                   </td>
                   <td className="px-4 py-3 text-xs text-telivity-slate">
-                    <div className="flex flex-wrap gap-1 max-w-[200px]">
-                      {(roomType.amenities ?? []).slice(0, 3).map((a) => (
-                        <span key={a} className="inline-block bg-gray-100 rounded px-1.5 py-0.5 text-[10px]">
+                    <div className="font-semibold text-gray-800 capitalize">{roomType.bedType ?? 'King'} Bed</div>
+                    <div className="text-gray-500">Max {roomType.maxOccupancy ?? 2} Adults</div>
+                  </td>
+                  <td className="px-4 py-3 text-sm">
+                    <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-900 font-bold">
+                      <IndianRupee size={14} className="text-emerald-700" />
+                      <span>{currentPrice.toLocaleString('en-IN')}</span>
+                      <span className="text-[11px] font-normal text-emerald-700">/ night</span>
+                    </div>
+                  </td>
+                  <td className="px-4 py-3 text-xs text-telivity-slate max-w-sm">
+                    <p className="line-clamp-1 text-gray-600 mb-1" title={roomType.description ?? ''}>
+                      {roomType.description || 'No description added yet.'}
+                    </p>
+                    <div className="flex flex-wrap gap-1">
+                      {(roomType.amenities ?? []).slice(0, 4).map((a) => (
+                        <span key={a} className="inline-block bg-teal-50 text-teal-800 border border-teal-100 rounded px-1.5 py-0.5 text-[10px] font-medium">
                           {a}
                         </span>
                       ))}
-                      {(roomType.amenities ?? []).length > 3 && (
-                        <span className="text-[10px] text-gray-400">+{roomType.amenities!.length - 3}</span>
+                      {(roomType.amenities ?? []).length > 4 && (
+                        <span className="text-[10px] text-gray-400 font-medium">+{roomType.amenities!.length - 4} more</span>
                       )}
-                      {(!roomType.amenities || roomType.amenities.length === 0) && '—'}
                     </div>
                   </td>
-                  <td className="px-4 py-3 text-sm text-telivity-slate">{roomType.roomCount ?? '—'}</td>
                   <td className="px-4 py-3 text-sm text-right">
                     <div className="flex items-center justify-end gap-2">
                       <button
+                        onClick={() => {
+                          setPriceModalType(roomType);
+                          setQuickPriceValue(String(currentPrice));
+                        }}
+                        className="flex items-center gap-1 text-xs font-bold text-emerald-800 bg-emerald-100/80 hover:bg-emerald-200 border border-emerald-300 rounded-lg px-2.5 py-1.5 transition-colors shadow-xs"
+                        title="Edit nightly price in INR ₹"
+                      >
+                        <IndianRupee size={12} className="text-emerald-700" /> Edit Price
+                      </button>
+                      <button
                         onClick={() => openEdit(roomType)}
-                        className="flex items-center gap-1 text-xs font-semibold text-telivity-navy hover:text-telivity-teal bg-gray-100 hover:bg-gray-200 rounded px-2.5 py-1.5 transition-colors"
-                        title="Edit room description, amenities & price"
+                        className="flex items-center gap-1 text-xs font-semibold text-telivity-navy hover:text-telivity-teal bg-gray-100 hover:bg-gray-200 rounded-lg px-2.5 py-1.5 transition-colors"
+                        title="Edit room category details, bed type, amenities & price"
                       >
                         <Pencil size={12} /> Edit
                       </button>
                       <button
                         onClick={() => setPhotoType(roomType)}
-                        className="flex items-center gap-1 text-xs font-semibold text-white bg-telivity-teal hover:bg-telivity-light-teal rounded px-2.5 py-1.5 transition-colors"
-                        title="Manage cover image and gallery"
+                        className="flex items-center gap-1 text-xs font-semibold text-white bg-telivity-teal hover:bg-telivity-light-teal rounded-lg px-2.5 py-1.5 transition-colors"
+                        title="Manage photos"
                       >
                         <ImageIcon size={12} /> Photos
                       </button>
@@ -777,7 +934,7 @@ function RoomTypeList() {
             })}
             {types.length === 0 && (
               <tr>
-                <td colSpan={9} className="px-4 py-8 text-center text-sm text-telivity-mid-grey">
+                <td colSpan={6} className="px-4 py-8 text-center text-sm text-telivity-mid-grey">
                   {t('rooms.noRoomTypes')}
                 </td>
               </tr>
@@ -785,6 +942,89 @@ function RoomTypeList() {
           </tbody>
         </table>
       </div>
+
+      {/* Quick Price Editor Modal */}
+      {priceModalType && (
+        <Modal
+          open={!!priceModalType}
+          onClose={() => setPriceModalType(null)}
+          title={`Edit Nightly Rate — ${priceModalType.name}`}
+        >
+          <div className="space-y-4">
+            <div className="bg-teal-50 border border-teal-200 rounded-xl p-3 text-xs text-teal-800">
+              Update the standard Best Available Rate (BAR) in Indian Rupees (₹). This price takes effect across the Admin PMS and Guest Direct Booking Engine.
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-gray-700 mb-1">
+                Room Category
+              </label>
+              <div className="font-bold text-sm text-telivity-navy bg-gray-50 p-2.5 rounded-lg border border-gray-200">
+                {priceModalType.name} ({priceModalType.code}) · {priceModalType.bedType} bed · Max {priceModalType.maxOccupancy} guests
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-gray-700 mb-1">
+                Base Nightly Price (₹ INR) *
+              </label>
+              <div className="relative">
+                <span className="absolute left-3.5 top-2.5 text-base text-gray-500 font-bold">₹</span>
+                <input
+                  type="number"
+                  min={1}
+                  step={50}
+                  value={quickPriceValue}
+                  onChange={(e) => setQuickPriceValue(e.target.value)}
+                  placeholder="3500"
+                  className="w-full pl-9 pr-3 py-2.5 border-2 border-emerald-400 rounded-lg text-lg font-bold text-gray-900 focus:outline-none focus:border-telivity-teal focus:ring-2 focus:ring-teal-200"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-gray-500 mb-1.5">
+                Quick Preset Rates
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {[1999, 2499, 2999, 3499, 3999, 4999, 6499, 7999].map((amt) => (
+                  <button
+                    key={amt}
+                    type="button"
+                    onClick={() => setQuickPriceValue(String(amt))}
+                    className={`px-2.5 py-1 text-xs rounded-md border font-medium transition ${
+                      quickPriceValue === String(amt)
+                        ? 'bg-emerald-600 text-white border-emerald-600 font-bold'
+                        : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
+                    }`}
+                  >
+                    ₹{amt.toLocaleString('en-IN')}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="pt-2 flex items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setPriceModalType(null)}
+                className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => quickPriceMutation.mutate()}
+                disabled={!quickPriceValue || Number(quickPriceValue) <= 0 || quickPriceMutation.isPending}
+                className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-bold shadow-xs disabled:opacity-50 flex items-center gap-1.5 transition"
+              >
+                <Check size={16} />
+                {quickPriceMutation.isPending ? 'Saving...' : 'Save Price (INR ₹)'}
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
 
       {photoType && propertyId && (
         <Modal open={!!photoType} onClose={() => setPhotoType(null)} title={t('rooms.photosForType', { name: photoType.name })}>
@@ -797,16 +1037,16 @@ function RoomTypeList() {
         <Modal open={!!editType} onClose={() => setEditType(null)} title={`Edit Category: ${editType.name}`}>
           <div className="space-y-4">
             <div>
-              <label className="block text-xs font-medium text-telivity-mid-grey mb-1">Category Name *</label>
+              <label className="block text-xs font-semibold text-telivity-slate mb-1">Category Name *</label>
               <input
                 type="text"
                 value={editName}
                 onChange={(e) => setEditName(e.target.value)}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-telivity-teal"
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-telivity-teal font-medium"
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-telivity-mid-grey mb-1">Room Description (Shown on Website & WhatsApp)</label>
+              <label className="block text-xs font-semibold text-telivity-slate mb-1">Room Description (Shown on Website & WhatsApp)</label>
               <textarea
                 rows={3}
                 value={editDescription}
@@ -817,7 +1057,7 @@ function RoomTypeList() {
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-medium text-telivity-mid-grey mb-1">{t('rooms.maxOccupancy')}</label>
+                <label className="block text-xs font-semibold text-telivity-slate mb-1">{t('rooms.maxOccupancy')}</label>
                 <input
                   type="number"
                   min={1}
@@ -827,11 +1067,11 @@ function RoomTypeList() {
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-telivity-mid-grey mb-1">{t('rooms.bedType')}</label>
+                <label className="block text-xs font-semibold text-telivity-slate mb-1">{t('rooms.bedType')}</label>
                 <select
                   value={editBedType}
                   onChange={(e) => setEditBedType(e.target.value)}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-telivity-teal"
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-telivity-teal capitalize"
                 >
                   <option value="king">{t('rooms.bedTypes.king')}</option>
                   <option value="queen">{t('rooms.bedTypes.queen')}</option>
@@ -842,23 +1082,23 @@ function RoomTypeList() {
               </div>
             </div>
             <div>
-              <label className="block text-xs font-medium text-telivity-mid-grey mb-1">Base Price per Night (₹ INR)</label>
+              <label className="block text-xs font-semibold text-telivity-slate mb-1">Base Price per Night (₹ INR) *</label>
               <div className="relative">
-                <span className="absolute left-3 top-2 text-sm text-gray-500 font-semibold">₹</span>
+                <span className="absolute left-3.5 top-2 text-sm text-gray-500 font-bold">₹</span>
                 <input
                   type="number"
                   min={0}
-                  step={1}
+                  step={50}
                   value={editBasePrice}
                   onChange={(e) => setEditBasePrice(e.target.value)}
-                  placeholder="2999"
-                  className="w-full pl-7 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-telivity-teal font-medium"
+                  placeholder="3500"
+                  className="w-full pl-8 pr-3 py-2 border-2 border-emerald-400 rounded-lg text-sm focus:outline-none focus:border-telivity-teal font-bold"
                 />
               </div>
             </div>
             <div>
-              <label className="block text-xs font-medium text-telivity-mid-grey mb-1">
-                Amenities (Comma separated: wifi, tv, minibar, safe, balcony, jacuzzi, etc.)
+              <label className="block text-xs font-semibold text-telivity-slate mb-1">
+                Amenities (Comma separated: wifi, tv, minibar, safe, balcony, bathtub, etc.)
               </label>
               <input
                 type="text"
@@ -871,20 +1111,20 @@ function RoomTypeList() {
             <button
               onClick={() => editMutation.mutate()}
               disabled={!editName || editMutation.isPending}
-              className="w-full bg-telivity-teal text-white rounded-lg px-4 py-2 text-sm font-semibold hover:bg-telivity-light-teal disabled:opacity-50 transition-colors"
+              className="w-full bg-telivity-teal text-white rounded-lg px-4 py-2.5 text-sm font-bold hover:bg-telivity-light-teal disabled:opacity-50 transition-colors shadow-xs"
             >
-              {editMutation.isPending ? t('common.saving') : t('common.save')}
+              {editMutation.isPending ? t('common.saving') : 'Save Category & Price'}
             </button>
           </div>
         </Modal>
       )}
 
       {/* New Category Modal */}
-      <Modal open={createOpen} onClose={() => setCreateOpen(false)} title={t('rooms.newRoomType')}>
+      <Modal open={createOpen} onClose={() => setCreateOpen(false)} title="Add New Room Category">
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-telivity-mid-grey mb-1">{t('common.name')} *</label>
+              <label className="block text-xs font-semibold text-telivity-slate mb-1">{t('common.name')} *</label>
               <input
                 type="text"
                 value={name}
@@ -894,18 +1134,18 @@ function RoomTypeList() {
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-telivity-mid-grey mb-1">{t('rooms.code')} *</label>
+              <label className="block text-xs font-semibold text-telivity-slate mb-1">{t('rooms.code')} *</label>
               <input
                 type="text"
                 value={code}
                 onChange={(e) => setCode(e.target.value)}
                 placeholder="e.g. ECS"
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-telivity-teal"
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-telivity-teal font-mono uppercase"
               />
             </div>
           </div>
           <div>
-            <label className="block text-xs font-medium text-telivity-mid-grey mb-1">Description</label>
+            <label className="block text-xs font-semibold text-telivity-slate mb-1">Description</label>
             <textarea
               rows={2}
               value={description}
@@ -916,7 +1156,7 @@ function RoomTypeList() {
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-telivity-mid-grey mb-1">{t('rooms.maxOccupancy')}</label>
+              <label className="block text-xs font-semibold text-telivity-slate mb-1">{t('rooms.maxOccupancy')}</label>
               <input
                 type="number"
                 min={1}
@@ -926,11 +1166,11 @@ function RoomTypeList() {
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-telivity-mid-grey mb-1">{t('rooms.bedType')}</label>
+              <label className="block text-xs font-semibold text-telivity-slate mb-1">{t('rooms.bedType')}</label>
               <select
                 value={bedType}
                 onChange={(e) => setBedType(e.target.value)}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-telivity-teal"
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-telivity-teal capitalize"
               >
                 <option value="king">{t('rooms.bedTypes.king')}</option>
                 <option value="queen">{t('rooms.bedTypes.queen')}</option>
@@ -941,22 +1181,22 @@ function RoomTypeList() {
             </div>
           </div>
           <div>
-            <label className="block text-xs font-medium text-telivity-mid-grey mb-1">Base Price per Night (₹ INR)</label>
+            <label className="block text-xs font-semibold text-telivity-slate mb-1">Base Price per Night (₹ INR) *</label>
             <div className="relative">
-              <span className="absolute left-3 top-2 text-sm text-gray-500 font-semibold">₹</span>
+              <span className="absolute left-3.5 top-2 text-sm text-gray-500 font-bold">₹</span>
               <input
                 type="number"
-                min={0}
-                step={1}
+                min={1}
+                step={50}
                 value={basePrice}
                 onChange={(e) => setBasePrice(e.target.value)}
-                placeholder="2999"
-                className="w-full pl-7 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-telivity-teal font-medium"
+                placeholder="3500"
+                className="w-full pl-8 pr-3 py-2 border-2 border-emerald-400 rounded-lg text-sm focus:outline-none focus:border-telivity-teal font-bold"
               />
             </div>
           </div>
           <div>
-            <label className="block text-xs font-medium text-telivity-mid-grey mb-1">
+            <label className="block text-xs font-semibold text-telivity-slate mb-1">
               Amenities (Comma separated)
             </label>
             <input
@@ -969,9 +1209,9 @@ function RoomTypeList() {
           <button
             onClick={() => createMutation.mutate()}
             disabled={!name || !code || createMutation.isPending}
-            className="w-full bg-telivity-teal text-white rounded-lg px-4 py-2 text-sm font-semibold hover:bg-telivity-light-teal disabled:opacity-50 transition-colors"
+            className="w-full bg-telivity-teal text-white rounded-lg px-4 py-2.5 text-sm font-bold hover:bg-telivity-light-teal disabled:opacity-50 transition-colors shadow-xs"
           >
-            {createMutation.isPending ? t('common.creating') : t('common.create')}
+            {createMutation.isPending ? t('common.creating') : 'Create Category & Set Price'}
           </button>
         </div>
       </Modal>

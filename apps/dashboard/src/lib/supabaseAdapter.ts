@@ -217,9 +217,93 @@ export async function handleSupabaseAdapter(config: AxiosRequestConfig): Promise
   }
 
   // 6. Room types and categories
-  if ((url.includes('/room-types') || url.includes('/rooms/types')) && method === 'GET') {
-    const { data: types } = await supabaseFetch<any[]>('room_types?select=*&order=sort_order.asc');
-    return ok(types || []);
+  if (url.includes('/room-types') || url.includes('/rooms/types')) {
+    if (method === 'GET') {
+      const [typesResult, plansResult] = await Promise.all([
+        supabaseFetch<any[]>('room_types?select=*&order=sort_order.asc'),
+        supabaseFetch<any[]>('rate_plans?select=*'),
+      ]);
+
+      const plans = plansResult.data || [];
+      const planPriceByRoomType: Record<string, number> = {};
+      for (const p of plans) {
+        if (p.room_type_id) {
+          planPriceByRoomType[p.room_type_id] = Number(p.base_amount || p.base_rate || 3500);
+        }
+      }
+
+      const typesList = typesResult.data && typesResult.data.length > 0
+        ? typesResult.data
+        : [
+            { id: 'b0000001-0000-4000-a000-000000000001', name: 'Deluxe King Room', code: 'DLX', description: 'Spacious king-size bed room with ensuite bath', max_occupancy: 2, bed_type: 'king', amenities: ['wifi', 'tv', 'ac', 'safe'] },
+            { id: 'b0000002-0000-4000-a000-000000000001', name: 'Executive Spark Suite', code: 'SUT', description: 'Luxurious suite with separate living room', max_occupancy: 4, bed_type: 'king', amenities: ['wifi', 'tv', 'ac', 'bathtub', 'minibar'] },
+            { id: 'b0000003-0000-4000-a000-000000000001', name: 'Standard Queen Room', code: 'STD', description: 'Cozy queen-size bed room', max_occupancy: 2, bed_type: 'queen', amenities: ['wifi', 'tv', 'ac'] },
+          ];
+
+      const mapped = typesList.map((t) => {
+        const defaultPrice = t.code === 'SUT' ? 6500 : t.code === 'STD' ? 2500 : 3500;
+        const price = planPriceByRoomType[t.id] ?? defaultPrice;
+        return {
+          id: t.id,
+          roomTypeId: t.id,
+          name: t.name,
+          code: t.code,
+          description: t.description || '',
+          maxOccupancy: t.max_occupancy || 2,
+          defaultOccupancy: t.default_occupancy || 2,
+          bedType: t.bed_type || 'king',
+          amenities: t.amenities || [],
+          basePrice: price,
+          baseAmount: price,
+          price: price,
+          sortOrder: t.sort_order || 1,
+          isActive: t.is_active !== false,
+        };
+      });
+
+      return ok(mapped);
+    }
+
+    if (method === 'PATCH' || method === 'PUT') {
+      const idMatch = url.match(/(?:\/rooms\/types|\/room-types)\/([^/?]+)/);
+      const typeId = idMatch ? idMatch[1] : '';
+      const body = typeof config.data === 'string' ? JSON.parse(config.data || '{}') : (config.data || {});
+
+      if (typeId) {
+        await supabaseFetch(`room_types?id=eq.${typeId}`, {
+          method: 'PATCH',
+          body: JSON.stringify({
+            name: body.name,
+            description: body.description,
+            max_occupancy: body.maxOccupancy,
+            bed_type: body.bedType,
+            amenities: body.amenities,
+          }),
+        });
+      }
+      return ok({ success: true, id: typeId, ...body });
+    }
+
+    if (method === 'POST') {
+      const body = typeof config.data === 'string' ? JSON.parse(config.data || '{}') : (config.data || {});
+      const newId = `b${Date.now().toString().slice(-7)}-0000-4000-a000-000000000001`;
+      await supabaseFetch('room_types', {
+        method: 'POST',
+        body: JSON.stringify({
+          id: newId,
+          property_id: PROPERTY_ID,
+          hotel_id: PROPERTY_ID,
+          name: body.name,
+          code: body.code,
+          description: body.description,
+          max_occupancy: body.maxOccupancy || 2,
+          bed_type: body.bedType || 'king',
+          amenities: body.amenities || [],
+        }),
+      });
+
+      return ok({ success: true, id: newId, ...body });
+    }
   }
 
   // 7. Rooms status summary
@@ -285,9 +369,72 @@ export async function handleSupabaseAdapter(config: AxiosRequestConfig): Promise
   }
 
   // 10. Rate Plans
-  if (url.includes('/rate-plans') && method === 'GET') {
-    const { data: plans } = await supabaseFetch<any[]>('rate_plans?select=*');
-    return ok(plans || []);
+  if (url.includes('/rate-plans')) {
+    if (method === 'GET') {
+      const { data: plans } = await supabaseFetch<any[]>('rate_plans?select=*');
+      const defaultPlans = [
+        { id: 'c0000001-0000-4000-a000-000000000001', room_type_id: 'b0000001-0000-4000-a000-000000000001', name: 'Deluxe Best Flexible Rate', code: 'BAR-DLX', type: 'bar', base_amount: 3500, base_rate: 3500, currency_code: 'INR' },
+        { id: 'c0000002-0000-4000-a000-000000000001', room_type_id: 'b0000002-0000-4000-a000-000000000001', name: 'Suite Best Flexible Rate', code: 'BAR-SUT', type: 'bar', base_amount: 6500, base_rate: 6500, currency_code: 'INR' },
+        { id: 'c0000003-0000-4000-a000-000000000001', room_type_id: 'b0000003-0000-4000-a000-000000000001', name: 'Standard Best Flexible Rate', code: 'BAR-STD', type: 'bar', base_amount: 2500, base_rate: 2500, currency_code: 'INR' },
+      ];
+      const list = plans && plans.length > 0 ? plans : defaultPlans;
+      const mapped = list.map((p) => ({
+        id: p.id,
+        roomTypeId: p.room_type_id,
+        room_type_id: p.room_type_id,
+        name: p.name,
+        code: p.code,
+        type: p.type || 'bar',
+        baseAmount: Number(p.base_amount || p.base_rate || 3500),
+        baseRate: Number(p.base_amount || p.base_rate || 3500),
+        base_amount: Number(p.base_amount || p.base_rate || 3500),
+        base_rate: Number(p.base_amount || p.base_rate || 3500),
+        currencyCode: p.currency_code || 'INR',
+        isActive: p.is_active !== false,
+      }));
+      return ok(mapped);
+    }
+
+    if (method === 'PATCH' || method === 'PUT') {
+      const idMatch = url.match(/\/rate-plans\/([^/?]+)/);
+      const planId = idMatch ? idMatch[1] : '';
+      const body = typeof config.data === 'string' ? JSON.parse(config.data || '{}') : (config.data || {});
+      const newPrice = Number(body.baseAmount || body.baseRate || body.base_amount || body.base_rate);
+
+      if (planId && !isNaN(newPrice)) {
+        await supabaseFetch(`rate_plans?id=eq.${planId}`, {
+          method: 'PATCH',
+          body: JSON.stringify({
+            base_amount: newPrice,
+            base_rate: newPrice,
+          }),
+        });
+      }
+      return ok({ success: true, id: planId, ...body });
+    }
+
+    if (method === 'POST') {
+      const body = typeof config.data === 'string' ? JSON.parse(config.data || '{}') : (config.data || {});
+      const newId = `c${Date.now().toString().slice(-7)}-0000-4000-a000-000000000001`;
+      const price = Number(body.baseAmount || body.baseRate || 3500);
+
+      await supabaseFetch('rate_plans', {
+        method: 'POST',
+        body: JSON.stringify({
+          id: newId,
+          property_id: PROPERTY_ID,
+          hotel_id: PROPERTY_ID,
+          room_type_id: body.roomTypeId || body.room_type_id,
+          name: body.name || 'BAR Rate',
+          code: body.code || 'BAR',
+          type: body.type || 'bar',
+          base_amount: price,
+          base_rate: price,
+          currency_code: 'INR',
+        }),
+      });
+      return ok({ success: true, id: newId, ...body });
+    }
   }
 
   // 11. Reservations search availability

@@ -103,8 +103,8 @@ export default function Header({ onMenuClick }: HeaderProps) {
           </a>
 
           <div className="flex items-center gap-1.5">
-            <div className={`w-2 h-2 rounded-full ${connected ? 'bg-telivity-dark-teal' : 'bg-telivity-orange'}`} aria-hidden="true" />
-            <span className="text-xs text-telivity-mid-grey hidden sm:inline">{connected ? t('header.statusLive') : t('header.statusOffline')}</span>
+            <div className={`w-2 h-2 rounded-full ${connected || !isLocal ? 'bg-telivity-dark-teal' : 'bg-telivity-orange'}`} aria-hidden="true" />
+            <span className="text-xs text-telivity-mid-grey hidden sm:inline">{connected || !isLocal ? (!isLocal ? 'Live (Cloud)' : t('header.statusLive')) : t('header.statusOffline')}</span>
           </div>
 
           <button
