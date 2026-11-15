@@ -33,6 +33,12 @@ export async function supabaseFetch<T = any>(
     throw new Error(`Supabase error (${res.status}): ${errText}`);
   }
 
-  return res.json();
+  const text = await res.text();
+  if (!text) return null as T;
+  try {
+    return JSON.parse(text);
+  } catch {
+    return text as unknown as T;
+  }
 }
 

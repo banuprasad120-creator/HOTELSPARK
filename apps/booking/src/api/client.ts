@@ -284,7 +284,10 @@ async function searchSupabase(body: SearchRequest): Promise<SearchResponse> {
 async function quoteSupabase(body: QuoteRequest): Promise<QuoteResponse> {
   let ratePerNight = 3500;
   try {
-    const plans = await supabaseFetch<any[]>(`rate_plans?id=eq.${body.ratePlanId}`);
+    const filter = body.ratePlanId
+      ? `id=eq.${body.ratePlanId}`
+      : `room_type_id=eq.${body.roomTypeId}`;
+    const plans = await supabaseFetch<any[]>(`rate_plans?${filter}&select=base_amount,base_rate`);
     const plan = plans?.[0];
     if (plan?.base_amount || plan?.base_rate) {
       ratePerNight = Number(plan.base_amount || plan.base_rate);
@@ -337,7 +340,15 @@ async function bookSupabase(body: BookRequest): Promise<BookResponse> {
     1,
     Math.round((new Date(body.checkOut).getTime() - new Date(body.checkIn).getTime()) / 86400000),
   );
-  const baseRate = body.roomTypeId.includes('2') ? 6500 : body.roomTypeId.includes('3') ? 2500 : 3500;
+  let baseRate = body.roomTypeId.includes('2') ? 6500 : body.roomTypeId.includes('3') ? 2500 : 3500;
+  try {
+    const plans = await supabaseFetch<any[]>(`rate_plans?room_type_id=eq.${body.roomTypeId}&select=base_amount,base_rate`);
+    if (plans?.[0]?.base_amount || plans?.[0]?.base_rate) {
+      baseRate = Number(plans[0].base_amount || plans[0].base_rate);
+    }
+  } catch (err) {
+    console.warn('Could not fetch live rate plan for room type:', err);
+  }
   const roomSubtotal = baseRate * nights;
   const tax = Math.round(roomSubtotal * 0.12);
   const grandTotal = (roomSubtotal + tax).toFixed(2);

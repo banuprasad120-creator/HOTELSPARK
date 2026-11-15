@@ -43,6 +43,18 @@ interface RoomTypeItem {
   name: string;
   code: string;
   baseRate?: number;
+  basePrice?: number;
+  baseAmount?: number;
+  price?: number;
+}
+
+function getRoomTypeRate(rt?: RoomTypeItem): number {
+  if (!rt) return 3500;
+  if (rt.basePrice && !isNaN(Number(rt.basePrice))) return Number(rt.basePrice);
+  if (rt.price && !isNaN(Number(rt.price))) return Number(rt.price);
+  if (rt.baseRate && !isNaN(Number(rt.baseRate))) return Number(rt.baseRate);
+  if (rt.baseAmount && !isNaN(Number(rt.baseAmount))) return Number(rt.baseAmount);
+  return rt.code === 'SUT' || rt.name.includes('Suite') ? 6500 : rt.code === 'STD' || rt.name.includes('Standard') ? 2500 : 3500;
 }
 
 export default function WalkInCheckInModal({ open, onClose, onSuccess }: WalkInCheckInModalProps) {
@@ -126,7 +138,9 @@ export default function WalkInCheckInModal({ open, onClose, onSuccess }: WalkInC
   useEffect(() => {
     if (roomTypes.length > 0 && !selectedRoomTypeId) {
       setSelectedRoomTypeId(roomTypes[0].id);
-      setRoomRatePerNight(roomTypes[0].name.includes('Suite') ? 6500 : roomTypes[0].name.includes('Standard') ? 2500 : 3500);
+      const rate = getRoomTypeRate(roomTypes[0]);
+      setRoomRatePerNight(rate);
+      setAdvancePaid(rate);
     }
   }, [roomTypes, selectedRoomTypeId]);
 
@@ -142,7 +156,7 @@ export default function WalkInCheckInModal({ open, onClose, onSuccess }: WalkInC
     setSelectedRoomId('');
     const rt = roomTypes.find((t) => t.id === rtId);
     if (rt) {
-      const rate = rt.name.includes('Suite') ? 6500 : rt.name.includes('Standard') ? 2500 : 3500;
+      const rate = getRoomTypeRate(rt);
       setRoomRatePerNight(rate);
       setAdvancePaid(rate);
     }

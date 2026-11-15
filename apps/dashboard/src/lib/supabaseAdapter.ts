@@ -43,6 +43,34 @@ const DEFAULT_EMPLOYEES = [
   { id: 'e0000007-0000-4000-a000-000000000001', employeeId: 'EMP-SPARK-007', name: 'Satish Reddy', mobile: '+91 98765 43216', email: 'maintenance@sparkhotel.com', designation: 'Chief Maintenance Technician', role: 'Maintenance Staff', departmentName: 'Maintenance', salary: 32000, status: 'active', joiningDate: '2025-02-01' },
 ];
 
+const RATE_STORAGE_KEY = 'hotel_spark_rates_cache';
+
+function getStoredRateCache(): Record<string, number> {
+  try {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      const saved = window.localStorage.getItem(RATE_STORAGE_KEY);
+      return saved ? JSON.parse(saved) : {};
+    }
+  } catch (e) {
+    void e;
+  }
+  return {};
+}
+
+function setStoredRate(key: string, price: number) {
+  try {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      const cache = getStoredRateCache();
+      cache[key] = price;
+      window.localStorage.setItem(RATE_STORAGE_KEY, JSON.stringify(cache));
+    }
+  } catch (e) {
+    void e;
+  }
+}
+
+const ratePlanPriceCache: Record<string, number> = getStoredRateCache();
+
 export async function handleSupabaseAdapter(config: AxiosRequestConfig): Promise<AxiosResponse> {
   const rawUrl = config.url || '';
   const url = rawUrl.replace(/^\/api/, '');
@@ -228,7 +256,8 @@ export async function handleSupabaseAdapter(config: AxiosRequestConfig): Promise
       const planPriceByRoomType: Record<string, number> = {};
       for (const p of plans) {
         if (p.room_type_id) {
-          planPriceByRoomType[p.room_type_id] = Number(p.base_amount || p.base_rate || 3500);
+          const cached = ratePlanPriceCache[p.id] ?? ratePlanPriceCache[p.room_type_id];
+          planPriceByRoomType[p.room_type_id] = cached !== undefined ? cached : Number(p.base_amount || p.base_rate || 3500);
         }
       }
 
@@ -241,8 +270,9 @@ export async function handleSupabaseAdapter(config: AxiosRequestConfig): Promise
           ];
 
       const mapped = typesList.map((t) => {
+        const cached = ratePlanPriceCache[t.id];
         const defaultPrice = t.code === 'SUT' ? 6500 : t.code === 'STD' ? 2500 : 3500;
-        const price = planPriceByRoomType[t.id] ?? defaultPrice;
+        const price = cached !== undefined ? cached : (planPriceByRoomType[t.id] ?? defaultPrice);
         return {
           id: t.id,
           roomTypeId: t.id,
@@ -378,20 +408,24 @@ export async function handleSupabaseAdapter(config: AxiosRequestConfig): Promise
         { id: 'c0000003-0000-4000-a000-000000000001', room_type_id: 'b0000003-0000-4000-a000-000000000001', name: 'Standard Best Flexible Rate', code: 'BAR-STD', type: 'bar', base_amount: 2500, base_rate: 2500, currency_code: 'INR' },
       ];
       const list = plans && plans.length > 0 ? plans : defaultPlans;
-      const mapped = list.map((p) => ({
-        id: p.id,
-        roomTypeId: p.room_type_id,
-        room_type_id: p.room_type_id,
-        name: p.name,
-        code: p.code,
-        type: p.type || 'bar',
-        baseAmount: Number(p.base_amount || p.base_rate || 3500),
-        baseRate: Number(p.base_amount || p.base_rate || 3500),
-        base_amount: Number(p.base_amount || p.base_rate || 3500),
-        base_rate: Number(p.base_amount || p.base_rate || 3500),
-        currencyCode: p.currency_code || 'INR',
-        isActive: p.is_active !== false,
-      }));
+      const mapped = list.map((p) => {
+        const cached = ratePlanPriceCache[p.id] ?? (p.room_type_id ? ratePlanPriceCache[p.room_type_id] : undefined);
+        const price = cached !== undefined ? cached : Number(p.base_amount || p.base_rate || 3500);
+        return {
+          id: p.id,
+          roomTypeId: p.room_type_id,
+          room_type_id: p.room_type_id,
+          name: p.name,
+          code: p.code,
+          type: p.type || 'bar',
+          baseAmount: price,
+          baseRate: price,
+          base_amount: price,
+          base_rate: price,
+          currencyCode: p.currency_code || 'INR',
+          isActive: p.is_active !== false,
+        };
+      });
       return ok(mapped);
     }
 
@@ -401,16 +435,36 @@ export async function handleSupabaseAdapter(config: AxiosRequestConfig): Promise
       const body = typeof config.data === 'string' ? JSON.parse(config.data || '{}') : (config.data || {});
       const newPrice = Number(body.baseAmount || body.baseRate || body.base_amount || body.base_rate);
 
-      if (planId && !isNaN(newPrice)) {
-        await supabaseFetch(`rate_plans?id=eq.${planId}`, {
-          method: 'PATCH',
-          body: JSON.stringify({
-            base_amount: newPrice,
-            base_rate: newPrice,
-          }),
-        });
+      if (!isNaN(newPrice) && newPrice > 0) {
+        if (planId) {
+          ratePlanPriceCache[planId] = newPrice;
+          setStoredRate(planId, newPrice);
+        }
+        if (body.roomTypeId || body.room_type_id) {
+          const rtId = body.roomTypeId || body.room_type_id;
+          ratePlanPriceCache[rtId] = newPrice;
+          setStoredRate(rtId, newPrice);
+          await supabaseFetch(`rate_plans?room_type_id=eq.${rtId}`, {
+            method: 'PATCH',
+            headers: { Prefer: 'return=representation' },
+            body: JSON.stringify({
+              base_amount: newPrice,
+              base_rate: newPrice,
+            }),
+          });
+        }
+        if (planId) {
+          await supabaseFetch(`rate_plans?id=eq.${planId}`, {
+            method: 'PATCH',
+            headers: { Prefer: 'return=representation' },
+            body: JSON.stringify({
+              base_amount: newPrice,
+              base_rate: newPrice,
+            }),
+          });
+        }
       }
-      return ok({ success: true, id: planId, ...body });
+      return ok({ success: true, id: planId, baseAmount: newPrice, baseRate: newPrice, ...body });
     }
 
     if (method === 'POST') {
@@ -418,8 +472,16 @@ export async function handleSupabaseAdapter(config: AxiosRequestConfig): Promise
       const newId = `c${Date.now().toString().slice(-7)}-0000-4000-a000-000000000001`;
       const price = Number(body.baseAmount || body.baseRate || 3500);
 
+      ratePlanPriceCache[newId] = price;
+      setStoredRate(newId, price);
+      if (body.roomTypeId || body.room_type_id) {
+        ratePlanPriceCache[body.roomTypeId || body.room_type_id] = price;
+        setStoredRate(body.roomTypeId || body.room_type_id, price);
+      }
+
       await supabaseFetch('rate_plans', {
         method: 'POST',
+        headers: { Prefer: 'return=representation' },
         body: JSON.stringify({
           id: newId,
           property_id: PROPERTY_ID,

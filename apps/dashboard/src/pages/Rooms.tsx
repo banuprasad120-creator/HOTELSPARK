@@ -38,6 +38,7 @@ interface RoomType {
   roomCount?: number;
   basePrice?: number;
   baseAmount?: number;
+  price?: number;
 }
 
 interface RoomDiaryEntry {
@@ -550,9 +551,8 @@ function RoomList() {
               value={newRoomNumber}
               onChange={(e) => setNewRoomNumber(e.target.value)}
               placeholder="e.g. 101, 201"
-              className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none ${
-                isDuplicateNumber ? 'border-red-500 bg-red-50 text-red-900 font-bold' : 'border-gray-200 focus:border-telivity-teal'
-              }`}
+              className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none ${isDuplicateNumber ? 'border-red-500 bg-red-50 text-red-900 font-bold' : 'border-gray-200 focus:border-telivity-teal'
+                }`}
             />
             {isDuplicateNumber && (
               <p className="text-xs text-red-600 mt-1 font-semibold flex items-center gap-1">
@@ -661,12 +661,13 @@ function RoomTypeList() {
 
   const getPrice = (roomType: RoomType): number => {
     const bar = getBarPlan(roomType.id);
-    if (bar?.baseAmount) return Number(bar.baseAmount);
-    if (bar?.baseRate) return Number(bar.baseRate);
-    if (bar?.base_amount) return Number(bar.base_amount);
-    if (bar?.base_rate) return Number(bar.base_rate);
-    if (roomType.basePrice) return Number(roomType.basePrice);
-    if (roomType.baseAmount) return Number(roomType.baseAmount);
+    if (bar?.baseAmount && !isNaN(Number(bar.baseAmount))) return Number(bar.baseAmount);
+    if (bar?.baseRate && !isNaN(Number(bar.baseRate))) return Number(bar.baseRate);
+    if (bar?.base_amount && !isNaN(Number(bar.base_amount))) return Number(bar.base_amount);
+    if (bar?.base_rate && !isNaN(Number(bar.base_rate))) return Number(bar.base_rate);
+    if (roomType.basePrice && !isNaN(Number(roomType.basePrice))) return Number(roomType.basePrice);
+    if (roomType.baseAmount && !isNaN(Number(roomType.baseAmount))) return Number(roomType.baseAmount);
+    if (roomType.price && !isNaN(Number(roomType.price))) return Number(roomType.price);
     return roomType.code === 'SUT' ? 6500 : roomType.code === 'STD' ? 2500 : 3500;
   };
 
@@ -680,7 +681,7 @@ function RoomTypeList() {
       if (bar?.id) {
         await api.patch(
           `/v1/rate-plans/${bar.id}`,
-          { baseAmount: amount, baseRate: amount },
+          { baseAmount: amount, baseRate: amount, roomTypeId: priceModalType.id },
           { params: { propertyId } },
         );
       } else {
@@ -701,6 +702,31 @@ function RoomTypeList() {
       }
     },
     onSuccess: () => {
+      const amount = Number(quickPriceValue);
+      if (priceModalType && !isNaN(amount)) {
+        // Optimistically update React Query cache for instant visual feedback
+        queryClient.setQueryData(['rate-plans', propertyId], (old: any) => {
+          if (!old) return old;
+          const list = Array.isArray(old?.data) ? old.data : (Array.isArray(old) ? old : []);
+          return list.map((rp: any) => {
+            if (rp.roomTypeId === priceModalType.id || rp.room_type_id === priceModalType.id) {
+              return { ...rp, baseAmount: amount, baseRate: amount, base_amount: amount, base_rate: amount };
+            }
+            return rp;
+          });
+        });
+
+        queryClient.setQueryData(['rooms', 'types', propertyId], (old: any) => {
+          if (!old) return old;
+          const list = Array.isArray(old?.data) ? old.data : (Array.isArray(old) ? old : []);
+          return list.map((rt: any) => {
+            if (rt.id === priceModalType.id) {
+              return { ...rt, basePrice: amount, baseAmount: amount, price: amount };
+            }
+            return rt;
+          });
+        });
+      }
       queryClient.invalidateQueries({ queryKey: ['rooms', 'types'] });
       queryClient.invalidateQueries({ queryKey: ['rate-plans'] });
       toast('success', `Nightly price updated to ₹${Number(quickPriceValue).toLocaleString('en-IN')}!`);
@@ -794,7 +820,7 @@ function RoomTypeList() {
         if (barPlan) {
           await api.patch(
             `/v1/rate-plans/${barPlan.id}`,
-            { baseAmount: amount, baseRate: amount },
+            { baseAmount: amount, baseRate: amount, roomTypeId: editType.id },
             { params: { propertyId } },
           );
         } else {
@@ -812,6 +838,30 @@ function RoomTypeList() {
       }
     },
     onSuccess: () => {
+      const amount = Number(editBasePrice);
+      if (editType && !isNaN(amount)) {
+        queryClient.setQueryData(['rate-plans', propertyId], (old: any) => {
+          if (!old) return old;
+          const list = Array.isArray(old?.data) ? old.data : (Array.isArray(old) ? old : []);
+          return list.map((rp: any) => {
+            if (rp.roomTypeId === editType.id || rp.room_type_id === editType.id) {
+              return { ...rp, baseAmount: amount, baseRate: amount, base_amount: amount, base_rate: amount };
+            }
+            return rp;
+          });
+        });
+
+        queryClient.setQueryData(['rooms', 'types', propertyId], (old: any) => {
+          if (!old) return old;
+          const list = Array.isArray(old?.data) ? old.data : (Array.isArray(old) ? old : []);
+          return list.map((rt: any) => {
+            if (rt.id === editType.id) {
+              return { ...rt, name: editName, basePrice: amount, baseAmount: amount, price: amount };
+            }
+            return rt;
+          });
+        });
+      }
       queryClient.invalidateQueries({ queryKey: ['rooms', 'types'] });
       queryClient.invalidateQueries({ queryKey: ['rate-plans'] });
       toast('success', 'Room category and pricing updated successfully!');
@@ -992,11 +1042,10 @@ function RoomTypeList() {
                     key={amt}
                     type="button"
                     onClick={() => setQuickPriceValue(String(amt))}
-                    className={`px-2.5 py-1 text-xs rounded-md border font-medium transition ${
-                      quickPriceValue === String(amt)
-                        ? 'bg-emerald-600 text-white border-emerald-600 font-bold'
-                        : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
-                    }`}
+                    className={`px-2.5 py-1 text-xs rounded-md border font-medium transition ${quickPriceValue === String(amt)
+                      ? 'bg-emerald-600 text-white border-emerald-600 font-bold'
+                      : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
+                      }`}
                   >
                     ₹{amt.toLocaleString('en-IN')}
                   </button>

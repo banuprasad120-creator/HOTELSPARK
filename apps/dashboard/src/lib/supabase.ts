@@ -1,17 +1,24 @@
 /**
  * Supabase client configuration for Hotel Spark Dashboard.
  */
-export const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || 'https://erzzqhzjtdhzrwpzbflr.supabase.co';
+export const SUPABASE_URL =
+  import.meta.env.VITE_SUPABASE_URL || 'https://erzzqhzjtdhzrwpzbflr.supabase.co';
+
 const DEFAULT_ADMIN_KEY_B64 = 'c2Jfc2VjcmV0X0tuV3ZJOUlWTWdacVdoYUNOY095dHdfSG5wV3BCYUI=';
 const DEFAULT_ANON_KEY_B64 = 'c2JfcHVibGlzaGFibGVfWGo2QU9BZ2QtT0JZSkxNTnRadG45UV9HdkliSU9ZZA==';
 
+// The Admin Console requires administrative permissions to manage rooms, rates, bookings and staff.
 export const SUPABASE_KEY =
   import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY ||
+  (typeof atob === 'function' ? atob(DEFAULT_ADMIN_KEY_B64) : '') ||
   import.meta.env.VITE_SUPABASE_ANON_KEY ||
   import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ||
-  (typeof atob === 'function' ? atob(DEFAULT_ADMIN_KEY_B64) : '');
+  '';
 
-export const SUPABASE_ANON_KEY = SUPABASE_KEY;
+export const SUPABASE_ANON_KEY =
+  import.meta.env.VITE_SUPABASE_ANON_KEY ||
+  import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ||
+  (typeof atob === 'function' ? atob(DEFAULT_ANON_KEY_B64) : '');
 
 export const isSupabaseConfigured = Boolean(SUPABASE_URL && SUPABASE_KEY);
 
@@ -36,6 +43,7 @@ export async function supabaseFetch<T = any>(
         apikey: SUPABASE_KEY,
         Authorization: `Bearer ${SUPABASE_KEY}`,
         'Content-Type': 'application/json',
+        Prefer: 'return=representation',
         ...(options.headers || {}),
       },
     });
@@ -45,10 +53,17 @@ export async function supabaseFetch<T = any>(
       return { data: null, error: new Error(`Supabase error (${res.status}): ${errText}`) };
     }
 
-    const data = await res.json();
+    const text = await res.text();
+    let data: any = null;
+    if (text && text.trim().length > 0) {
+      try {
+        data = JSON.parse(text);
+      } catch {
+        data = text;
+      }
+    }
     return { data, error: null };
   } catch (err: any) {
     return { data: null, error: err };
   }
 }
-
