@@ -12,7 +12,7 @@ async function debugBooking() {
     args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-web-security'],
   });
   const page = await browser.newPage();
-  
+
   await page.goto('http://localhost:5174/booking/?key=pk_live_HAIPDEMO0000000000000000');
   console.log('1. Home loaded');
 

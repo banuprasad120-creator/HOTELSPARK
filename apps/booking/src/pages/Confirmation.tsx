@@ -67,8 +67,8 @@ export function Confirmation() {
           </h2>
 
           <p className="mt-3 text-sm text-gray-700 max-w-lg mx-auto leading-relaxed">
-            Thank you! Your direct reservation request has been submitted to Hotel Spark. 
-            Our front desk management will review room availability and send your official confirmation 
+            Thank you! Your direct reservation request has been submitted to Hotel Spark.
+            Our front desk management will review room availability and send your official confirmation
             and room assignment directly to your WhatsApp and Email.
           </p>
 

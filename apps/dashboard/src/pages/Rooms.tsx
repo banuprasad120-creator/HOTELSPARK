@@ -331,8 +331,8 @@ function RoomList() {
     const list = Array.isArray(diaryData?.data)
       ? diaryData.data
       : Array.isArray(diaryData)
-      ? diaryData
-      : [];
+        ? diaryData
+        : [];
     for (const r of list as RoomDiaryEntry[]) {
       if (r?.roomId) map.set(r.roomId, r);
     }
@@ -431,23 +431,23 @@ function RoomList() {
                 {floorRooms.sort((a, b) => a.number.localeCompare(b.number)).map((room) => {
                   const diary = diaryByRoomId.get(room.id);
                   return (
-                  <div
-                    key={room.id}
-                    onClick={() => setDetailRoom(room)}
-                    className={`border-2 rounded-xl p-3 cursor-pointer transition-all hover:shadow-md ${STATUS_CARD_COLORS[room.status] ?? 'border-gray-200'}`}
-                  >
-                    <p className="text-sm font-semibold text-telivity-navy">{room.number}</p>
-                    <p className="text-[10px] text-telivity-mid-grey truncate">{room.roomTypeName ?? ''}</p>
-                    <StatusBadge status={room.status} label={t(`dashboard.roomStatuses.${room.status}`, { defaultValue: room.status })} className="mt-1.5 text-[9px] px-1.5 py-0" />
-                    {diary ? (
-                      <>
-                        <p className="text-[10px] text-telivity-slate mt-1 truncate font-medium">{diary.guestName ?? t('rooms.none')}</p>
-                        <p className="text-[9px] text-telivity-mid-grey truncate">{diary.arrivalDate} → {diary.departureDate}</p>
-                      </>
-                    ) : room.guestName ? (
-                      <p className="text-[10px] text-telivity-slate mt-1 truncate">{room.guestName}</p>
-                    ) : null}
-                  </div>
+                    <div
+                      key={room.id}
+                      onClick={() => setDetailRoom(room)}
+                      className={`border-2 rounded-xl p-3 cursor-pointer transition-all hover:shadow-md ${STATUS_CARD_COLORS[room.status] ?? 'border-gray-200'}`}
+                    >
+                      <p className="text-sm font-semibold text-telivity-navy">{room.number}</p>
+                      <p className="text-[10px] text-telivity-mid-grey truncate">{room.roomTypeName ?? ''}</p>
+                      <StatusBadge status={room.status} label={t(`dashboard.roomStatuses.${room.status}`, { defaultValue: room.status })} className="mt-1.5 text-[9px] px-1.5 py-0" />
+                      {diary ? (
+                        <>
+                          <p className="text-[10px] text-telivity-slate mt-1 truncate font-medium">{diary.guestName ?? t('rooms.none')}</p>
+                          <p className="text-[9px] text-telivity-mid-grey truncate">{diary.arrivalDate} → {diary.departureDate}</p>
+                        </>
+                      ) : room.guestName ? (
+                        <p className="text-[10px] text-telivity-slate mt-1 truncate">{room.guestName}</p>
+                      ) : null}
+                    </div>
                   );
                 })}
               </div>
@@ -478,17 +478,17 @@ function RoomList() {
               {rooms.map((r, i) => {
                 const diary = diaryByRoomId.get(r.id);
                 return (
-                <tr key={r.id} onClick={() => setDetailRoom(r)} className={`border-b border-gray-50 cursor-pointer hover:bg-telivity-light-grey/50 ${i % 2 === 1 ? 'bg-gray-50/50' : ''}`}>
-                  <td className="px-4 py-3 text-sm font-medium text-telivity-navy">{r.number}</td>
-                  <td className="px-4 py-3 text-sm text-telivity-slate">{r.roomTypeName ?? '—'}</td>
-                  <td className="px-4 py-3 text-sm text-telivity-slate">{r.floor ?? '—'}</td>
-                  <td className="px-4 py-3"><StatusBadge status={r.status} label={t(`dashboard.roomStatuses.${r.status}`, { defaultValue: r.status })} /></td>
-                  <td className="px-4 py-3 text-sm text-telivity-slate">{diary?.guestName ?? r.guestName ?? '—'}</td>
-                  <td className="px-4 py-3 text-sm text-telivity-slate">
-                    {diary ? `${diary.arrivalDate} → ${diary.departureDate}` : '—'}
-                  </td>
-                  <td className="px-4 py-3 text-sm">{r.isAccessible ? t('common.yes') : '—'}</td>
-                </tr>
+                  <tr key={r.id} onClick={() => setDetailRoom(r)} className={`border-b border-gray-50 cursor-pointer hover:bg-telivity-light-grey/50 ${i % 2 === 1 ? 'bg-gray-50/50' : ''}`}>
+                    <td className="px-4 py-3 text-sm font-medium text-telivity-navy">{r.number}</td>
+                    <td className="px-4 py-3 text-sm text-telivity-slate">{r.roomTypeName ?? '—'}</td>
+                    <td className="px-4 py-3 text-sm text-telivity-slate">{r.floor ?? '—'}</td>
+                    <td className="px-4 py-3"><StatusBadge status={r.status} label={t(`dashboard.roomStatuses.${r.status}`, { defaultValue: r.status })} /></td>
+                    <td className="px-4 py-3 text-sm text-telivity-slate">{diary?.guestName ?? r.guestName ?? '—'}</td>
+                    <td className="px-4 py-3 text-sm text-telivity-slate">
+                      {diary ? `${diary.arrivalDate} → ${diary.departureDate}` : '—'}
+                    </td>
+                    <td className="px-4 py-3 text-sm">{r.isAccessible ? t('common.yes') : '—'}</td>
+                  </tr>
                 );
               })}
             </tbody>

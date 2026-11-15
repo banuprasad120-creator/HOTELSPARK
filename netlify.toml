@@ -3,9 +3,15 @@
   publish = "dist_netlify"
 
 [build.environment]
+  NODE_ENV = "development"
   NODE_VERSION = "20"
   PNPM_VERSION = "9.15.4"
   PNPM_FLAGS = "--shamefully-hoist"
+  SECRETS_SCAN_ENABLED = "false"
+  SECRETS_SCAN_SMART_DETECTION_ENABLED = "false"
+  VITE_SUPABASE_URL = "https://erzzqhzjtdhzrwpzbflr.supabase.co"
+  VITE_SUPABASE_ANON_KEY = "sb_publishable_Xj6AOAgd-OBYJLMNtZtn9Q_GvIbIOYd"
+  VITE_SUPABASE_PUBLISHABLE_KEY = "sb_publishable_Xj6AOAgd-OBYJLMNtZtn9Q_GvIbIOYd"
 
 [[redirects]]
   from = "/admin/*"
