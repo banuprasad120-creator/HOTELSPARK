@@ -169,7 +169,11 @@ function ReservationList() {
   // Memoised so the `columns` memo below keeps a stable identity between
   // renders — its cell renderers are the element *type* passed to flexRender,
   // so a new identity remounts every cell (and drops in-flight interactions).
-  const reservations: Reservation[] = useMemo(() => data?.data ?? data ?? [], [data]);
+  const reservations: Reservation[] = useMemo(() => {
+    if (Array.isArray(data?.data)) return data.data;
+    if (Array.isArray(data)) return data;
+    return [];
+  }, [data]);
 
   const searchAvailMutation = useMutation({
     mutationFn: async () => {
@@ -346,7 +350,10 @@ function ReservationList() {
     return '—';
   }
 
-  const pageIds = useMemo(() => reservations.map((r) => r.id), [reservations]);
+  const pageIds = useMemo(
+    () => (Array.isArray(reservations) ? reservations.map((r) => r.id) : []),
+    [reservations],
+  );
   const allOnPageSelected = pageIds.length > 0 && pageIds.every((rid) => selectedIds.includes(rid));
   const cancelReservation = cancelMutation.mutate;
   const markNoShow = noShowMutation.mutate;
@@ -896,8 +903,8 @@ function AvailabilityCalendar() {
     enabled: !!propertyId,
   });
 
-  const rooms = roomsData?.data ?? roomsData ?? [];
-  const reservations: Reservation[] = resData?.data ?? resData ?? [];
+  const rooms = Array.isArray(roomsData?.data) ? roomsData.data : (Array.isArray(roomsData) ? roomsData : []);
+  const reservations: Reservation[] = Array.isArray(resData?.data) ? resData.data : (Array.isArray(resData) ? resData : []);
 
   function getResForCell(roomId: string, date: string) {
     return reservations.find((r) => r.roomId === roomId && r.arrivalDate <= date && r.departureDate > date);
@@ -1005,7 +1012,8 @@ function UnassignedQueue() {
 
   const rows: (Reservation & { reasonHint?: string })[] = data?.data ?? (Array.isArray(data) ? data : []);
   const total = data?.total ?? rows.length;
-  const rooms: { id: string; number: string; roomTypeId?: string }[] = roomsData?.data ?? roomsData ?? [];
+  const rooms: { id: string; number: string; roomTypeId?: string }[] =
+    Array.isArray(roomsData?.data) ? roomsData.data : (Array.isArray(roomsData) ? roomsData : []);
   // Prefer rooms matching the reservation's room type; fall back to all available.
   const matchingRooms = assignFor?.roomTypeId
     ? rooms.filter((r) => !r.roomTypeId || r.roomTypeId === assignFor.roomTypeId)

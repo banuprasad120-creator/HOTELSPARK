@@ -40,8 +40,6 @@ export const DEFAULT_PROPERTY: PropertySummary = {
   name: 'Hotel Spark',
   code: 'SPARK01',
   currencyCode: 'INR',
-  timeZone: 'Asia/Kolkata',
-  status: 'active',
   staffDisplayName: 'Hotel Spark Admin',
 };
 

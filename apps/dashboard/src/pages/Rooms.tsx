@@ -577,8 +577,8 @@ function RoomTypeList() {
     enabled: !!propertyId,
   });
 
-  const types: RoomType[] = data?.data ?? data ?? [];
-  const ratePlans: any[] = ratePlansData?.data ?? ratePlansData ?? [];
+  const types: RoomType[] = Array.isArray(data?.data) ? data.data : (Array.isArray(data) ? data : []);
+  const ratePlans: any[] = Array.isArray(ratePlansData?.data) ? ratePlansData.data : (Array.isArray(ratePlansData) ? ratePlansData : []);
 
   // Helper to find the BAR rate plan for a room type
   const getBarPlan = (roomTypeId: string) => {

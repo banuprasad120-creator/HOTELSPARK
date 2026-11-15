@@ -306,7 +306,7 @@ function TaskBoard() {
     enabled: !!propertyId,
   });
 
-  const tasks: Task[] = data?.data ?? data ?? [];
+  const tasks: Task[] = Array.isArray(data?.data) ? data.data : (Array.isArray(data) ? data : []);
 
   const { data: usersData } = useQuery({
     queryKey: ['admin', 'users', propertyId],

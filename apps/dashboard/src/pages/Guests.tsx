@@ -67,7 +67,7 @@ function GuestList() {
     enabled: !!propertyId,
   });
 
-  const guests: Guest[] = data?.data ?? data ?? [];
+  const guests: Guest[] = Array.isArray(data?.data) ? data.data : (Array.isArray(data) ? data : []);
 
   if (!propertyId) {
     return <div className="flex items-center justify-center h-64 text-telivity-mid-grey">{t('guests.selectProperty')}</div>;
