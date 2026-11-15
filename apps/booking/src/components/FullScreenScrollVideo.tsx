@@ -49,7 +49,9 @@ export function FullScreenScrollVideo({ children }: FullScreenScrollVideoProps) 
           if (Math.abs(video.currentTime - targetTime) > 0.03) {
             video.currentTime = targetTime;
           }
-        } catch {}
+        } catch {
+          /* ignore video scrub error */
+        }
       }
     });
   }, [isAutoPlayMode]);
@@ -71,7 +73,9 @@ export function FullScreenScrollVideo({ children }: FullScreenScrollVideoProps) 
     if (isAutoPlayMode) {
       try {
         video.pause?.();
-      } catch {}
+      } catch {
+        /* ignore pause error */
+      }
       setIsAutoPlayMode(false);
       if (video.duration) {
         video.currentTime = scrollProgress * video.duration;
@@ -84,7 +88,9 @@ export function FullScreenScrollVideo({ children }: FullScreenScrollVideoProps) 
         } else {
           setIsAutoPlayMode(true);
         }
-      } catch {}
+      } catch {
+        /* ignore play error */
+      }
     }
   };
 

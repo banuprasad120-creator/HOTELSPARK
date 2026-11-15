@@ -77,7 +77,9 @@ export function PropertyProvider({ children }: { children: ReactNode }) {
   function setPropertyId(id: string) {
     try {
       localStorage.setItem('haip_property_id', id);
-    } catch {}
+    } catch {
+      /* ignore storage error */
+    }
     setLastPropertyId(id);
     setSearchParams((prev) => {
       const next = new URLSearchParams(prev);
@@ -90,7 +92,9 @@ export function PropertyProvider({ children }: { children: ReactNode }) {
     if (urlPropertyId) {
       try {
         localStorage.setItem('haip_property_id', urlPropertyId);
-      } catch {}
+      } catch {
+        /* ignore storage error */
+      }
       setLastPropertyId(urlPropertyId);
       return;
     }
@@ -147,7 +151,9 @@ export function PropertyProvider({ children }: { children: ReactNode }) {
           const targetId = list.find((p) => p.id === propertyId)?.id || list[0].id;
           try {
             localStorage.setItem('haip_property_id', targetId);
-          } catch {}
+          } catch {
+            /* ignore storage error */
+          }
         }
       })
       .catch((err) => {

@@ -126,7 +126,9 @@ export function ScrollVideoHero({ onBookNowClick }: { onBookNowClick?: () => voi
       // Switch to scroll-scrub mode
       try {
         video.pause?.();
-      } catch {}
+      } catch {
+        /* ignore pause error */
+      }
       setIsAutoPlayMode(false);
       // Sync video to current scroll progress
       if (video.duration) {
@@ -141,7 +143,9 @@ export function ScrollVideoHero({ onBookNowClick }: { onBookNowClick?: () => voi
         } else {
           setIsAutoPlayMode(true);
         }
-      } catch {}
+      } catch {
+        /* ignore play error */
+      }
     }
   };
 

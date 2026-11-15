@@ -227,7 +227,9 @@ export class MakeMyTripAdapter implements ChannelAdapter {
         let data = undefined;
         try {
           data = text ? JSON.parse(text) : undefined;
-        } catch (_) {}
+        } catch {
+          // ignore invalid json payload
+        }
 
         return { ok: true, status: res.status, data };
       } catch (err: any) {

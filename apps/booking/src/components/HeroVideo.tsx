@@ -41,7 +41,9 @@ export function HeroVideo() {
     if (isPlaying) {
       try {
         video.pause?.();
-      } catch {}
+      } catch {
+        /* ignore pause error */
+      }
       setIsPlaying(false);
     } else {
       try {
@@ -51,7 +53,9 @@ export function HeroVideo() {
         } else {
           setIsPlaying(true);
         }
-      } catch {}
+      } catch {
+        /* ignore play error */
+      }
     }
   };
 
