@@ -1,7 +1,8 @@
 import { Fragment, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { ConciergeBell, LogIn, Users, LogOut, UserPlus, UsersRound, ArrowRightLeft, StickyNote, UserRound, Plus, X } from 'lucide-react';
+import { ConciergeBell, LogIn, Users, LogOut, UserPlus, UsersRound, ArrowRightLeft, StickyNote, UserRound, Plus, X, Globe, CheckCircle2, Sparkles } from 'lucide-react';
 import { addDays, differenceInCalendarDays, format, parseISO } from 'date-fns';
 import { api } from '../lib/api';
 import { moneyString, requirePropertyId, requireCurrency } from '../lib/api-helpers';
@@ -15,7 +16,7 @@ import type { ParsedIdDocument } from '../lib/id-document-swipe';
 import type { Guest } from '../types/guest';
 import { formatMoney } from '../lib/money';
 
-type Tab = 'arrivals' | 'in-house' | 'departures';
+type Tab = 'arrivals' | 'online' | 'in-house' | 'departures';
 
 interface Reservation {
   id: string;
@@ -127,9 +128,38 @@ function emptyWalkInExtraRoom(defaults?: {
 export default function FrontDesk() {
   const { t } = useTranslation();
   const { propertyId, currencyCode } = useProperty();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const today = format(new Date(), 'yyyy-MM-dd');
   const tomorrow = format(addDays(new Date(), 1), 'yyyy-MM-dd');
+
+  const { data: directBookingsData } = useQuery({
+    queryKey: ['direct-bookings', propertyId],
+    queryFn: () => api.get('/v1/direct-bookings', { params: { propertyId } }).then((r) => r.data),
+    enabled: !!propertyId,
+    refetchInterval: 5000,
+  });
+
+  const directBookingsList: any[] = Array.isArray(directBookingsData?.data)
+    ? directBookingsData.data
+    : (Array.isArray(directBookingsData) ? directBookingsData : []);
+
+  const pendingOnlineBookings = directBookingsList.filter(
+    (b) => b.status === 'pending' || b.status === 'pending_approval',
+  );
+
+  const approveOnlineMutation = useMutation({
+    mutationFn: async ({ id, roomId }: { id: string; roomId?: string }) => {
+      const res = await api.post(`/v1/direct-bookings/${id}/approve`, { roomId }, { params: { propertyId } });
+      return res.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['direct-bookings'] });
+      queryClient.invalidateQueries({ queryKey: ['reservations'] });
+      queryClient.invalidateQueries({ queryKey: ['rooms'] });
+      setTab('in-house');
+    },
+  });
 
   const [tab, setTab] = useState<Tab>('arrivals');
   const [checkInModal, setCheckInModal] = useState<Reservation | null>(null);
@@ -777,12 +807,18 @@ export default function FrontDesk() {
   const currentList = tab === 'arrivals' ? arrList : tab === 'in-house' ? ihList : depList;
   const partyGroups = useMemo(() => groupByBooking(currentList), [currentList]);
 
-  const tabs: { key: Tab; label: string; icon: typeof LogIn; count: number }[] = [
+  const tabs: { key: Tab; label: string; icon: any; count: number }[] = [
     {
       key: 'arrivals',
       label: t('frontDesk.arrivals'),
       icon: LogIn,
       count: arrList.length,
+    },
+    {
+      key: 'online',
+      label: 'Website Bookings',
+      icon: Globe,
+      count: pendingOnlineBookings.length,
     },
     { key: 'in-house', label: t('frontDesk.inHouse'), icon: Users, count: ihList.length },
     { key: 'departures', label: t('frontDesk.departures'), icon: LogOut, count: depList.length },
@@ -825,6 +861,44 @@ export default function FrontDesk() {
           </button>
         </div>
       </div>
+
+      {pendingOnlineBookings.length > 0 && (
+        <div className="mb-4 bg-gradient-to-r from-teal-50 via-emerald-50 to-teal-50 border border-teal-200 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 bg-telivity-teal text-white rounded-lg shadow-xs">
+              <Globe size={20} />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="bg-amber-100 text-amber-800 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase">
+                  Website Booking
+                </span>
+                <p className="text-sm font-bold text-telivity-navy">
+                  {pendingOnlineBookings.length} Direct Online Booking Request{pendingOnlineBookings.length > 1 ? 's' : ''} Pending Front Desk Review!
+                </p>
+              </div>
+              <p className="text-xs text-telivity-slate mt-0.5">
+                Latest: <strong>{pendingOnlineBookings[0]?.guestFirstName} {pendingOnlineBookings[0]?.guestLastName}</strong> ({pendingOnlineBookings[0]?.reference}) &middot; {pendingOnlineBookings[0]?.roomTypeName} ({pendingOnlineBookings[0]?.arrivalDate} &rarr; {pendingOnlineBookings[0]?.departureDate}) &middot; {formatMoney(pendingOnlineBookings[0]?.submittedTotal, currencyCode)}
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setTab('online')}
+              className="px-3.5 py-2 bg-telivity-teal hover:bg-teal-700 text-white text-xs font-bold rounded-lg shadow-xs transition flex items-center gap-1.5"
+            >
+              <CheckCircle2 size={14} />
+              <span>Review in Front Desk &rarr;</span>
+            </button>
+            <button
+              onClick={() => navigate('/direct-bookings/pending')}
+              className="px-3 py-2 bg-white border border-gray-300 text-telivity-slate text-xs font-semibold rounded-lg hover:bg-gray-50 transition"
+            >
+              Direct Bookings Desk
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className="flex gap-1 bg-white rounded-xl shadow-sm p-1 mb-4">
         {tabs.map((tb) => (
@@ -916,7 +990,62 @@ export default function FrontDesk() {
             </tr>
           </thead>
           <tbody>
-            {partyGroups.map((group) => {
+            {tab === 'online' ? (
+              pendingOnlineBookings.length === 0 ? (
+                <tr>
+                  <td colSpan={10} className="px-4 py-8 text-center text-sm text-telivity-mid-grey">
+                    No pending online bookings. All website inquiries have been reviewed!
+                  </td>
+                </tr>
+              ) : (
+                pendingOnlineBookings.map((ob: any) => (
+                  <tr key={ob.id} className="border-b border-gray-100 hover:bg-gray-50/50 transition-colors">
+                    <td className="px-4 py-3">
+                      <p className="font-semibold text-telivity-navy text-sm">{ob.guestFirstName} {ob.guestLastName}</p>
+                      <p className="text-xs text-gray-500">{ob.guestPhone || ob.guestEmail}</p>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className="font-mono font-bold text-xs text-telivity-teal bg-teal-50 px-2 py-1 rounded border border-teal-200">
+                        {ob.reference}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-sm text-gray-700 font-medium">
+                      {ob.roomTypeName}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-gray-500">
+                      Unassigned (Website)
+                    </td>
+                    <td className="px-4 py-3 text-sm text-gray-700">
+                      {ob.arrivalDate} &rarr; {ob.departureDate}
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-800 border border-amber-200">
+                        Pending Approval
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <button
+                          onClick={() => approveOnlineMutation.mutate({ id: ob.id, roomId: '5aca9c61-49d7-42db-885c-58d30dfceac7' })}
+                          disabled={approveOnlineMutation.isPending}
+                          className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg shadow-xs transition flex items-center gap-1"
+                        >
+                          <Sparkles size={13} />
+                          <span>Approve & Check-In</span>
+                        </button>
+                        <button
+                          onClick={() => navigate('/direct-bookings')}
+                          className="px-2.5 py-1.5 border border-gray-200 text-gray-700 hover:bg-gray-100 text-xs font-medium rounded-lg"
+                        >
+                          Review
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )
+            ) : (
+              partyGroups.map((group) => {
               const showPartyHeader = group.members.length > 1;
               return (
                 <Fragment key={group.key}>
@@ -1094,8 +1223,9 @@ export default function FrontDesk() {
                   ))}
                 </Fragment>
               );
-            })}
-            {currentList.length === 0 && (
+            })
+          )}
+            {tab !== 'online' && currentList.length === 0 && (
               <tr>
                 <td colSpan={10} className="px-4 py-8 text-center text-sm text-telivity-mid-grey">
                   {t('frontDesk.noToday', {

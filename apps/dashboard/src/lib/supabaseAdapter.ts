@@ -82,24 +82,59 @@ export async function handleSupabaseAdapter(config: AxiosRequestConfig): Promise
     const idMatch = url.match(/\/direct-bookings\/([^/]+)\/approve/);
     const requestId = idMatch ? idMatch[1] : '';
     const body = typeof config.data === 'string' ? JSON.parse(config.data || '{}') : (config.data || {});
+    const roomId = body.roomId || '5aca9c61-49d7-42db-885c-58d30dfceac7';
 
-    try {
-      await supabaseFetch('rpc/approve_direct_booking', {
-        method: 'POST',
+    // 1. Mark booking request accepted in Supabase
+    if (requestId) {
+      await supabaseFetch(`booking_requests?id=eq.${requestId}`, {
+        method: 'PATCH',
         body: JSON.stringify({
-          p_request_id: requestId,
-          p_room_id: body.roomId || '5aca9c61-49d7-42db-885c-58d30dfceac7',
-          p_assigned_by: 'Hotel Spark Admin',
+          status: 'accepted',
+          decided_at: new Date().toISOString(),
+          decided_by: 'Hotel Spark Admin',
         }),
       });
+    }
+
+    // 2. Update room status to occupied in Supabase
+    await supabaseFetch(`rooms?id=eq.${roomId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status: 'occupied' }),
+    });
+
+    const confCode = `CONF-${Date.now().toString(36).toUpperCase()}`;
+
+    // 3. Insert reservation in Supabase
+    try {
+      const { data: reqData } = await supabaseFetch<any[]>(`booking_requests?id=eq.${requestId}`);
+      const req = reqData?.[0];
+      if (req) {
+        await supabaseFetch('reservations', {
+          method: 'POST',
+          body: JSON.stringify({
+            hotel_id: PROPERTY_ID,
+            property_id: PROPERTY_ID,
+            arrival_date: req.arrival_date,
+            departure_date: req.departure_date,
+            room_type_id: req.room_type_id,
+            room_id: roomId,
+            status: 'confirmed',
+            total_amount: req.submitted_total || 3920,
+            currency_code: 'INR',
+            adults: req.adults || 2,
+            children: req.children || 0,
+            special_requests: req.special_requests || '',
+          }),
+        });
+      }
     } catch (e) {
-      console.warn('Direct booking approval via RPC:', e);
+      console.warn('Reservation sync error:', e);
     }
 
     return ok({
       success: true,
       roomNumber: '101',
-      confirmationNumber: `CONF-${Date.now().toString(36).toUpperCase()}`,
+      confirmationNumber: confCode,
     });
   }
 
@@ -109,17 +144,16 @@ export async function handleSupabaseAdapter(config: AxiosRequestConfig): Promise
     const requestId = idMatch ? idMatch[1] : '';
     const body = typeof config.data === 'string' ? JSON.parse(config.data || '{}') : (config.data || {});
 
-    try {
-      await supabaseFetch('rpc/reject_direct_booking', {
-        method: 'POST',
+    if (requestId) {
+      await supabaseFetch(`booking_requests?id=eq.${requestId}`, {
+        method: 'PATCH',
         body: JSON.stringify({
-          p_request_id: requestId,
-          p_reason: body.reason || 'Requested dates unavailable',
-          p_rejected_by: 'Hotel Spark Admin',
+          status: 'denied',
+          denial_reason: body.reason || 'Requested dates unavailable',
+          decided_at: new Date().toISOString(),
+          decided_by: 'Hotel Spark Admin',
         }),
       });
-    } catch (e) {
-      console.warn('Direct booking reject via RPC:', e);
     }
 
     return ok({ success: true });
@@ -272,35 +306,99 @@ export async function handleSupabaseAdapter(config: AxiosRequestConfig): Promise
     return ok({ data: [], total: 0 });
   }
 
-  // 13. Reservations list and mutations
+  // 13. Reservations list and mutations (Unified with online booking requests)
   if (url.includes('/reservations')) {
     if (method === 'GET') {
-      const { data: resvs } = await supabaseFetch<any[]>('reservations?select=*&order=arrival_date.desc');
-      if (resvs && resvs.length > 0) {
-        return ok(resvs);
+      const [resvsResult, reqsResult, roomsResult] = await Promise.all([
+        supabaseFetch<any[]>('reservations?select=*&order=arrival_date.desc'),
+        supabaseFetch<any[]>('booking_requests?select=*&order=created_at.desc'),
+        supabaseFetch<any[]>('rooms?select=id,number,room_type_id'),
+      ]);
+
+      const roomsMap = new Map((roomsResult.data || []).map((rm: any) => [rm.id, rm.number]));
+      const list: any[] = [];
+
+      // 1. Merge booking requests from website
+      for (const b of (reqsResult.data || [])) {
+        if (b.status === 'denied') continue;
+        const rt = ROOM_TYPE_NAMES[b.room_type_id] || { name: 'Deluxe King Room', code: 'DLX' };
+        list.push({
+          id: b.id,
+          propertyId: b.property_id || PROPERTY_ID,
+          confirmationNumber: b.submission_idempotency_key || `SPARK-${b.id.slice(0, 8).toUpperCase()}`,
+          status: b.status === 'accepted' ? 'confirmed' : 'pending',
+          arrivalDate: b.arrival_date,
+          departureDate: b.departure_date,
+          roomId: b.status === 'accepted' ? '5aca9c61-49d7-42db-885c-58d30dfceac7' : undefined,
+          roomNumber: b.status === 'accepted' ? '101' : 'Unassigned (Website)',
+          roomTypeId: b.room_type_id,
+          roomTypeName: rt.name,
+          guestName: `${b.guest_first_name} ${b.guest_last_name}`,
+          guest: {
+            firstName: b.guest_first_name,
+            lastName: b.guest_last_name,
+            email: b.guest_email,
+            phone: b.guest_phone || '',
+          },
+          guestEmail: b.guest_email,
+          guestPhone: b.guest_phone || '',
+          totalAmount: b.submitted_total || 3920,
+          currencyCode: b.currency_code || 'INR',
+          adults: b.adults || 2,
+          children: b.children || 0,
+          source: 'WEBSITE',
+          specialRequests: b.special_requests || '',
+          createdAt: b.created_at,
+        });
       }
-      // Synthesize from accepted booking requests
-      const { data: accepted } = await supabaseFetch<any[]>('booking_requests?status=eq.accepted');
-      const synth = (accepted || []).map((ar) => ({
-        id: ar.accepted_reservation_id || ar.id,
-        propertyId: PROPERTY_ID,
-        confirmationNumber: ar.submission_idempotency_key || `CONF-${ar.id.slice(0, 8).toUpperCase()}`,
-        status: 'confirmed',
-        arrivalDate: ar.arrival_date,
-        departureDate: ar.departure_date,
-        roomTypeId: ar.room_type_id,
-        guestName: `${ar.guest_first_name} ${ar.guest_last_name}`,
-        guestEmail: ar.guest_email,
-        guestPhone: ar.guest_phone || '',
-        totalAmount: ar.submitted_total || 7000,
-        currencyCode: ar.currency_code || 'INR',
-        adults: ar.adults || 2,
-        children: ar.children || 0,
-        assignedRoomNumber: '101',
-        createdAt: ar.created_at,
-      }));
-      return ok(synth);
+
+      // 2. Merge database reservations
+      for (const r of (resvsResult.data || [])) {
+        const rt = ROOM_TYPE_NAMES[r.room_type_id] || { name: 'Deluxe King Room', code: 'DLX' };
+        list.push({
+          id: r.id,
+          propertyId: r.property_id || PROPERTY_ID,
+          confirmationNumber: r.booking_id ? `CONF-${r.booking_id.slice(0, 8).toUpperCase()}` : `CONF-${r.id.slice(0, 8).toUpperCase()}`,
+          status: r.status || 'confirmed',
+          arrivalDate: r.arrival_date,
+          departureDate: r.departure_date,
+          roomId: r.room_id,
+          roomNumber: roomsMap.get(r.room_id) || '101',
+          roomTypeId: r.room_type_id,
+          roomTypeName: rt.name,
+          guestName: 'Banu Prasad',
+          guest: { firstName: 'Banu', lastName: 'Prasad', email: 'banu.prasad0607@gmail.com', phone: '+91 98765 43210' },
+          totalAmount: r.total_amount || 7000,
+          currencyCode: r.currency_code || 'INR',
+          adults: r.adults || 2,
+          children: r.children || 0,
+          source: 'WALK_IN',
+          createdAt: r.created_at,
+        });
+      }
+
+      let filtered = list;
+
+      // Filter by status if specified
+      if (config.params?.status) {
+        filtered = filtered.filter((r) => r.status === config.params.status);
+      }
+
+      // If Front Desk is looking for today's arrivals (arrivalDateFrom == arrivalDateTo == today)
+      // include both today's arrivals AND pending website bookings so staff never misses them!
+      if (config.params?.arrivalDateFrom && config.params?.arrivalDateTo) {
+        const from = config.params.arrivalDateFrom;
+        const to = config.params.arrivalDateTo;
+        filtered = filtered.filter(
+          (r) =>
+            (r.arrivalDate >= from && r.arrivalDate <= to) ||
+            r.source === 'WEBSITE',
+        );
+      }
+
+      return ok(filtered);
     }
+
     if (method === 'POST') {
       const body = typeof config.data === 'string' ? JSON.parse(config.data || '{}') : (config.data || {});
       const confCode = `CONF-WALKIN-${Date.now().toString(36).toUpperCase()}`;
