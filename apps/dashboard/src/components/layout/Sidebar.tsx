@@ -59,6 +59,7 @@ const NAV_SECTIONS: NavSection[] = [
       { to: '/booking-requests', icon: ClipboardList, labelKey: 'nav.bookingRequests', permission: 'reservations.read' },
       { to: '/reservations', icon: CalendarDays, labelKey: 'nav.reservations', permission: 'reservations.read' },
       { to: '/guests', icon: Users, labelKey: 'nav.guests', permission: 'guests.read' },
+      { to: '/staff', icon: Briefcase, labelKey: 'Departments & Staff', permission: 'admin.users.manage' },
       { to: '/rooms', icon: DoorOpen, labelKey: 'nav.rooms', permission: 'rooms.read' },
       { to: '/housekeeping', icon: Sparkles, labelKey: 'nav.housekeeping', permission: 'housekeeping.read' },
       { to: '/folios', icon: Receipt, labelKey: 'nav.foliosBilling', permission: 'folios.read' },
@@ -210,7 +211,7 @@ export default function Sidebar({ mobileOpen, onClose }: SidebarProps) {
                   }
                 >
                   <Icon size={18} aria-hidden="true" />
-                  {t(labelKey)}
+                  {t(labelKey, { defaultValue: labelKey })}
                 </NavLink>
               ))}
             </div>

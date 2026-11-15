@@ -17,9 +17,12 @@ import { RequestReceived } from './pages/RequestReceived';
 import { isBookingRequestsUiEnabled } from './lib/bookingRequestsFeature';
 
 function AdminGateway() {
+  const isLocalDev = typeof window !== 'undefined' && window.location.hostname === 'localhost' && window.location.port === '5174';
+  const adminUrl = isLocalDev ? 'http://localhost:5173/' : '/admin/';
+
   useEffect(() => {
-    window.location.href = 'http://localhost:5173/';
-  }, []);
+    window.location.href = adminUrl;
+  }, [adminUrl]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-950 text-white p-6 font-sans">
@@ -30,12 +33,12 @@ function AdminGateway() {
         <div>
           <h1 className="text-2xl font-bold text-white tracking-tight">Hotel Spark Admin Console</h1>
           <p className="text-sm text-gray-400 mt-2 leading-relaxed">
-            The Admin Management Panel is completely decoupled from the guest website and runs on its own dedicated portal.
+            Redirecting to dedicated Admin Console...
           </p>
         </div>
         <div className="pt-2">
           <a
-            href="http://localhost:5173/"
+            href={adminUrl}
             className="inline-flex items-center justify-center gap-2 w-full px-5 py-3 rounded-xl bg-teal-500 hover:bg-teal-400 text-gray-950 font-semibold transition-colors shadow-lg shadow-teal-500/20"
           >
             <span>Open Dedicated Admin Panel</span>
@@ -43,7 +46,7 @@ function AdminGateway() {
           </a>
         </div>
         <p className="text-xs text-gray-500">
-          Direct URL: <span className="text-gray-400 font-mono">http://localhost:5173/</span>
+          Direct URL: <span className="text-gray-400 font-mono">{adminUrl}</span>
         </p>
       </div>
     </div>

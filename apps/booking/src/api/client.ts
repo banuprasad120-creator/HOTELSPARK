@@ -42,6 +42,7 @@ export function getBookingKey(): string {
 }
 
 const origin = (import.meta.env.VITE_API_BASE ?? '').replace(/\/$/, '');
+const isStaticHosting = !origin || (typeof window !== 'undefined' && window.location.hostname.includes('netlify.app'));
 
 export const api = axios.create({
   baseURL: `${origin}/api/v1/booking-engine`,
@@ -448,6 +449,7 @@ export const bookingApi = {
     return data;
   },
   config: async (): Promise<BookingConfig> => {
+    if (isStaticHosting) return DEFAULT_HOTEL_SPARK_CONFIG;
     try {
       const { data } = await api.get<BookingConfig>('/config');
       if (data && typeof data === 'object' && !('message' in data)) return data;
@@ -458,6 +460,7 @@ export const bookingApi = {
   },
 
   search: async (body: SearchRequest): Promise<SearchResponse> => {
+    if (isStaticHosting) return searchSupabase(body);
     try {
       const { data } = await api.post<SearchResponse>('/search', body);
       if (data && data.results && Array.isArray(data.results) && data.results.length > 0) {
@@ -470,6 +473,7 @@ export const bookingApi = {
   },
 
   quote: async (body: QuoteRequest): Promise<QuoteResponse> => {
+    if (isStaticHosting) return quoteSupabase(body);
     try {
       const { data } = await api.post<QuoteResponse>('/quote', body);
       if (data && data.grandTotal) return data;
@@ -480,6 +484,7 @@ export const bookingApi = {
   },
 
   listServices: async (): Promise<SellableServicesResponse> => {
+    if (isStaticHosting) return { propertyId: 'a0000001-0000-4000-a000-000000000001', data: [] };
     try {
       const { data } = await api.get<SellableServicesResponse>('/services');
       return data;
@@ -489,6 +494,7 @@ export const bookingApi = {
   },
 
   book: async (body: BookRequest): Promise<BookResponse> => {
+    if (isStaticHosting) return bookSupabase(body);
     try {
       const { data } = await api.post<BookResponse>('/book', body);
       if (data && (data.confirmationNumber || data.bookingId)) return data;
@@ -510,6 +516,13 @@ export const bookingApi = {
   createRequestPaymentMethodSetup: async (
     body: RequestPaymentMethodSetupRequest,
   ): Promise<RequestPaymentMethodSetupResponse> => {
+    if (isStaticHosting) {
+      return {
+        setupIntentId: `seti_${Date.now()}`,
+        clientSecret: `seti_secret_${Date.now()}`,
+        clientMode: 'mock',
+      };
+    }
     try {
       const { data } = await api.post<RequestPaymentMethodSetupResponse>(
         '/request-payment-method-setup',
@@ -528,6 +541,7 @@ export const bookingApi = {
   submitRequest: async (
     body: SubmitBookingRequest,
   ): Promise<BookingRequestAcknowledgement> => {
+    if (isStaticHosting) return submitRequestSupabase(body);
     try {
       const { data } = await api.post<BookingRequestAcknowledgement>('/requests', body);
       if (data && data.requestId) return data;

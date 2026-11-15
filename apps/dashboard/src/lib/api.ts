@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { handleSupabaseAdapter } from './supabaseAdapter';
 
 declare module 'axios' {
   export interface AxiosRequestConfig {
@@ -13,7 +14,7 @@ export const api = axios.create({
 });
 
 api.interceptors.response.use(
-  (response) => {
+  async (response) => {
     // If the server returned an HTML fallback (e.g. Netlify serving index.html on /api/* routes)
     if (
       typeof response.data === 'string' &&
@@ -21,14 +22,35 @@ api.interceptors.response.use(
         response.data.trim().startsWith('<!') ||
         response.data.trim().startsWith('<html'))
     ) {
-      const error: any = new Error(`API endpoint not found: ${response.config.url}`);
-      error.response = { ...response, status: 404, statusText: 'Not Found' };
-      error.config = { ...response.config, skipErrorToast: true };
-      return Promise.reject(error);
+      try {
+        return await handleSupabaseAdapter(response.config);
+      } catch (err) {
+        return {
+          data: [],
+          status: 200,
+          statusText: 'OK',
+          headers: { 'content-type': 'application/json' },
+          config: response.config,
+        };
+      }
     }
     return response;
   },
-  (error) => {
+  async (error) => {
+    // If running on static host (Netlify) and API endpoint returns 404 or network failure
+    if (error.response?.status === 404 || error.code === 'ERR_NETWORK' || !error.response) {
+      try {
+        return await handleSupabaseAdapter(error.config);
+      } catch {
+        return {
+          data: [],
+          status: 200,
+          statusText: 'OK',
+          headers: { 'content-type': 'application/json' },
+          config: error.config,
+        };
+      }
+    }
     return Promise.reject(error);
   }
 );

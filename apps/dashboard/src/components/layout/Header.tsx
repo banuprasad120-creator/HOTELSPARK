@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ChevronDown, Menu, LogOut, User, Languages, Search, CircleHelp, Globe } from 'lucide-react';
+import { ChevronDown, Menu, LogOut, User, Languages, Search, CircleHelp, Globe, Sparkles } from 'lucide-react';
 import { format } from 'date-fns';
 import { useTranslation } from 'react-i18next';
 import { useProperty } from '../../context/PropertyContext';
@@ -11,6 +11,7 @@ import { SUPPORTED_LANGUAGES } from '../../i18n';
 import CommandPalette, { useCommandPaletteShortcut } from '../search/CommandPalette';
 import NotificationBell from '../notifications/NotificationBell';
 import HelpPanel from '../help/HelpPanel';
+import WalkInCheckInModal from '../front-desk/WalkInCheckInModal';
 
 interface HeaderProps {
   onMenuClick: () => void;
@@ -25,8 +26,12 @@ export default function Header({ onMenuClick }: HeaderProps) {
   const [langOpen, setLangOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
+  const [walkInOpen, setWalkInOpen] = useState(false);
 
   useCommandPaletteShortcut(() => setSearchOpen(true));
+
+  const isLocal = typeof window !== 'undefined' && window.location.hostname === 'localhost';
+  const websiteUrl = isLocal ? 'http://localhost:5174/' : '/';
 
   const activeProperty = isPortfolioMode
     ? null
@@ -38,7 +43,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
 
   const propertyLabel = isPortfolioMode
     ? t('header.allProperties', { defaultValue: 'All Properties' })
-    : (activeProperty?.name ?? t('header.selectProperty'));
+    : (activeProperty?.name ?? 'Hotel Spark');
 
   return (
     <>
@@ -52,52 +57,18 @@ export default function Header({ onMenuClick }: HeaderProps) {
             <Menu size={20} className="text-telivity-slate" />
           </button>
 
-          <div className="relative">
-            <button
-              onClick={() => setOpen(!open)}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-gray-200 hover:border-telivity-teal text-sm font-medium transition-colors"
-              aria-haspopup="listbox"
-              aria-expanded={open}
-            >
-              <span className="truncate max-w-[140px] sm:max-w-none">{propertyLabel}</span>
-              <ChevronDown size={14} />
-            </button>
-            {open && (
-              <div className="absolute top-full left-0 mt-1 w-64 bg-white rounded-lg shadow-lg border border-gray-200 z-50 py-1" role="listbox">
-                {properties.length > 1 && (
-                  <button
-                    onClick={() => { setPropertyId(PORTFOLIO_MODE_ID); setOpen(false); }}
-                    role="option"
-                    aria-selected={isPortfolioMode}
-                    className={`w-full text-left px-4 py-2 text-sm hover:bg-telivity-light-grey transition-colors border-b border-gray-100 ${
-                      isPortfolioMode ? 'text-telivity-teal font-semibold' : 'font-medium text-telivity-navy'
-                    }`}
-                  >
-                    {t('header.allProperties', { defaultValue: 'All Properties' })}
-                    <span className="text-telivity-mid-grey ml-2 text-xs">({properties.length})</span>
-                  </button>
-                )}
-                {properties.map((p) => (
-                  <button
-                    key={p.id}
-                    onClick={() => { setPropertyId(p.id); setOpen(false); }}
-                    role="option"
-                    aria-selected={p.id === propertyId}
-                    className={`w-full text-left px-4 py-2 text-sm hover:bg-telivity-light-grey transition-colors ${
-                      p.id === propertyId ? 'text-telivity-teal font-semibold' : ''
-                    }`}
-                  >
-                    {p.name}
-                    <span className="text-telivity-mid-grey ml-2">({p.code})</span>
-                  </button>
-                ))}
-              </div>
-            )}
+          <div className="flex items-center gap-2">
+            <span className="font-bold text-sm text-telivity-navy tracking-tight hidden sm:inline">
+              Hotel Spark
+            </span>
+            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-teal-50 text-teal-700 border border-teal-200">
+              PMS
+            </span>
           </div>
 
           <button
             onClick={() => setSearchOpen(true)}
-            className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg border border-gray-200 hover:border-telivity-teal text-sm text-telivity-mid-grey transition-colors min-w-[180px]"
+            className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg border border-gray-200 hover:border-telivity-teal text-sm text-telivity-mid-grey transition-colors min-w-[160px]"
           >
             <Search size={14} />
             <span className="flex-1 text-left">{t('header.search')}</span>
@@ -109,13 +80,23 @@ export default function Header({ onMenuClick }: HeaderProps) {
           </span>
         </div>
 
-        <div className="flex items-center gap-3 sm:gap-4">
+        <div className="flex items-center gap-2 sm:gap-3">
+          {/* WALK-IN CHECK-IN QUICK ACTION BUTTON */}
+          <button
+            type="button"
+            onClick={() => setWalkInOpen(true)}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-telivity-teal hover:bg-teal-600 text-white text-xs font-bold shadow-xs transition"
+          >
+            <Sparkles size={14} />
+            <span>Walk-In Check-In</span>
+          </button>
+
           <a
-            href="http://localhost:5174/booking/?key=pk_live_HAIPDEMO0000000000000000"
+            href={websiteUrl}
             target="_blank"
             rel="noopener noreferrer"
             className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-teal-50 border border-teal-200 text-teal-800 text-xs font-semibold hover:bg-teal-100 transition-colors shadow-xs"
-            title="Open Hotel Spark Direct Booking Website"
+            title="Open Hotel Spark Guest Direct Booking Website"
           >
             <Globe size={14} className="text-teal-700" />
             <span>Hotel Website</span>
@@ -203,6 +184,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
 
       <CommandPalette open={searchOpen} onClose={() => setSearchOpen(false)} />
       <HelpPanel open={helpOpen} onClose={() => setHelpOpen(false)} />
+      <WalkInCheckInModal open={walkInOpen} onClose={() => setWalkInOpen(false)} />
     </>
   );
 }

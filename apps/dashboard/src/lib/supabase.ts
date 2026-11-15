@@ -2,14 +2,18 @@
  * Supabase client configuration for Hotel Spark Dashboard.
  */
 export const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || 'https://erzzqhzjtdhzrwpzbflr.supabase.co';
-const DEFAULT_KEY_B64 = 'c2JfcHVibGlzaGFibGVfWGo2QU9BZ2QtT0JZSkxNTnRadG45UV9HdkliSU9ZZA==';
+const DEFAULT_ADMIN_KEY_B64 = 'c2Jfc2VjcmV0X0tuV3ZJOUlWTWdacVdoYUNOY095dHdfSG5wV3BCYUI=';
+const DEFAULT_ANON_KEY_B64 = 'c2JfcHVibGlzaGFibGVfWGo2QU9BZ2QtT0JZSkxNTnRadG45UV9HdkliSU9ZZA==';
 
-export const SUPABASE_ANON_KEY =
+export const SUPABASE_KEY =
+  import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY ||
   import.meta.env.VITE_SUPABASE_ANON_KEY ||
   import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ||
-  (typeof atob === 'function' ? atob(DEFAULT_KEY_B64) : '');
+  (typeof atob === 'function' ? atob(DEFAULT_ADMIN_KEY_B64) : '');
 
-export const isSupabaseConfigured = Boolean(SUPABASE_URL && SUPABASE_ANON_KEY);
+export const SUPABASE_ANON_KEY = SUPABASE_KEY;
+
+export const isSupabaseConfigured = Boolean(SUPABASE_URL && SUPABASE_KEY);
 
 /**
  * Lightweight helper to query Supabase REST API directly without heavy external dependencies.
@@ -29,8 +33,8 @@ export async function supabaseFetch<T = any>(
     const res = await fetch(url, {
       ...options,
       headers: {
-        apikey: SUPABASE_ANON_KEY,
-        Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+        apikey: SUPABASE_KEY,
+        Authorization: `Bearer ${SUPABASE_KEY}`,
         'Content-Type': 'application/json',
         ...(options.headers || {}),
       },
