@@ -142,14 +142,10 @@ export function Extras() {
 
       <Button
         className="w-full"
-        onClick={() =>
-          navigate(config?.bookingMode === 'request' ? '/request/application' : '/guest')
-        }
+        onClick={() => navigate('/guest')}
         disabled={quoteMutation.isPending}
       >
-        {config?.bookingMode === 'request'
-          ? 'Continue to your details'
-          : 'Continue to guest details'}
+        Continue to guest details
       </Button>
     </div>
   );

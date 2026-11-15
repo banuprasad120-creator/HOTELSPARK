@@ -30,6 +30,12 @@
       "import": "./dist/database/schema/index.js",
       "require": "./dist/database/schema/index.cjs",
       "default": "./dist/database/schema/index.js"
+    },
+    "./database/schema": {
+      "types": "./dist/database/schema/index.d.ts",
+      "import": "./dist/database/schema/index.js",
+      "require": "./dist/database/schema/index.cjs",
+      "default": "./dist/database/schema/index.js"
     }
   },
   "scripts": {

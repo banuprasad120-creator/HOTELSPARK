@@ -1,8 +1,10 @@
 import { Injectable, BadRequestException, ForbiddenException, Inject, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { createHash, randomUUID } from 'crypto';
 import { eq, and } from 'drizzle-orm';
 import Decimal from 'decimal.js';
 import { bookings, reservations, staffNotifications, roomTypes } from '@telivityhaip/database';
+import { bookingRequests } from '@telivityhaip/booking-requests';
 import type { DepositPolicy } from '@telivityhaip/database';
 import { DRIZZLE } from '../../database/database.module';
 import { ConnectSearchService } from '../connect/connect-search.service';
@@ -448,10 +450,8 @@ export class BookingEngineService {
     if (!config.isEnabled) {
       throw new ForbiddenException('Direct booking is not enabled for this property');
     }
-    if (config.bookingMode !== 'instant') {
-      throw new ForbiddenException(
-        'Instant booking is unavailable while booking requests require staff review',
-      );
+    if (config.bookingMode === 'request') {
+      return this.submitDirectBookingRequest(propertyId, dto, config);
     }
     this.assertSellable(config, dto.roomTypeId, dto.ratePlanId);
     // Enforce rate restrictions (stop-sell / CTA / CTD / min-max LOS). SEARCH only
@@ -676,6 +676,167 @@ export class BookingEngineService {
       servicesTaxTotal: quote.servicesTaxTotal,
       cancellationPolicy: quote.cancellationPolicy?.description
         ?? 'See rate plan cancellation policy.',
+    };
+  }
+
+  /**
+   * Direct Booking Request Flow (Pending Admin Approval):
+   * 1. Authoritative price quote in INR ₹
+   * 2. Insert into booking_requests with status 'pending'
+   * 3. Do NOT create reservation or folio yet
+   * 4. Immediate PMS Staff Notification + Concierge Chime via WebSocket
+   * 5. Manager WhatsApp notification
+   * 6. Return unique booking reference to guest
+   */
+  async submitDirectBookingRequest(
+    propertyId: string,
+    dto: BeCreateBookingDto,
+    config: any,
+  ) {
+    this.assertSellable(config, dto.roomTypeId, dto.ratePlanId);
+    await this.ratePlanService.assertSellable(propertyId, dto.ratePlanId, dto.checkIn, dto.checkOut);
+
+    // 1. Authoritative server-side re-quote — never trust client price
+    const quote = await this.quote(propertyId, {
+      roomTypeId: dto.roomTypeId,
+      ratePlanId: dto.ratePlanId,
+      checkIn: dto.checkIn,
+      checkOut: dto.checkOut,
+      adults: dto.adults,
+      children: dto.children,
+      serviceIds: dto.serviceIds,
+    });
+
+    // 2. Fetch room type details
+    const [rt] = await this.db
+      .select({ name: roomTypes.name })
+      .from(roomTypes)
+      .where(eq(roomTypes.id, dto.roomTypeId))
+      .limit(1);
+    const roomTypeName = rt?.name || 'Selected Room';
+
+    // 3. Unique high-entropy booking request reference: e.g. SPK-REQ-1280Y7
+    const randomHex = Math.random().toString(36).substring(2, 6).toUpperCase();
+    const timestampHex = Date.now().toString(36).slice(-4).toUpperCase();
+    const reference = `SPK-REQ-${timestampHex}${randomHex}`;
+
+    const applicationId = (dto as any).idempotencyKey || `req_${Date.now()}_${Math.random()}`;
+    const fingerprint = createHash('sha256')
+      .update(`${propertyId}:${dto.checkIn}:${dto.checkOut}:${dto.roomTypeId}:${dto.guestEmail}`)
+      .digest('hex');
+
+    // 4. Save into booking_requests table with status 'pending' (Pending Approval)
+    const [request] = await this.db
+      .insert(bookingRequests)
+      .values({
+        propertyId,
+        submissionIdempotencyKey: reference,
+        submissionFingerprint: fingerprint,
+        status: 'pending',
+        arrivalDate: dto.checkIn,
+        departureDate: dto.checkOut,
+        roomTypeId: dto.roomTypeId,
+        ratePlanId: dto.ratePlanId,
+        adults: dto.adults,
+        children: dto.children ?? 0,
+        guestFirstName: dto.guestFirstName,
+        guestLastName: dto.guestLastName,
+        guestEmail: dto.guestEmail,
+        guestPhone: dto.guestPhone ?? null,
+        specialRequests: dto.specialRequests ?? null,
+        serviceIds: dto.serviceIds ?? [],
+        formSnapshot: config.formQuestions ?? [],
+        applicationAnswers: {},
+        submittedQuoteSnapshot: quote,
+        submittedTotal: String(quote.grandTotal),
+        currencyCode: quote.currencyCode || 'INR',
+        cardLastFour: dto.cardLastFour ?? 'UPI',
+        cardBrand: dto.cardBrand ?? 'UPI/Direct',
+      })
+      .returning();
+
+    const guestFullName = `${dto.guestFirstName} ${dto.guestLastName}`.trim();
+    const amountFormatted = `₹${Number(quote.grandTotal).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
+
+    // 5. Create instant Admin notification in staff_notifications
+    const notifId = randomUUID();
+    const notifData = {
+      id: notifId,
+      propertyId,
+      type: 'booking_request_created',
+      title: `New Direct Booking Request — ${guestFullName}`,
+      message: `Direct booking request from ${guestFullName} for ${roomTypeName} (${dto.checkIn} → ${dto.checkOut}, ${amountFormatted}). Status: Pending Approval. Ref: ${reference}`,
+      severity: 'info' as const,
+      sourceEvent: 'booking_request.created',
+      sourceEntityType: 'booking_request',
+      sourceEntityId: request.id,
+    };
+
+    await this.db.insert(staffNotifications).values(notifData);
+
+    // 6. Broadcast real-time WebSocket alert (rings chime & displays alert card in PMS)
+    try {
+      this.eventsGateway.broadcastStaffNotification(propertyId, notifData);
+      this.eventsGateway.broadcastToProperty(propertyId, 'booking_request.created', {
+        id: request.id,
+        reference,
+        confirmationNumber: reference,
+        guestName: guestFullName,
+        roomTypeName,
+        amount: quote.grandTotal,
+        dates: `${dto.checkIn} → ${dto.checkOut}`,
+        status: 'pending',
+      });
+    } catch (e: any) {
+      this.logger.warn(`WebSocket notification broadcast skipped: ${e.message}`);
+    }
+
+    // 7. Dispatch WhatsApp notification to configured Hotel Manager
+    const managerNumber =
+      this.runtimeConfig.get<string>('MANAGER_WHATSAPP_NUMBER') || '919876543210';
+    const alertBody =
+      `🔔 *NEW DIRECT BOOKING REQUEST — HOTEL SPARK*\n\n` +
+      `• *Ref:* \`${reference}\`\n` +
+      `• *Guest:* ${guestFullName}\n` +
+      `• *Phone:* ${dto.guestPhone || 'N/A'}\n` +
+      `• *Email:* ${dto.guestEmail}\n` +
+      `• *Room Category:* ${roomTypeName}\n` +
+      `• *Stay Dates:* ${dto.checkIn} to ${dto.checkOut}\n` +
+      `• *Guests:* ${dto.adults} Adults${dto.children ? `, ${dto.children} Children` : ''}\n` +
+      `• *Amount:* ${amountFormatted} (INR)\n` +
+      `• *Status:* ⏳ PENDING ADMIN APPROVAL\n\n` +
+      `👉 Review & Approve in PMS: http://localhost:5173/direct-bookings/pending`;
+
+    await this.sendWhatsAppManagerAlert(managerNumber, alertBody);
+
+    this.logger.log(`Direct booking request created: ${reference} (${request.id}) — Pending Admin Review`);
+
+    // 8. Return successful response to website guest
+    return {
+      success: true,
+      bookingId: request.id,
+      confirmationNumber: reference,
+      reference,
+      status: 'pending_approval',
+      isPendingApproval: true,
+      message: 'Your booking request has been submitted successfully and is pending approval by Hotel Spark management.',
+      guestFirstName: dto.guestFirstName,
+      guestLastName: dto.guestLastName,
+      guestEmail: dto.guestEmail,
+      guestPhone: dto.guestPhone,
+      roomTypeName,
+      arrivalDate: dto.checkIn,
+      departureDate: dto.checkOut,
+      adults: dto.adults,
+      children: dto.children ?? 0,
+      totalAmount: quote.grandTotal,
+      currencyCode: quote.currencyCode || 'INR',
+      lineItems: quote.lineItems,
+      services: quote.services,
+      servicesTotal: quote.servicesTotal,
+      servicesTaxTotal: quote.servicesTaxTotal,
+      cancellationPolicy: quote.cancellationPolicy?.description
+        ?? 'Free cancellation up to 24 hours prior to check-in.',
     };
   }
 

@@ -203,7 +203,11 @@ export interface PaymentReturnStatus {
 export interface BookResponse {
   success: boolean;
   confirmationNumber: string;
-  reservationId: string;
+  reservationId?: string;
+  bookingId?: string;
+  reference?: string;
+  isPendingApproval?: boolean;
+  message?: string;
   status: string;
   currencyCode: string;
   grandTotal: string;

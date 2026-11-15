@@ -248,12 +248,12 @@ export function UpiQrPayment({ quote, guestName, onPaid, submitting }: UpiQrPaym
             {verifying || submitting ? (
               <>
                 <RefreshCw size={16} className="animate-spin" />
-                <span>Verifying UPI Payment & Confirming Room…</span>
+                <span>Verifying UPI Payment & Submitting Request…</span>
               </>
             ) : (
               <>
                 <ShieldCheck size={18} />
-                <span>I Have Paid via UPI — Confirm Booking</span>
+                <span>I Have Paid via UPI — Submit Booking Request</span>
                 <ArrowRight size={16} />
               </>
             )}

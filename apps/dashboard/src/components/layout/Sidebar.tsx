@@ -26,6 +26,11 @@ import {
   ReceiptText,
   ClipboardList,
   Globe,
+  Inbox,
+  Clock,
+  CheckCircle2,
+  XCircle,
+  History,
   X,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -57,6 +62,16 @@ const NAV_SECTIONS: NavSection[] = [
       { to: '/rooms', icon: DoorOpen, labelKey: 'nav.rooms', permission: 'rooms.read' },
       { to: '/housekeeping', icon: Sparkles, labelKey: 'nav.housekeeping', permission: 'housekeeping.read' },
       { to: '/folios', icon: Receipt, labelKey: 'nav.foliosBilling', permission: 'folios.read' },
+    ],
+  },
+  {
+    sectionKey: 'nav.directBookingManagement',
+    items: [
+      { to: '/direct-bookings', icon: Inbox, labelKey: 'nav.directBookingRequests', permission: 'reservations.read' },
+      { to: '/direct-bookings/pending', icon: Clock, labelKey: 'nav.directBookingPending', permission: 'reservations.read' },
+      { to: '/direct-bookings/approved', icon: CheckCircle2, labelKey: 'nav.directBookingApproved', permission: 'reservations.read' },
+      { to: '/direct-bookings/rejected', icon: XCircle, labelKey: 'nav.directBookingRejected', permission: 'reservations.read' },
+      { to: '/direct-bookings/history', icon: History, labelKey: 'nav.directBookingHistory', permission: 'reservations.read' },
     ],
   },
   {

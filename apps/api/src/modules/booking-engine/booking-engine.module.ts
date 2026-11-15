@@ -1,7 +1,9 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { BookingEngineController } from './booking-engine.controller';
 import { BookingEngineAdminController } from './booking-engine-admin.controller';
 import { BookingReturnController } from './booking-return.controller';
+import { DirectBookingController } from '../booking-request/direct-booking.controller';
+import { DirectBookingService } from '../booking-request/direct-booking.service';
 import { BookingEngineService } from './booking-engine.service';
 import { BookingEngineConfigService } from './booking-engine-config.service';
 import { BookingThrottleGuard } from './booking-throttle.guard';
@@ -19,6 +21,7 @@ import { AuthModule } from '../auth/auth.module';
 import { AncillaryModule } from '../ancillary/ancillary.module';
 import { PolicyModule } from '../policy/policy.module';
 import { EventsModule } from '../events/events.module';
+import { ChannelModule } from '../channel/channel.module';
 
 @Module({
   imports: [
@@ -34,11 +37,18 @@ import { EventsModule } from '../events/events.module';
     AncillaryModule,
     PolicyModule,
     EventsModule,
+    forwardRef(() => ChannelModule),
   ],
-  controllers: [BookingEngineController, BookingEngineAdminController, BookingReturnController],
+  controllers: [
+    BookingEngineController,
+    BookingEngineAdminController,
+    BookingReturnController,
+    DirectBookingController,
+  ],
   providers: [
     BookingEngineService,
     BookingEngineConfigService,
+    DirectBookingService,
     BookingKeyGuard,
     BookingEngineScopeGuard,
     BookingThrottleGuard,
@@ -46,6 +56,7 @@ import { EventsModule } from '../events/events.module';
   exports: [
     BookingEngineService,
     BookingEngineConfigService,
+    DirectBookingService,
     // Exported so `@telivityhaip/booking-requests`'s `BookingRequestModule.forRoot(...)`
     // can bind its guard-bridge ports to these same singletons via `useExisting`
     // (see `apps/api/src/booking-requests.bootstrap.ts`) instead of duplicating

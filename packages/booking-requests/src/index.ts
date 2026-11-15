@@ -42,3 +42,4 @@ export { BookingRequestConsequenceWorkerService } from './domain/booking-request
 export { BookingRequestStripeHandler } from './domain/booking-request-stripe.handler.js';
 export { BookingRequestController } from './http/booking-request.controller.js';
 export { BookingRequestPublicController } from './http/booking-request-public.controller.js';
+export { bookingRequests, bookingRequestStatusEnum } from './database/schema/booking-request.js';
