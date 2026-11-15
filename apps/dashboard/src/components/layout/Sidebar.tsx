@@ -125,7 +125,7 @@ export default function Sidebar({ mobileOpen, onClose }: SidebarProps) {
 
   const activeProperty = isPortfolioMode
     ? null
-    : properties.find((p) => p.id === propertyId);
+    : (Array.isArray(properties) ? properties.find((p) => p.id === propertyId) : null);
 
   const brandName = isPortfolioMode
     ? 'Hotel Spark'

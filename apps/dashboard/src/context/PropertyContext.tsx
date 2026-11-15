@@ -34,6 +34,17 @@ const PropertyContext = createContext<PropertyContextValue>({
 
 const DEFAULT_SPARK_ID = 'a0000001-0000-4000-a000-000000000001';
 
+export const DEFAULT_PROPERTY: PropertySummary = {
+  id: DEFAULT_SPARK_ID,
+  organizationId: null,
+  name: 'Hotel Spark',
+  code: 'SPARK01',
+  currencyCode: 'INR',
+  timeZone: 'Asia/Kolkata',
+  status: 'active',
+  staffDisplayName: 'Hotel Spark Admin',
+};
+
 export function PropertyProvider({ children }: { children: ReactNode }) {
   const [searchParams, setSearchParams] = useSearchParams();
   const [lastPropertyId, setLastPropertyId] = useState<string | null>(() => {
@@ -51,17 +62,18 @@ export function PropertyProvider({ children }: { children: ReactNode }) {
   // selection only for in-app destinations that omit the query parameter.
   const urlPropertyId = searchParams.get('propertyId');
   const propertyId = urlPropertyId || lastPropertyId || DEFAULT_SPARK_ID;
-  const [properties, setProperties] = useState<PropertySummary[]>([]);
+  const [properties, setProperties] = useState<PropertySummary[]>([DEFAULT_PROPERTY]);
   const [organizations, setOrganizations] = useState<OrganizationSummary[]>([]);
-  const [propertiesLoading, setPropertiesLoading] = useState(true);
+  const [propertiesLoading, setPropertiesLoading] = useState(false);
   const [propertiesError, setPropertiesError] = useState<string | null>(null);
 
   const isPortfolioMode = propertyId === PORTFOLIO_MODE_ID;
   // Portfolio mode spans properties that may not share a currency, so it has no
   // single answer — and NULL is that answer.
+  const safeProps = Array.isArray(properties) ? properties : [DEFAULT_PROPERTY];
   const currencyCode =
     (!isPortfolioMode &&
-      (properties.find((p) => p.id === propertyId)?.currencyCode || 'INR')) ||
+      (safeProps.find((p) => p.id === propertyId)?.currencyCode || 'INR')) ||
     'INR';
 
   function setPropertyId(id: string) {
@@ -84,12 +96,13 @@ export function PropertyProvider({ children }: { children: ReactNode }) {
       setLastPropertyId(urlPropertyId);
       return;
     }
+    const safeList = Array.isArray(properties) ? properties : [DEFAULT_PROPERTY];
     const fallback =
       lastPropertyId ||
-      (!propertiesLoading && properties.length > 0
-        ? properties.length > 1
+      (!propertiesLoading && safeList.length > 0
+        ? safeList.length > 1
           ? PORTFOLIO_MODE_ID
-          : properties[0].id
+          : safeList[0].id
         : DEFAULT_SPARK_ID);
     if (fallback) {
       setSearchParams(
@@ -107,15 +120,29 @@ export function PropertyProvider({ children }: { children: ReactNode }) {
     setPropertiesLoading(true);
     setPropertiesError(null);
     Promise.all([
-      api.get('/v1/properties'),
+      api.get('/v1/properties').catch((err) => {
+        console.warn('API /v1/properties unavailable:', err?.message);
+        return { data: [DEFAULT_PROPERTY] };
+      }),
       api.get('/v1/organizations', { skipErrorToast: true }).catch((err) => {
-        console.error('Failed to load organizations:', err);
         return { data: [] };
       }),
     ])
       .then(([propRes, orgRes]) => {
-        const list: PropertySummary[] = propRes.data?.data ?? propRes.data ?? [];
-        const orgList: OrganizationSummary[] = orgRes.data?.data ?? orgRes.data ?? [];
+        let rawProp = propRes?.data;
+        if (rawProp && typeof rawProp === 'object' && Array.isArray(rawProp.data)) {
+          rawProp = rawProp.data;
+        }
+        const list: PropertySummary[] = Array.isArray(rawProp) && rawProp.length > 0
+          ? rawProp
+          : [DEFAULT_PROPERTY];
+
+        let rawOrg = orgRes?.data;
+        if (rawOrg && typeof rawOrg === 'object' && Array.isArray(rawOrg.data)) {
+          rawOrg = rawOrg.data;
+        }
+        const orgList: OrganizationSummary[] = Array.isArray(rawOrg) ? rawOrg : [];
+
         setProperties(list);
         setOrganizations(orgList);
         if (list.length > 0) {
@@ -126,10 +153,9 @@ export function PropertyProvider({ children }: { children: ReactNode }) {
         }
       })
       .catch((err) => {
+        console.warn('Properties load fallback to Hotel Spark:', err?.message);
+        setProperties([DEFAULT_PROPERTY]);
         setPropertiesError(err?.message ?? 'Failed to load properties');
-        setTimeout(() => {
-          loadProperties();
-        }, 2000);
       })
       .finally(() => setPropertiesLoading(false));
   };

@@ -10,9 +10,11 @@ import App from './App';
 import './i18n';
 import './index.css';
 
+const basename = window.location.pathname.startsWith('/admin') ? '/admin' : '/';
+
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <BrowserRouter>
+    <BrowserRouter basename={basename}>
       <QueryClientProvider client={queryClient}>
         <ToastProvider>
           <AuthProvider>

@@ -11,8 +11,9 @@ export default function AppLayout({ children }: { children: ReactNode }) {
   const { authEnabled, setPermissions } = useAuth();
   const { propertyId, isPortfolioMode, properties } = useProperty();
 
+  const safeProperties = Array.isArray(properties) ? properties : [];
   const permissionsPropertyId =
-    isPortfolioMode ? (properties[0]?.id ?? null) : propertyId;
+    isPortfolioMode ? (safeProperties[0]?.id ?? null) : propertyId;
 
   const { data } = useMyPermissions(permissionsPropertyId, authEnabled);
   useEffect(() => {
@@ -20,8 +21,8 @@ export default function AppLayout({ children }: { children: ReactNode }) {
   }, [data, setPermissions]);
 
   const activeProperty = useMemo(
-    () => (isPortfolioMode ? null : properties.find((p) => p.id === propertyId) ?? null),
-    [isPortfolioMode, properties, propertyId],
+    () => (isPortfolioMode ? null : safeProperties.find((p) => p.id === propertyId) ?? null),
+    [isPortfolioMode, safeProperties, propertyId],
   );
 
   useEffect(() => {

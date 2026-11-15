@@ -30,7 +30,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
 
   const activeProperty = isPortfolioMode
     ? null
-    : properties.find((p) => p.id === propertyId);
+    : (Array.isArray(properties) ? properties.find((p) => p.id === propertyId) : null);
   const currentLang =
     SUPPORTED_LANGUAGES.find((l) => l.code === i18n.resolvedLanguage) ??
     SUPPORTED_LANGUAGES[0];
