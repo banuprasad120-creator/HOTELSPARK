@@ -1,7 +1,7 @@
 -- ============================================================================
 -- HOTEL SPARK / HAIP – COMPLETE SUPABASE PRODUCTION DATABASE SCHEMA
 -- Target Database: Supabase PostgreSQL (or Local HAIP Database)
--- Generated: 2026-11-15T10:17:53.376Z
+-- Generated: 2026-11-15T13:51:10.723Z
 -- Modules:
 --   1. Core (hotels, properties, profiles, hotel_members, user_roles, hotel_settings)
 --   2. Room Management (room_types, rooms, room_images, rate_plans, room_blocks)
@@ -30,15 +30,17 @@
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
--- Supabase Auth Compatibility (Ensures local PostgreSQL and test harnesses support auth.uid and auth.role)
-CREATE SCHEMA IF NOT EXISTS auth;
-CREATE OR REPLACE FUNCTION auth.uid() RETURNS uuid AS $$
-  SELECT nullif(current_setting('request.jwt.claim.sub', true), '')::uuid;
-$$ LANGUAGE sql STABLE;
-
-CREATE OR REPLACE FUNCTION auth.role() RETURNS text AS $$
-  SELECT coalesce(nullif(current_setting('request.jwt.claim.role', true), ''), 'anon');
-$$ LANGUAGE sql STABLE;
+-- Supabase Auth Compatibility (Safe fallback only for local vanilla postgres; bypassed entirely on Supabase)
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_namespace WHERE nspname = 'auth') THEN
+    EXECUTE 'CREATE SCHEMA auth';
+    EXECUTE 'CREATE OR REPLACE FUNCTION auth.uid() RETURNS uuid AS $f$ SELECT nullif(current_setting(''request.jwt.claim.sub'', true), '''')::uuid; $f$ LANGUAGE sql STABLE;';
+    EXECUTE 'CREATE OR REPLACE FUNCTION auth.role() RETURNS text AS $f$ SELECT coalesce(nullif(current_setting(''request.jwt.claim.role'', true), ''''), ''anon''); $f$ LANGUAGE sql STABLE;';
+  END IF;
+EXCEPTION WHEN OTHERS THEN
+  -- On managed Supabase, auth schema is managed by Supabase and functions already exist natively
+  NULL;
+END $$;
 
 -- Generic Updated At Trigger Function
 CREATE OR REPLACE FUNCTION set_updated_at()

@@ -67,13 +67,14 @@ async function run() {
     console.log('Sample room:', avail[0]);
 
     // Test submit_website_booking_request function
+    const randOffset = Math.floor(Math.random() * 1000) + 100;
     const testKey = 'REQ-TEST-' + Date.now();
     const [submitRes] = await sql`
       SELECT submit_website_booking_request(
         'a0000001-0000-4000-a000-000000000001'::uuid,
         'b0000001-0000-4000-a000-000000000001'::uuid,
-        (CURRENT_DATE + 10)::date,
-        (CURRENT_DATE + 12)::date,
+        (CURRENT_DATE + ${randOffset}::integer)::date,
+        (CURRENT_DATE + ${randOffset + 2}::integer)::date,
         'Rohan'::varchar,
         'Sharma'::varchar,
         'rohan.sharma@example.com'::varchar,
@@ -89,8 +90,20 @@ async function run() {
     console.log('\nsubmit_website_booking_request output:', submitRes.result);
     const reqId = submitRes.result.id;
 
+    // Find available room for this exact window
+    const availForBooking = await sql`
+      SELECT * FROM revalidate_room_availability(
+        'a0000001-0000-4000-a000-000000000001',
+        'b0000001-0000-4000-a000-000000000001',
+        (CURRENT_DATE + ${randOffset}::integer)::date,
+        (CURRENT_DATE + ${randOffset + 2}::integer)::date
+      )
+    `;
+    const freeRoom = availForBooking.find(r => r.is_available);
+    if (!freeRoom) throw new Error('No free room available in test window');
+
     // Test approve_direct_booking function
-    const availableRoomId = avail[0].room_id;
+    const availableRoomId = freeRoom.room_id;
     const [approveRes] = await sql`
       SELECT approve_direct_booking(
         ${reqId}::uuid,
@@ -109,8 +122,8 @@ async function run() {
         SELECT submit_website_booking_request(
           'a0000001-0000-4000-a000-000000000001'::uuid,
           'b0000001-0000-4000-a000-000000000001'::uuid,
-          (CURRENT_DATE + 10)::date,
-          (CURRENT_DATE + 12)::date,
+          (CURRENT_DATE + ${randOffset}::integer)::date,
+          (CURRENT_DATE + ${randOffset + 2}::integer)::date,
           'Anita'::varchar,
           'Desai'::varchar,
           'anita@example.com'::varchar,
