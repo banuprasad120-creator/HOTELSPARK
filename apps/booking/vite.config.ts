@@ -9,7 +9,43 @@ import path from 'path';
 export default defineConfig({
   base: '/booking/',
   root: path.resolve(__dirname),
-  plugins: [react()],
+  plugins: [
+    react(),
+    {
+      name: 'admin-and-root-redirect',
+      configureServer(server) {
+        server.middlewares.use((req, res, next) => {
+          const rawUrl = req.url || '';
+          const pathname = rawUrl.split('?')[0];
+
+          // Forward admin and dashboard requests on port 5174 directly to the separate Admin Panel (port 5173)
+          if (
+            pathname === '/admin' ||
+            pathname.startsWith('/admin/') ||
+            pathname === '/booking/admin' ||
+            pathname.startsWith('/booking/admin/') ||
+            pathname === '/dashboard' ||
+            pathname.startsWith('/dashboard/') ||
+            pathname === '/booking/dashboard' ||
+            pathname.startsWith('/booking/dashboard/')
+          ) {
+            res.writeHead(302, { Location: 'http://localhost:5173/' });
+            res.end();
+            return;
+          }
+
+          // Root URL on 5174 redirects to /booking/
+          if (pathname === '/' || pathname === '') {
+            res.writeHead(302, { Location: '/booking/' });
+            res.end();
+            return;
+          }
+
+          next();
+        });
+      },
+    },
+  ],
   resolve: {
     alias: {
       '@': path.resolve(__dirname, 'src'),

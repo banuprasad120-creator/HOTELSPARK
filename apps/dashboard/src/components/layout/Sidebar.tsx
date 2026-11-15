@@ -128,12 +128,10 @@ export default function Sidebar({ mobileOpen, onClose }: SidebarProps) {
     : properties.find((p) => p.id === propertyId);
 
   const brandName = isPortfolioMode
-    ? 'HAIP'
-    : (activeProperty?.staffDisplayName || activeProperty?.name || 'HAIP');
+    ? 'Hotel Spark'
+    : (activeProperty?.name || 'Hotel Spark');
   const brandLogo = !isPortfolioMode ? activeProperty?.staffLogoUrl : null;
-  const tagline = isPortfolioMode
-    ? t('header.allProperties', { defaultValue: 'All Properties' })
-    : t('nav.tagline');
+  const tagline = 'Admin Console & PMS';
 
   const visibleSections = NAV_SECTIONS.map((section) => ({
     ...section,
@@ -162,14 +160,22 @@ export default function Sidebar({ mobileOpen, onClose }: SidebarProps) {
             : undefined
         }
       >
-        <div className="px-6 py-5 border-b border-white/10 flex items-center justify-between">
-          <div className="flex items-center gap-3 min-w-0">
+        <div className="px-5 py-4 border-b border-white/10 flex items-center justify-between">
+          <div className="flex items-center gap-2.5 min-w-0">
             {brandLogo ? (
               <img src={brandLogo} alt="" className="h-8 w-8 rounded object-cover flex-shrink-0 bg-white/10" />
-            ) : null}
+            ) : (
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-teal-500/20 text-teal-400 border border-teal-400/30 text-base font-bold flex-shrink-0">
+                ⚡
+              </div>
+            )}
             <div className="min-w-0">
-              <h1 className="text-xl font-semibold tracking-wide truncate">{brandName}</h1>
-              <p className="text-xs text-white/60 mt-0.5 truncate">{tagline}</p>
+              <h1 className="text-base font-bold tracking-wide truncate">{brandName}</h1>
+              <div className="flex items-center gap-1.5 mt-0.5">
+                <span className="inline-block px-1.5 py-0.2 text-[9px] font-bold uppercase tracking-wider rounded bg-teal-500/20 text-teal-300 border border-teal-500/30">
+                  ADMIN CONSOLE
+                </span>
+              </div>
             </div>
           </div>
           <button
