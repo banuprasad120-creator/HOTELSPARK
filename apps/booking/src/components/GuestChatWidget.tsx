@@ -224,7 +224,7 @@ export function GuestChatWidget() {
             {isLoading && (
               <div className="flex items-center gap-2 rounded-2xl rounded-tl-xs border border-gray-200 bg-white px-3.5 py-2.5 text-xs text-gray-500 w-fit">
                 <SparklesIcon className="h-3 w-3 animate-spin text-teal-600" />
-                <span>Spark is checking live PMS rates...</span>
+                <span>Spark is checking room rates...</span>
               </div>
             )}
             <div ref={messagesEndRef} />

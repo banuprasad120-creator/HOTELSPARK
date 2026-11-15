@@ -169,7 +169,7 @@ export function HeroVideo() {
               ✓ Zero Booking Fees
             </span>
             <span className="inline-flex items-center gap-1 rounded-md bg-black/40 px-2 py-0.5 backdrop-blur-sm border border-emerald-400/20">
-              ✓ Instant PMS Sync
+              ✓ Direct Hotel Confirmation
             </span>
           </div>
         </div>

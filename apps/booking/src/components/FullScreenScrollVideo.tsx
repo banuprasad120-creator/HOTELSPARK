@@ -255,7 +255,7 @@ export function FullScreenScrollVideo({ children }: FullScreenScrollVideoProps) 
               Best Rate & Instant Sync
             </h2>
             <p className="mt-3 text-base text-gray-200 leading-relaxed">
-              Skip OTA middleman markups. Direct reservations on our website guarantee our lowest rates, priority room allocation, and instant synchronization with the Hotel Spark PMS.
+              Skip OTA middleman markups. Direct reservations on our website guarantee our lowest rates, priority room allocation, and instant confirmation from Hotel Spark.
             </p>
             <div className="mt-6 flex flex-wrap gap-2 text-xs font-semibold text-amber-300">
               <span className="rounded-lg bg-white/10 px-3 py-1.5 backdrop-blur-sm border border-white/10">
