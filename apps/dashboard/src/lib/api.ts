@@ -23,6 +23,7 @@ api.interceptors.response.use(
     ) {
       const error: any = new Error(`API endpoint not found: ${response.config.url}`);
       error.response = { ...response, status: 404, statusText: 'Not Found' };
+      error.config = { ...response.config, skipErrorToast: true };
       return Promise.reject(error);
     }
     return response;
