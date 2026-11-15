@@ -703,7 +703,7 @@ function RoomTypeList() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['rooms', 'types'] });
       queryClient.invalidateQueries({ queryKey: ['rate-plans'] });
-      toast(`Nightly price updated to ₹${Number(quickPriceValue).toLocaleString('en-IN')}!`, 'success');
+      toast('success', `Nightly price updated to ₹${Number(quickPriceValue).toLocaleString('en-IN')}!`);
       setPriceModalType(null);
     },
   });
@@ -746,7 +746,7 @@ function RoomTypeList() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['rooms', 'types'] });
       queryClient.invalidateQueries({ queryKey: ['rate-plans'] });
-      toast('Room category created successfully!', 'success');
+      toast('success', 'Room category created successfully!');
       setCreateOpen(false);
       setName('');
       setCode('');
@@ -814,7 +814,7 @@ function RoomTypeList() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['rooms', 'types'] });
       queryClient.invalidateQueries({ queryKey: ['rate-plans'] });
-      toast('Room category and pricing updated successfully!', 'success');
+      toast('success', 'Room category and pricing updated successfully!');
       setEditType(null);
     },
   });

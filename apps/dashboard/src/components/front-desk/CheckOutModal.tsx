@@ -11,6 +11,7 @@ import {
   QrCode,
   Building2,
   Banknote,
+  CreditCard,
   CheckCircle2,
   Plus,
 } from 'lucide-react';

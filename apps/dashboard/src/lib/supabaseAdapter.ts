@@ -53,7 +53,7 @@ export async function handleSupabaseAdapter(config: AxiosRequestConfig): Promise
     status: 200,
     statusText: 'OK',
     headers: { 'content-type': 'application/json' },
-    config,
+    config: config as any,
   });
 
   // 1. Properties
