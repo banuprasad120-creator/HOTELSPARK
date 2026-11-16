@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
-export type DepartmentKey = 'all' | 'front_office' | 'housekeeping' | 'manager' | 'accounts';
+export type DepartmentKey = 'admin' | 'manager' | 'front_office' | 'all' | 'housekeeping' | 'accounts';
 
 export interface DepartmentInfo {
   key: DepartmentKey;
@@ -13,32 +13,61 @@ export interface DepartmentInfo {
   iconName: string;
   managerName: string;
   description: string;
+  route: string;
 }
 
 export const DEPARTMENTS_INFO: Record<DepartmentKey, DepartmentInfo> = {
+  admin: {
+    key: 'admin',
+    name: 'Admin & Owner Operations Panel',
+    shortName: 'Admin Panel',
+    badge: 'Owner & Admin',
+    color: 'text-amber-700',
+    bgLight: 'bg-amber-50',
+    borderColor: 'border-amber-200',
+    iconName: 'Shield',
+    managerName: 'Banu Prasad (Owner)',
+    description: 'Master hotel governance, room base tariffs, staff salaries & permissions, GST compliance, and financial books.',
+    route: '/admin-panel',
+  },
+  manager: {
+    key: 'manager',
+    name: 'Manager & 3 Shifts Operations Panel',
+    shortName: 'Manager Panel',
+    badge: 'Operations & 3 Shifts',
+    color: 'text-purple-700',
+    bgLight: 'bg-purple-50',
+    borderColor: 'border-purple-200',
+    iconName: 'Briefcase',
+    managerName: 'Ramesh Rao / Shift Leads',
+    description: 'Morning (06-14h), Evening (14-22h), and Night (22-06h) shift in-charge, handovers, and attendance.',
+    route: '/manager-panel',
+  },
+  front_office: {
+    key: 'front_office',
+    name: 'Front Office & Reception Operations Panel',
+    shortName: 'Front Office Panel',
+    badge: 'Front Desk',
+    color: 'text-telivity-teal',
+    bgLight: 'bg-teal-50',
+    borderColor: 'border-teal-200',
+    iconName: 'ConciergeBell',
+    managerName: 'Priya Sharma / Ramesh Rao',
+    description: 'Guest check-in, check-out, room allocation, active stays, and Aadhaar identity verification.',
+    route: '/front-office-panel',
+  },
   all: {
     key: 'all',
-    name: 'All Departments / Master Panel',
-    shortName: 'All Panels',
-    badge: 'Master Console',
+    name: 'All Departments / Unified Hub',
+    shortName: 'All Panels (Hub)',
+    badge: 'Unified Console',
     color: 'text-telivity-navy',
     bgLight: 'bg-slate-100',
     borderColor: 'border-slate-300',
     iconName: 'Building2',
     managerName: 'Banu Prasad (Owner)',
     description: 'Unified management view across all hotel operations, shifts, rooms, and billing.',
-  },
-  front_office: {
-    key: 'front_office',
-    name: 'Front Desk & Reception Panel',
-    shortName: 'Front Desk',
-    badge: 'Front Office',
-    color: 'text-telivity-teal',
-    bgLight: 'bg-teal-50',
-    borderColor: 'border-teal-200',
-    iconName: 'ConciergeBell',
-    managerName: 'Ramesh Rao',
-    description: 'Guest check-in, check-out, room allocation, active stays, and Aadhaar identity verification.',
+    route: '/departments',
   },
   housekeeping: {
     key: 'housekeeping',
@@ -51,18 +80,7 @@ export const DEPARTMENTS_INFO: Record<DepartmentKey, DepartmentInfo> = {
     iconName: 'Sparkles',
     managerName: 'Kavitha Devi',
     description: 'Room cleaning statuses (Clean / Dirty / OOO), 3-shift cleaning roster, and staff assignments.',
-  },
-  manager: {
-    key: 'manager',
-    name: 'Manager & 3 Shifts Panel',
-    shortName: 'Manager Shifts',
-    badge: 'Operations & 3 Shifts',
-    color: 'text-purple-700',
-    bgLight: 'bg-purple-50',
-    borderColor: 'border-purple-200',
-    iconName: 'Briefcase',
-    managerName: 'Banu Prasad / Shift Leads',
-    description: 'Morning (06-14h), Evening (14-22h), and Night (22-06h) shift in-charge, handovers, and attendance.',
+    route: '/housekeeping',
   },
   accounts: {
     key: 'accounts',
@@ -75,6 +93,7 @@ export const DEPARTMENTS_INFO: Record<DepartmentKey, DepartmentInfo> = {
     iconName: 'Receipt',
     managerName: 'Sunil Kumar',
     description: 'Daily collections, Cash/UPI/Card payment settlements, unpaid balances, and GST tax invoices.',
+    route: '/folios',
   },
 };
 

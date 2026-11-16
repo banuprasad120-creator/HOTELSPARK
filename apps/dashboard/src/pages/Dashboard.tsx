@@ -25,6 +25,7 @@ import {
   History,
   ConciergeBell,
   Receipt,
+  Shield,
 } from 'lucide-react';
 import WalkInCheckInModal from '../components/front-desk/WalkInCheckInModal';
 import AddGuestModal from '../components/front-desk/AddGuestModal';
@@ -262,53 +263,31 @@ export default function Dashboard() {
         <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
-            onClick={() => {
-              setActiveDepartment('front_office');
-              navigate('/departments');
-            }}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-teal-50 text-teal-800 hover:bg-teal-100 border border-teal-200 transition"
+            onClick={() => navigate('/admin-panel')}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-900 text-amber-400 hover:bg-slate-800 border border-amber-400/30 transition shadow-xs"
           >
-            <ConciergeBell size={13} /> Front Desk Panel
+            <Shield size={13} className="fill-amber-400" /> 🛡️ Admin Panel
           </button>
           <button
             type="button"
-            onClick={() => {
-              setActiveDepartment('housekeeping');
-              navigate('/departments');
-            }}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-amber-50 text-amber-800 hover:bg-amber-100 border border-amber-200 transition"
+            onClick={() => navigate('/manager-panel')}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-purple-700 text-white hover:bg-purple-800 transition shadow-xs"
           >
-            <Sparkles size={13} /> Housekeeping Panel
+            <Briefcase size={13} /> 👔 Manager Panel
           </button>
           <button
             type="button"
-            onClick={() => {
-              setActiveDepartment('manager');
-              navigate('/departments');
-            }}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-purple-50 text-purple-800 hover:bg-purple-100 border border-purple-200 transition"
+            onClick={() => navigate('/front-office-panel')}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-telivity-teal text-white hover:bg-teal-600 transition shadow-xs"
           >
-            <Briefcase size={13} /> Manager 3-Shifts
+            <ConciergeBell size={13} /> 🛎️ Front Office Panel
           </button>
           <button
             type="button"
-            onClick={() => {
-              setActiveDepartment('accounts');
-              navigate('/departments');
-            }}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border border-emerald-200 transition"
+            onClick={() => navigate('/departments')}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-gray-100 text-slate-700 hover:bg-gray-200 border border-gray-300 transition"
           >
-            <Receipt size={13} /> Accounts Panel
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setActiveDepartment('all');
-              navigate('/departments');
-            }}
-            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold bg-telivity-navy text-white hover:bg-slate-800 shadow-xs transition"
-          >
-            <Building2 size={13} /> All In 1 Panel →
+            <Building2 size={13} /> All-In-One Hub →
           </button>
         </div>
       </div>

@@ -60,14 +60,14 @@ export default function Header({ onMenuClick }: HeaderProps) {
             <Menu size={20} className="text-telivity-slate" />
           </button>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2">
             <span className="font-bold text-sm text-telivity-navy tracking-tight hidden sm:inline">
               Hotel Spark
             </span>
-            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-teal-50 text-teal-700 border border-teal-200">
+            <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-teal-50 text-teal-700 border border-teal-200 hidden md:inline">
               PMS
             </span>
-            <DepartmentSwitcher variant="header" />
+            <DepartmentSwitcher variant="pills" />
           </div>
 
           <button

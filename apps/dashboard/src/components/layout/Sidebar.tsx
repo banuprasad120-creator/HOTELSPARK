@@ -1,4 +1,4 @@
-import { NavLink } from 'react-router-dom';
+import { NavLink, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard,
   ConciergeBell,
@@ -17,6 +17,7 @@ import {
   Mail,
   MessageSquare,
   Settings,
+  Shield,
   ShieldCheck,
   Upload,
   UsersRound,
@@ -55,9 +56,10 @@ type NavSection = {
 };
 
 const DEPT_ALLOWED_ROUTES: Record<string, string[]> = {
-  front_office: ['/', '/departments', '/current-guests', '/front-desk', '/reservations', '/guests', '/guest-history', '/direct-bookings'],
+  admin: ['/', '/admin-panel', '/manager-panel', '/front-office-panel', '/departments', '/current-guests', '/front-desk', '/reservations', '/guests', '/rooms', '/rooms/types', '/housekeeping', '/staff', '/folios', '/guest-history', '/direct-bookings', '/reports', '/settings'],
+  manager: ['/', '/manager-panel', '/front-office-panel', '/departments', '/staff', '/current-guests', '/front-desk', '/housekeeping', '/reports', '/settings'],
+  front_office: ['/', '/front-office-panel', '/departments', '/current-guests', '/front-desk', '/reservations', '/guests', '/guest-history', '/direct-bookings'],
   housekeeping: ['/', '/departments', '/rooms', '/rooms/types', '/housekeeping', '/staff'],
-  manager: ['/', '/departments', '/staff', '/current-guests', '/front-desk', '/housekeeping', '/reports', '/settings'],
   accounts: ['/', '/departments', '/folios', '/guest-history', '/reports'],
 };
 
@@ -65,7 +67,10 @@ const NAV_SECTIONS: NavSection[] = [
   {
     items: [
       { to: '/', icon: LayoutDashboard, labelKey: 'Dashboard', permission: 'dashboard.view' },
-      { to: '/departments', icon: Building2, labelKey: 'Department Panels' },
+      { to: '/admin-panel', icon: Shield, labelKey: '🛡️ Admin Panel', permission: 'admin.users.manage' },
+      { to: '/manager-panel', icon: Briefcase, labelKey: '👔 Manager Panel', permission: 'admin.users.manage' },
+      { to: '/front-office-panel', icon: ConciergeBell, labelKey: '🛎️ Front Office Panel', permission: 'frontdesk.access' },
+      { to: '/departments', icon: Building2, labelKey: 'All Departments (Hub)' },
       { to: '/current-guests', icon: Users, labelKey: 'In-House Guests', permission: 'frontdesk.access' },
       { to: '/front-desk', icon: ConciergeBell, labelKey: 'Front Desk', permission: 'frontdesk.access' },
       { to: '/reservations', icon: CalendarDays, labelKey: 'Booking Management', permission: 'reservations.read' },
@@ -113,6 +118,15 @@ export default function Sidebar({ mobileOpen, onClose }: SidebarProps) {
   const { t } = useTranslation();
   const { propertyId, isPortfolioMode, properties } = useProperty();
   const { activeDepartment, setActiveDepartment } = useDepartment();
+  const location = useLocation();
+
+  const consoleBadge = location.pathname.includes('/admin-panel')
+    ? 'ADMIN CONSOLE'
+    : location.pathname.includes('/manager-panel')
+    ? 'MANAGER CONSOLE'
+    : location.pathname.includes('/front-office-panel')
+    ? 'FRONT DESK CONSOLE'
+    : 'ADMIN CONSOLE';
 
   const activeProperty = isPortfolioMode
     ? null
@@ -168,7 +182,7 @@ export default function Sidebar({ mobileOpen, onClose }: SidebarProps) {
               <h1 className="text-base font-bold tracking-wide truncate">{brandName}</h1>
               <div className="flex items-center gap-1.5 mt-0.5">
                 <span className="inline-block px-1.5 py-0.2 text-[9px] font-bold uppercase tracking-wider rounded bg-teal-500/20 text-teal-300 border border-teal-500/30">
-                  ADMIN CONSOLE
+                  {consoleBadge}
                 </span>
               </div>
             </div>

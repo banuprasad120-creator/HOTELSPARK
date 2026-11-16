@@ -38,6 +38,9 @@ const StaffManagement = lazy(() => import('./pages/StaffManagement'));
 const InHouseGuests = lazy(() => import('./pages/InHouseGuests'));
 const GuestHistory = lazy(() => import('./pages/GuestHistory'));
 const DepartmentPanels = lazy(() => import('./pages/DepartmentPanels'));
+const AdminPanel = lazy(() => import('./pages/AdminPanel'));
+const ManagerPanel = lazy(() => import('./pages/ManagerPanel'));
+const FrontOfficePanel = lazy(() => import('./pages/FrontOfficePanel'));
 
 export default function App() {
   useRealtimeInvalidation();
@@ -60,6 +63,9 @@ export default function App() {
           <PropertyScopeBoundary>
             <Routes>
               <Route path="/" element={<Dashboard />} />
+              <Route path="/admin-panel" element={<AdminPanel />} />
+              <Route path="/manager-panel" element={<ManagerPanel />} />
+              <Route path="/front-office-panel" element={<FrontOfficePanel />} />
               <Route path="/departments" element={<DepartmentPanels />} />
               <Route path="/current-guests" element={<InHouseGuests />} />
               <Route path="/guest-history" element={<GuestHistory />} />
