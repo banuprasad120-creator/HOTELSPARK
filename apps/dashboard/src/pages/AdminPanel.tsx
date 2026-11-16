@@ -31,8 +31,12 @@ import {
   getStoredRooms,
   saveStoredRooms,
   getStoredStays,
+  getStoredTariffConfig,
+  saveStoredTariffConfig,
   type StoredRoom,
   type StoredStay,
+  type HotelTariffConfig,
+  type RoomCategoryTariff,
 } from '../lib/supabaseAdapter';
 import WalkInCheckInModal from '../components/front-desk/WalkInCheckInModal';
 
@@ -141,19 +145,7 @@ export default function AdminPanel() {
   const { toast } = useToast();
 
   const [walkInOpen, setWalkInOpen] = useState(false);
-  const [editingTariff, setEditingTariff] = useState<string | null>(null);
-  const [editPriceInput, setEditPriceInput] = useState<number>(0);
-
-  // Tariffs State with persistence
-  const [tariffs, setTariffs] = useState<TariffPlan[]>(() => {
-    try {
-      const saved = localStorage.getItem('spark_admin_tariffs');
-      if (saved) return JSON.parse(saved);
-    } catch {
-      // ignore
-    }
-    return DEFAULT_TARIFFS;
-  });
+  const [tariffConfig, setTariffConfig] = useState<HotelTariffConfig>(() => getStoredTariffConfig());
 
   // Staff State with persistence
   const [staffList, setStaffList] = useState<StaffMember[]>(() => {
@@ -211,19 +203,6 @@ export default function AdminPanel() {
   const monthlyPayrollTotal = useMemo(() => {
     return staffList.reduce((acc, s) => acc + s.salary, 0);
   }, [staffList]);
-
-  // Save Tariff Price
-  const handleSaveTariff = (category: string) => {
-    if (editPriceInput <= 0) {
-      toast('error', 'Please enter a valid tariff price.');
-      return;
-    }
-    const updated = tariffs.map((t) => (t.category === category ? { ...t, basePrice: editPriceInput } : t));
-    setTariffs(updated);
-    localStorage.setItem('spark_admin_tariffs', JSON.stringify(updated));
-    setEditingTariff(null);
-    toast('success', `Updated ${category} base tariff to ₹${editPriceInput.toLocaleString('en-IN')}/night.`);
-  };
 
   const handleToggleRoomStatus = (roomId: string, nextStatus: string) => {
     const updated = rooms.map((r) => (r.id === roomId ? { ...r, status: nextStatus } : r));
@@ -310,10 +289,10 @@ export default function AdminPanel() {
           <div className="bg-white/5 backdrop-blur-xs p-3 rounded-xl border border-white/10">
             <span className="text-slate-300 text-[11px] block font-medium">Room Occupancy</span>
             <strong className="text-lg font-bold text-white mt-0.5 block">
-              {occupiedRooms.length} / {rooms.length || 10} Rooms
+              {occupiedRooms.length} / 28 Rooms
             </strong>
             <span className="text-[10px] text-teal-300 font-semibold">
-              {Math.round((occupiedRooms.length / (rooms.length || 10)) * 100)}% Occupancy
+              {Math.round((occupiedRooms.length / 28) * 100)}% Occupancy
             </span>
           </div>
 
@@ -339,95 +318,63 @@ export default function AdminPanel() {
           <div>
             <h2 className="text-base font-bold text-telivity-navy flex items-center gap-2">
               <IndianRupee size={20} className="text-amber-600" />
-              Room Categories & Base Tariffs (Live Pricing Control)
+              Official Room Categories & Pricing (28-Room Inventory)
             </h2>
             <p className="text-xs text-telivity-mid-grey">
-              Admin-authorized base prices per night applied to front desk walk-ins and guest online booking engine.
+              Official hotel pricing schedule: Single & Double occupancy in INR per night. Extra person charge: ₹399/night.
             </p>
           </div>
           <button
             type="button"
-            onClick={() => navigate('/rooms/types')}
-            className="text-xs font-bold text-telivity-teal hover:underline flex items-center gap-1"
+            onClick={() => navigate('/tariff-settings')}
+            className="text-xs font-bold text-telivity-teal hover:underline flex items-center gap-1 px-3 py-1.5 rounded-xl bg-teal-50 border border-teal-200"
           >
-            Manage Category Definitions →
+            ⚙️ Configure Tariffs & Inventory (28 Rooms) →
           </button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {tariffs.map((plan) => {
-            const isEditing = editingTariff === plan.category;
-            return (
-              <div
-                key={plan.category}
-                className="p-5 rounded-2xl border border-gray-200 bg-gradient-to-b from-gray-50/50 to-white hover:border-amber-300 hover:shadow-md transition space-y-3"
-              >
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {tariffConfig.categories.map((cat) => (
+            <div
+              key={cat.id}
+              className="p-5 rounded-2xl border border-gray-200 bg-gradient-to-b from-gray-50/50 to-white hover:border-amber-300 hover:shadow-md transition space-y-3"
+            >
+              <div className="flex items-center justify-between">
+                <span className="px-2 py-0.5 text-[10px] font-bold uppercase rounded bg-telivity-navy text-white">
+                  {cat.code}
+                </span>
+                <span className="text-[11px] font-bold text-teal-800 bg-teal-50 px-2 py-0.5 rounded-full border border-teal-200">
+                  {cat.assignedRoomsCount} Rooms
+                </span>
+              </div>
+
+              <div>
+                <h3 className="font-bold text-sm text-telivity-navy">{cat.name}</h3>
+                <p className="text-[11px] text-telivity-mid-grey mt-0.5 line-clamp-2">
+                  {cat.description}
+                </p>
+              </div>
+
+              <div className="pt-2 border-t border-gray-100 space-y-1.5 text-xs">
                 <div className="flex items-center justify-between">
-                  <span className="px-2 py-0.5 text-[10px] font-bold uppercase rounded bg-gray-200 text-gray-700">
-                    {plan.code}
-                  </span>
-                  <span className="text-[11px] text-telivity-mid-grey font-medium">
-                    {plan.roomsCount} Rooms
+                  <span className="text-telivity-mid-grey font-medium">Single Occupancy:</span>
+                  <span className="font-bold text-telivity-navy">
+                    {cat.singleOccupancyPrice !== null ? `₹${cat.singleOccupancyPrice.toLocaleString('en-IN')}` : (
+                      <span className="px-1.5 py-0.2 rounded text-[10px] font-semibold bg-gray-100 text-gray-500">Not configured</span>
+                    )}
                   </span>
                 </div>
-
-                <div>
-                  <h3 className="font-bold text-sm text-telivity-navy">{plan.category}</h3>
-                  <p className="text-[11px] text-telivity-mid-grey mt-0.5">GST Rate: {plan.gstRate}% (6% CGST + 6% SGST)</p>
-                </div>
-
-                <div className="pt-2 border-t border-gray-100 flex items-center justify-between">
-                  {isEditing ? (
-                    <div className="flex items-center gap-1.5 w-full">
-                      <span className="text-xs font-bold text-telivity-navy">₹</span>
-                      <input
-                        type="number"
-                        value={editPriceInput}
-                        onChange={(e) => setEditPriceInput(Number(e.target.value))}
-                        className="w-24 px-2 py-1 text-xs border border-amber-400 rounded-lg focus:outline-none font-bold"
-                        autoFocus
-                      />
-                      <button
-                        type="button"
-                        onClick={() => handleSaveTariff(plan.category)}
-                        className="p-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white"
-                        title="Save Price"
-                      >
-                        <Check size={14} />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setEditingTariff(null)}
-                        className="px-2 py-1 text-xs text-gray-500 hover:text-gray-700"
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  ) : (
-                    <>
-                      <div>
-                        <span className="text-[10px] text-telivity-mid-grey block">Base Tariff / Night</span>
-                        <span className="text-xl font-bold text-telivity-navy">
-                          ₹{plan.basePrice.toLocaleString('en-IN')}
-                        </span>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setEditingTariff(plan.category);
-                          setEditPriceInput(plan.basePrice);
-                        }}
-                        className="px-2.5 py-1.5 rounded-lg border border-gray-200 hover:border-amber-400 bg-white hover:bg-amber-50 text-xs font-bold text-slate-700 transition flex items-center gap-1"
-                      >
-                        <Edit2 size={12} className="text-amber-600" />
-                        <span>Edit Tariff</span>
-                      </button>
-                    </>
-                  )}
+                <div className="flex items-center justify-between">
+                  <span className="text-telivity-mid-grey font-medium">Double Occupancy:</span>
+                  <span className="font-bold text-telivity-navy">
+                    {cat.doubleOccupancyPrice !== null ? `₹${cat.doubleOccupancyPrice.toLocaleString('en-IN')}` : (
+                      <span className="px-1.5 py-0.2 rounded text-[10px] font-semibold bg-gray-100 text-gray-500">Not configured</span>
+                    )}
+                  </span>
                 </div>
               </div>
-            );
-          })}
+            </div>
+          ))}
         </div>
       </div>
 
@@ -437,7 +384,7 @@ export default function AdminPanel() {
           <div>
             <h2 className="text-base font-bold text-telivity-navy flex items-center gap-2">
               <DoorOpen size={20} className="text-telivity-teal" />
-              Room Inventory & Admin Override Rack (10 Rooms)
+              Room Inventory & Admin Override Rack (28 Rooms)
             </h2>
             <p className="text-xs text-telivity-mid-grey">
               Real-time room status with direct admin overrides (Available / Occupied / Dirty / Out of Order).
@@ -474,10 +421,15 @@ export default function AdminPanel() {
                 const isDirty = room.status === 'vacant_dirty' || room.status === 'dirty';
                 const isOoo = room.status === 'out_of_order';
 
-                const matchedTariff = tariffs.find((t) =>
-                  room.roomTypeName?.toLowerCase().includes(t.category.toLowerCase().split(' ')[0])
+                const matchedCat = tariffConfig.categories.find(
+                  (c) =>
+                    room.roomTypeName?.toLowerCase().includes(c.name.toLowerCase().split(' ')[0]) ||
+                    c.id === room.roomTypeId
                 );
-                const price = matchedTariff?.basePrice || 3500;
+                const price =
+                  matchedCat?.doubleOccupancyPrice ||
+                  matchedCat?.singleOccupancyPrice ||
+                  1799;
 
                 return (
                   <tr key={room.id} className="hover:bg-gray-50/70 transition">

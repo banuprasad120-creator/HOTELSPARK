@@ -41,6 +41,7 @@ const DepartmentPanels = lazy(() => import('./pages/DepartmentPanels'));
 const AdminPanel = lazy(() => import('./pages/AdminPanel'));
 const ManagerPanel = lazy(() => import('./pages/ManagerPanel'));
 const FrontOfficePanel = lazy(() => import('./pages/FrontOfficePanel'));
+const RoomTariffSettings = lazy(() => import('./pages/RoomTariffSettings'));
 
 export default function App() {
   useRealtimeInvalidation();
@@ -66,6 +67,9 @@ export default function App() {
               <Route path="/admin-panel" element={<AdminPanel />} />
               <Route path="/manager-panel" element={<ManagerPanel />} />
               <Route path="/front-office-panel" element={<FrontOfficePanel />} />
+              <Route path="/tariff-settings" element={<RoomTariffSettings />} />
+              <Route path="/rooms/tariff" element={<RoomTariffSettings />} />
+              <Route path="/rooms/types" element={<RoomTariffSettings />} />
               <Route path="/departments" element={<DepartmentPanels />} />
               <Route path="/current-guests" element={<InHouseGuests />} />
               <Route path="/guest-history" element={<GuestHistory />} />

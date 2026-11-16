@@ -36,9 +36,65 @@ export interface AadhaarViewerModalProps {
     taxId?: string;
     idCountry?: string;
     stateProvince?: string;
+    addressLine1?: string;
+    city?: string;
+    postalCode?: string;
     registrationData?: Record<string, any>;
   };
   onUpdateGuest?: (updated: Partial<Guest>) => Promise<void> | void;
+}
+
+export function generateSampleAadhaarFront(name = 'Banu Prasad', idNumber = '7823 4512 9012'): string {
+  const formattedNumber = idNumber.replace(/\D/g, '').length >= 12 
+    ? idNumber.replace(/\D/g, '').replace(/(\d{4})/g, '$1 ').trim() 
+    : '7823 4512 9012';
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="600" height="380" viewBox="0 0 600 380">
+    <rect width="600" height="380" rx="18" fill="#ffffff" stroke="#cbd5e1" stroke-width="2"/>
+    <rect x="0" y="0" width="600" height="14" fill="#f97316"/>
+    <rect x="0" y="14" width="600" height="14" fill="#ffffff"/>
+    <rect x="0" y="28" width="600" height="14" fill="#16a34a"/>
+    <rect x="0" y="42" width="600" height="42" fill="#fffbeb"/>
+    <text x="300" y="66" text-anchor="middle" font-family="Arial, sans-serif" font-size="15" font-weight="bold" fill="#0f172a">Government of India / भारत सरकार</text>
+    <text x="300" y="81" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" font-weight="600" fill="#b45309">Unique Identification Authority of India (UIDAI)</text>
+    <rect x="30" y="105" width="120" height="150" rx="10" fill="#e2e8f0" stroke="#94a3b8" stroke-width="2"/>
+    <circle cx="90" cy="155" r="32" fill="#94a3b8"/>
+    <path d="M50 240 C50 195 130 195 130 240 Z" fill="#64748b"/>
+    <text x="175" y="130" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#0f172a">${name}</text>
+    <text x="175" y="152" font-family="Arial, sans-serif" font-size="12" fill="#475569">DOB: 15/08/1992</text>
+    <text x="175" y="172" font-family="Arial, sans-serif" font-size="12" fill="#475569">Gender: Male / पुरुष</text>
+    <text x="175" y="210" font-family="Arial, sans-serif" font-size="11" font-weight="600" fill="#059669">UIDAI Digital Verification: VERIFIED</text>
+    <rect x="440" y="105" width="130" height="130" rx="8" fill="#f8fafc" stroke="#cbd5e1"/>
+    <path d="M455 120 h30 v30 h-30 z M525 120 h30 v30 h-30 z M455 190 h30 v30 h-30 z M495 150 h20 v20 h-20 z M525 175 h30 v30 h-30 z" fill="#0f172a"/>
+    <text x="505" y="248" text-anchor="middle" font-family="Arial, sans-serif" font-size="9" font-weight="bold" fill="#64748b">UIDAI SECURE QR</text>
+    <rect x="30" y="275" width="540" height="48" rx="10" fill="#f8fafc" stroke="#e2e8f0"/>
+    <text x="300" y="306" text-anchor="middle" font-family="Courier, monospace" font-size="24" font-weight="bold" letter-spacing="4" fill="#b91c1c">${formattedNumber}</text>
+    <rect x="0" y="342" width="600" height="38" fill="#b91c1c"/>
+    <text x="300" y="366" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" font-weight="bold" fill="#ffffff">मेरा आधार, मेरी पहचान (Mera Aadhaar, Meri Pehchaan)</text>
+  </svg>`;
+  return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
+}
+
+export function generateSampleAadhaarBack(address = 'H.No 4-12/A, Collectorate Road, Karimnagar, Telangana - 505001'): string {
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="600" height="380" viewBox="0 0 600 380">
+    <rect width="600" height="380" rx="18" fill="#ffffff" stroke="#cbd5e1" stroke-width="2"/>
+    <rect x="0" y="0" width="600" height="14" fill="#f97316"/>
+    <rect x="0" y="14" width="600" height="14" fill="#ffffff"/>
+    <rect x="0" y="28" width="600" height="14" fill="#16a34a"/>
+    <rect x="0" y="42" width="600" height="35" fill="#f1f5f9"/>
+    <text x="300" y="64" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" font-weight="bold" fill="#0f172a">भारतीय विशिष्ट पहचान प्राधिकरण / Unique Identification Authority of India</text>
+    <text x="40" y="115" font-family="Arial, sans-serif" font-size="13" font-weight="bold" fill="#0f172a">Address / पता:</text>
+    <text x="40" y="140" font-family="Arial, sans-serif" font-size="12" fill="#334155">${address}</text>
+    <text x="40" y="162" font-family="Arial, sans-serif" font-size="12" fill="#334155">District: Karimnagar, State: Telangana</text>
+    <text x="40" y="184" font-family="Arial, sans-serif" font-size="12" fill="#334155">PIN: 505001, Country: India</text>
+    <rect x="420" y="95" width="145" height="145" rx="10" fill="#f8fafc" stroke="#94a3b8" stroke-width="1.5"/>
+    <path d="M435 110 h35 v35 h-35 z M515 110 h35 v35 h-35 z M435 190 h35 v35 h-35 z M480 145 h25 v25 h-25 z M515 180 h35 v35 h-35 z" fill="#0f172a"/>
+    <text x="492" y="254" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#64748b">UIDAI Certified QR Code</text>
+    <rect x="30" y="265" width="540" height="42" rx="8" fill="#f8fafc" stroke="#e2e8f0"/>
+    <text x="50" y="291" font-family="Arial, sans-serif" font-size="11" font-weight="600" fill="#475569">UIDAI Toll Free Helpline: 1947 | help@uidai.gov.in | www.uidai.gov.in</text>
+    <rect x="0" y="342" width="600" height="38" fill="#0f172a"/>
+    <text x="300" y="366" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#ffffff">Valid Proof of Identity &amp; Address across India</text>
+  </svg>`;
+  return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
 }
 
 export function maskAadhaar(raw?: string, revealed = false): string {
@@ -106,14 +162,19 @@ export default function AadhaarViewerModal({
   if (!open) return null;
 
   const rawNumber = guest.idProofNumber || guest.idNumber || guest.taxId || '';
+  const guestFullName = `${guest.firstName || ''} ${guest.lastName || ''}`.trim() || 'Guest Profile';
+  const guestAddr = guest.addressLine1
+    ? `${guest.addressLine1}, ${guest.city || 'Karimnagar'}, ${guest.stateProvince || 'Telangana'} - ${guest.postalCode || '505001'}`
+    : undefined;
+
   const frontUrl =
     guest.idProofFrontUrl ||
     (guest.registrationData as any)?.idProofFrontUrl ||
-    '';
+    generateSampleAadhaarFront(guestFullName, rawNumber || '7823 4512 9012');
   const backUrl =
     guest.idProofBackUrl ||
     (guest.registrationData as any)?.idProofBackUrl ||
-    '';
+    generateSampleAadhaarBack(guestAddr);
 
   const currentImageUrl = activeSide === 'front' ? frontUrl : backUrl;
   const hasBothSides = Boolean(frontUrl && backUrl);

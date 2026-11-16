@@ -87,26 +87,116 @@ export interface StoredRoom {
   amenities: string[];
 }
 
-export const DEFAULT_ROOM_TYPES = [
-  { id: 'b0000001-0000-4000-a000-000000000001', name: 'Deluxe King Room', code: 'DLX', description: 'Spacious king-size bed room with ensuite bath', max_occupancy: 2, default_occupancy: 2, bed_type: 'king', amenities: ['wifi', 'tv', 'ac', 'safe'], basePrice: 3500 },
-  { id: 'b0000002-0000-4000-a000-000000000001', name: 'Executive Spark Suite', code: 'SUT', description: 'Luxurious suite with separate living room', max_occupancy: 4, default_occupancy: 2, bed_type: 'king', amenities: ['wifi', 'tv', 'ac', 'bathtub', 'minibar'], basePrice: 6500 },
-  { id: 'b0000003-0000-4000-a000-000000000001', name: 'Standard Queen Room', code: 'STD', description: 'Cozy queen-size bed room', max_occupancy: 2, default_occupancy: 2, bed_type: 'queen', amenities: ['wifi', 'tv', 'ac'], basePrice: 2500 },
-];
+export interface RoomCategoryTariff {
+  id: string;
+  name: string;
+  code: string;
+  description: string;
+  singleOccupancyPrice: number | null;
+  doubleOccupancyPrice: number | null;
+  maxOccupancy: number;
+  assignedRoomsCount: number;
+  amenities: string[];
+}
+
+export interface HotelTariffConfig {
+  totalRooms: number;
+  extraPersonCharge: number;
+  gstPercentage: number;
+  isTaxInclusive: boolean;
+  childrenPolicy: string;
+  cancellationPolicy: string;
+  paymentPolicy: string;
+  categories: RoomCategoryTariff[];
+}
+
+export const TARIFF_CONFIG_STORAGE_KEY = 'hotel_spark_tariff_config';
+
+export const DEFAULT_TARIFF_CONFIG: HotelTariffConfig = {
+  totalRooms: 28,
+  extraPersonCharge: 399,
+  gstPercentage: 12,
+  isTaxInclusive: true,
+  childrenPolicy: 'Children below 7 years: Free stay without an extra bed.',
+  cancellationPolicy: 'No cancellation policy for room reservations.',
+  paymentPolicy: 'All major credit/debit cards (Visa, MasterCard, RuPay), UPI & Cash accepted.',
+  categories: [
+    {
+      id: 'b0000001-0000-4000-a000-000000000001',
+      name: 'Budget Room',
+      code: 'BGT',
+      description: 'Comfortable compact room optimized for single traveler convenience with essential amenities.',
+      singleOccupancyPrice: 1599,
+      doubleOccupancyPrice: null,
+      maxOccupancy: 1,
+      assignedRoomsCount: 6,
+      amenities: ['wifi', 'tv', 'ac', 'room_service'],
+    },
+    {
+      id: 'b0000002-0000-4000-a000-000000000002',
+      name: 'Deluxe Room',
+      code: 'DLX',
+      description: 'Elegant deluxe room with plush bedding, dedicated workspace, and private ensuite bath.',
+      singleOccupancyPrice: 1799,
+      doubleOccupancyPrice: 2099,
+      maxOccupancy: 2,
+      assignedRoomsCount: 10,
+      amenities: ['wifi', 'tv', 'ac', 'safe', 'tea_maker', 'balcony'],
+    },
+    {
+      id: 'b0000003-0000-4000-a000-000000000003',
+      name: 'Executive Room',
+      code: 'EXE',
+      description: 'Sophisticated executive room featuring panoramic views, ergonomic desk and seating area.',
+      singleOccupancyPrice: 2199,
+      doubleOccupancyPrice: 2499,
+      maxOccupancy: 3,
+      assignedRoomsCount: 8,
+      amenities: ['wifi', 'tv', 'ac', 'safe', 'minibar', 'city_view'],
+    },
+    {
+      id: 'b0000004-0000-4000-a000-000000000004',
+      name: 'Suite',
+      code: 'SUT',
+      description: 'Spacious signature suite featuring a master bedroom, living hall, luxury bathtub and pantry.',
+      singleOccupancyPrice: null,
+      doubleOccupancyPrice: 2799,
+      maxOccupancy: 4,
+      assignedRoomsCount: 4,
+      amenities: ['wifi', 'tv', 'ac', 'safe', 'minibar', 'living_area', 'bathtub'],
+    },
+  ],
+};
+
+export const DEFAULT_ROOM_TYPES = DEFAULT_TARIFF_CONFIG.categories.map((c) => ({
+  id: c.id,
+  name: c.name,
+  code: c.code,
+  description: c.description,
+  max_occupancy: c.maxOccupancy,
+  default_occupancy: c.singleOccupancyPrice ? 1 : 2,
+  bed_type: c.code === 'SUT' ? 'king' : c.code === 'EXE' ? 'queen' : c.code === 'DLX' ? 'double' : 'single',
+  amenities: c.amenities,
+  basePrice: c.doubleOccupancyPrice || c.singleOccupancyPrice || 1799,
+  singlePrice: c.singleOccupancyPrice,
+  doublePrice: c.doubleOccupancyPrice,
+  roomCount: c.assignedRoomsCount,
+}));
 
 export const DEFAULT_ROOMS: StoredRoom[] = [
-  // Floor 1 — Deluxe King Rooms (DLX - ₹3,500/night)
+  // Floor 1 (14 Rooms: 101 to 114)
+  // Budget Rooms (6 Rooms: 101-106, Single ₹1,599)
   {
     id: 'r0000101-0000-4000-a000-000000000001',
     propertyId: PROPERTY_ID,
     number: '101',
     floor: '1',
     roomTypeId: 'b0000001-0000-4000-a000-000000000001',
-    roomTypeName: 'Deluxe King Room',
-    status: 'occupied',
-    guestName: 'Rahul Verma',
-    hkOccupancy: 'occupied',
+    roomTypeName: 'Budget Room',
+    status: 'vacant_clean',
+    hkOccupancy: 'vacant',
     isActive: true,
-    amenities: ['wifi', 'tv', 'ac', 'safe', 'balcony'],
+    amenities: ['wifi', 'tv', 'ac', 'room_service'],
   },
   {
     id: 'r0000102-0000-4000-a000-000000000001',
@@ -114,12 +204,12 @@ export const DEFAULT_ROOMS: StoredRoom[] = [
     number: '102',
     floor: '1',
     roomTypeId: 'b0000001-0000-4000-a000-000000000001',
-    roomTypeName: 'Deluxe King Room',
+    roomTypeName: 'Budget Room',
     status: 'occupied',
-    guestName: 'Priya Sharma',
+    guestName: 'Banu Prasad',
     hkOccupancy: 'occupied',
     isActive: true,
-    amenities: ['wifi', 'tv', 'ac', 'safe'],
+    amenities: ['wifi', 'tv', 'ac', 'room_service'],
   },
   {
     id: 'r0000103-0000-4000-a000-000000000001',
@@ -127,11 +217,11 @@ export const DEFAULT_ROOMS: StoredRoom[] = [
     number: '103',
     floor: '1',
     roomTypeId: 'b0000001-0000-4000-a000-000000000001',
-    roomTypeName: 'Deluxe King Room',
+    roomTypeName: 'Budget Room',
     status: 'vacant_clean',
     hkOccupancy: 'vacant',
     isActive: true,
-    amenities: ['wifi', 'tv', 'ac', 'safe'],
+    amenities: ['wifi', 'tv', 'ac', 'room_service'],
   },
   {
     id: 'r0000104-0000-4000-a000-000000000001',
@@ -139,87 +229,314 @@ export const DEFAULT_ROOMS: StoredRoom[] = [
     number: '104',
     floor: '1',
     roomTypeId: 'b0000001-0000-4000-a000-000000000001',
-    roomTypeName: 'Deluxe King Room',
+    roomTypeName: 'Budget Room',
     status: 'vacant_dirty',
     hkOccupancy: 'vacant',
     isActive: true,
-    amenities: ['wifi', 'tv', 'ac', 'safe'],
+    amenities: ['wifi', 'tv', 'ac', 'room_service'],
   },
-  // Floor 2 — Executive Spark Suites (SUT - ₹6,500/night)
+  {
+    id: 'r0000105-0000-4000-a000-000000000001',
+    propertyId: PROPERTY_ID,
+    number: '105',
+    floor: '1',
+    roomTypeId: 'b0000001-0000-4000-a000-000000000001',
+    roomTypeName: 'Budget Room',
+    status: 'booked',
+    guestName: 'Kiran Kumar',
+    hkOccupancy: 'vacant',
+    isActive: true,
+    amenities: ['wifi', 'tv', 'ac', 'room_service'],
+  },
+  {
+    id: 'r0000106-0000-4000-a000-000000000001',
+    propertyId: PROPERTY_ID,
+    number: '106',
+    floor: '1',
+    roomTypeId: 'b0000001-0000-4000-a000-000000000001',
+    roomTypeName: 'Budget Room',
+    status: 'vacant_clean',
+    hkOccupancy: 'vacant',
+    isActive: true,
+    amenities: ['wifi', 'tv', 'ac', 'room_service'],
+  },
+  // Deluxe Rooms (Floor 1: Rooms 107-114, 8 Rooms, Single ₹1,799 / Double ₹2,099)
+  {
+    id: 'r0000107-0000-4000-a000-000000000001',
+    propertyId: PROPERTY_ID,
+    number: '107',
+    floor: '1',
+    roomTypeId: 'b0000002-0000-4000-a000-000000000002',
+    roomTypeName: 'Deluxe Room',
+    status: 'occupied',
+    guestName: 'Rahul Verma',
+    hkOccupancy: 'occupied',
+    isActive: true,
+    amenities: ['wifi', 'tv', 'ac', 'safe', 'tea_maker', 'balcony'],
+  },
+  {
+    id: 'r0000108-0000-4000-a000-000000000001',
+    propertyId: PROPERTY_ID,
+    number: '108',
+    floor: '1',
+    roomTypeId: 'b0000002-0000-4000-a000-000000000002',
+    roomTypeName: 'Deluxe Room',
+    status: 'occupied',
+    guestName: 'Priya Sharma',
+    hkOccupancy: 'occupied',
+    isActive: true,
+    amenities: ['wifi', 'tv', 'ac', 'safe', 'tea_maker'],
+  },
+  {
+    id: 'r0000109-0000-4000-a000-000000000001',
+    propertyId: PROPERTY_ID,
+    number: '109',
+    floor: '1',
+    roomTypeId: 'b0000002-0000-4000-a000-000000000002',
+    roomTypeName: 'Deluxe Room',
+    status: 'vacant_clean',
+    hkOccupancy: 'vacant',
+    isActive: true,
+    amenities: ['wifi', 'tv', 'ac', 'safe', 'tea_maker'],
+  },
+  {
+    id: 'r0000110-0000-4000-a000-000000000001',
+    propertyId: PROPERTY_ID,
+    number: '110',
+    floor: '1',
+    roomTypeId: 'b0000002-0000-4000-a000-000000000002',
+    roomTypeName: 'Deluxe Room',
+    status: 'vacant_clean',
+    hkOccupancy: 'vacant',
+    isActive: true,
+    amenities: ['wifi', 'tv', 'ac', 'safe', 'tea_maker'],
+  },
+  {
+    id: 'r0000111-0000-4000-a000-000000000001',
+    propertyId: PROPERTY_ID,
+    number: '111',
+    floor: '1',
+    roomTypeId: 'b0000002-0000-4000-a000-000000000002',
+    roomTypeName: 'Deluxe Room',
+    status: 'vacant_dirty',
+    hkOccupancy: 'vacant',
+    isActive: true,
+    amenities: ['wifi', 'tv', 'ac', 'safe', 'tea_maker'],
+  },
+  {
+    id: 'r0000112-0000-4000-a000-000000000001',
+    propertyId: PROPERTY_ID,
+    number: '112',
+    floor: '1',
+    roomTypeId: 'b0000002-0000-4000-a000-000000000002',
+    roomTypeName: 'Deluxe Room',
+    status: 'booked',
+    guestName: 'Naveen Reddy',
+    hkOccupancy: 'vacant',
+    isActive: true,
+    amenities: ['wifi', 'tv', 'ac', 'safe', 'tea_maker'],
+  },
+  {
+    id: 'r0000113-0000-4000-a000-000000000001',
+    propertyId: PROPERTY_ID,
+    number: '113',
+    floor: '1',
+    roomTypeId: 'b0000002-0000-4000-a000-000000000002',
+    roomTypeName: 'Deluxe Room',
+    status: 'vacant_clean',
+    hkOccupancy: 'vacant',
+    isActive: true,
+    amenities: ['wifi', 'tv', 'ac', 'safe', 'tea_maker'],
+  },
+  {
+    id: 'r0000114-0000-4000-a000-000000000001',
+    propertyId: PROPERTY_ID,
+    number: '114',
+    floor: '1',
+    roomTypeId: 'b0000002-0000-4000-a000-000000000002',
+    roomTypeName: 'Deluxe Room',
+    status: 'vacant_clean',
+    hkOccupancy: 'vacant',
+    isActive: true,
+    amenities: ['wifi', 'tv', 'ac', 'safe', 'tea_maker'],
+  },
+
+  // Floor 2 (14 Rooms: 201 to 214)
+  // Deluxe Rooms (2 more Rooms: 201-202, Total 10 Deluxe)
   {
     id: 'r0000201-0000-4000-a000-000000000001',
     propertyId: PROPERTY_ID,
     number: '201',
     floor: '2',
-    roomTypeId: 'b0000002-0000-4000-a000-000000000001',
-    roomTypeName: 'Executive Spark Suite',
+    roomTypeId: 'b0000002-0000-4000-a000-000000000002',
+    roomTypeName: 'Deluxe Room',
     status: 'occupied',
     guestName: 'Vikram Malhotra',
     hkOccupancy: 'occupied',
     isActive: true,
-    amenities: ['wifi', 'tv', 'ac', 'bathtub', 'minibar', 'balcony'],
+    amenities: ['wifi', 'tv', 'ac', 'safe', 'tea_maker', 'balcony'],
   },
   {
     id: 'r0000202-0000-4000-a000-000000000001',
     propertyId: PROPERTY_ID,
     number: '202',
     floor: '2',
-    roomTypeId: 'b0000002-0000-4000-a000-000000000001',
-    roomTypeName: 'Executive Spark Suite',
+    roomTypeId: 'b0000002-0000-4000-a000-000000000002',
+    roomTypeName: 'Deluxe Room',
     status: 'vacant_clean',
     hkOccupancy: 'vacant',
     isActive: true,
-    amenities: ['wifi', 'tv', 'ac', 'bathtub', 'minibar'],
+    amenities: ['wifi', 'tv', 'ac', 'safe', 'tea_maker'],
   },
+  // Executive Rooms (8 Rooms: 203 to 210, Single ₹2,199 / Double ₹2,499)
   {
     id: 'r0000203-0000-4000-a000-000000000001',
     propertyId: PROPERTY_ID,
     number: '203',
     floor: '2',
-    roomTypeId: 'b0000002-0000-4000-a000-000000000001',
-    roomTypeName: 'Executive Spark Suite',
-    status: 'out_of_order',
-    hkOccupancy: 'vacant',
-    isActive: true,
-    amenities: ['wifi', 'tv', 'ac', 'bathtub'],
-  },
-  // Floor 3 — Standard Queen Rooms (STD - ₹2,500/night)
-  {
-    id: 'r0000301-0000-4000-a000-000000000001',
-    propertyId: PROPERTY_ID,
-    number: '301',
-    floor: '3',
-    roomTypeId: 'b0000003-0000-4000-a000-000000000001',
-    roomTypeName: 'Standard Queen Room',
+    roomTypeId: 'b0000003-0000-4000-a000-000000000003',
+    roomTypeName: 'Executive Room',
     status: 'occupied',
     guestName: 'Anita Rao',
     hkOccupancy: 'occupied',
     isActive: true,
-    amenities: ['wifi', 'tv', 'ac'],
+    amenities: ['wifi', 'tv', 'ac', 'safe', 'minibar', 'city_view'],
   },
   {
-    id: 'r0000302-0000-4000-a000-000000000001',
+    id: 'r0000204-0000-4000-a000-000000000001',
     propertyId: PROPERTY_ID,
-    number: '302',
-    floor: '3',
-    roomTypeId: 'b0000003-0000-4000-a000-000000000001',
-    roomTypeName: 'Standard Queen Room',
+    number: '204',
+    floor: '2',
+    roomTypeId: 'b0000003-0000-4000-a000-000000000003',
+    roomTypeName: 'Executive Room',
     status: 'vacant_clean',
     hkOccupancy: 'vacant',
     isActive: true,
-    amenities: ['wifi', 'tv', 'ac'],
+    amenities: ['wifi', 'tv', 'ac', 'safe', 'minibar'],
   },
   {
-    id: 'r0000303-0000-4000-a000-000000000001',
+    id: 'r0000205-0000-4000-a000-000000000001',
     propertyId: PROPERTY_ID,
-    number: '303',
-    floor: '3',
-    roomTypeId: 'b0000003-0000-4000-a000-000000000001',
-    roomTypeName: 'Standard Queen Room',
+    number: '205',
+    floor: '2',
+    roomTypeId: 'b0000003-0000-4000-a000-000000000003',
+    roomTypeName: 'Executive Room',
+    status: 'booked',
+    guestName: 'Deepak Joshi',
+    hkOccupancy: 'vacant',
+    isActive: true,
+    amenities: ['wifi', 'tv', 'ac', 'safe', 'minibar'],
+  },
+  {
+    id: 'r0000206-0000-4000-a000-000000000001',
+    propertyId: PROPERTY_ID,
+    number: '206',
+    floor: '2',
+    roomTypeId: 'b0000003-0000-4000-a000-000000000003',
+    roomTypeName: 'Executive Room',
     status: 'vacant_clean',
     hkOccupancy: 'vacant',
     isActive: true,
-    amenities: ['wifi', 'tv', 'ac'],
+    amenities: ['wifi', 'tv', 'ac', 'safe', 'minibar'],
+  },
+  {
+    id: 'r0000207-0000-4000-a000-000000000001',
+    propertyId: PROPERTY_ID,
+    number: '207',
+    floor: '2',
+    roomTypeId: 'b0000003-0000-4000-a000-000000000003',
+    roomTypeName: 'Executive Room',
+    status: 'vacant_clean',
+    hkOccupancy: 'vacant',
+    isActive: true,
+    amenities: ['wifi', 'tv', 'ac', 'safe', 'minibar'],
+  },
+  {
+    id: 'r0000208-0000-4000-a000-000000000001',
+    propertyId: PROPERTY_ID,
+    number: '208',
+    floor: '2',
+    roomTypeId: 'b0000003-0000-4000-a000-000000000003',
+    roomTypeName: 'Executive Room',
+    status: 'vacant_dirty',
+    hkOccupancy: 'vacant',
+    isActive: true,
+    amenities: ['wifi', 'tv', 'ac', 'safe', 'minibar'],
+  },
+  {
+    id: 'r0000209-0000-4000-a000-000000000001',
+    propertyId: PROPERTY_ID,
+    number: '209',
+    floor: '2',
+    roomTypeId: 'b0000003-0000-4000-a000-000000000003',
+    roomTypeName: 'Executive Room',
+    status: 'out_of_order',
+    hkOccupancy: 'vacant',
+    isActive: true,
+    amenities: ['wifi', 'tv', 'ac', 'safe', 'minibar'],
+  },
+  {
+    id: 'r0000210-0000-4000-a000-000000000001',
+    propertyId: PROPERTY_ID,
+    number: '210',
+    floor: '2',
+    roomTypeId: 'b0000003-0000-4000-a000-000000000003',
+    roomTypeName: 'Executive Room',
+    status: 'vacant_clean',
+    hkOccupancy: 'vacant',
+    isActive: true,
+    amenities: ['wifi', 'tv', 'ac', 'safe', 'minibar'],
+  },
+  // Suite Rooms (4 Rooms: 211 to 214, Double ₹2,799)
+  {
+    id: 'r0000211-0000-4000-a000-000000000001',
+    propertyId: PROPERTY_ID,
+    number: '211',
+    floor: '2',
+    roomTypeId: 'b0000004-0000-4000-a000-000000000004',
+    roomTypeName: 'Suite',
+    status: 'occupied',
+    guestName: 'Rajesh Agarwal',
+    hkOccupancy: 'occupied',
+    isActive: true,
+    amenities: ['wifi', 'tv', 'ac', 'safe', 'minibar', 'living_area', 'bathtub', 'balcony'],
+  },
+  {
+    id: 'r0000212-0000-4000-a000-000000000001',
+    propertyId: PROPERTY_ID,
+    number: '212',
+    floor: '2',
+    roomTypeId: 'b0000004-0000-4000-a000-000000000004',
+    roomTypeName: 'Suite',
+    status: 'vacant_clean',
+    hkOccupancy: 'vacant',
+    isActive: true,
+    amenities: ['wifi', 'tv', 'ac', 'safe', 'minibar', 'living_area', 'bathtub'],
+  },
+  {
+    id: 'r0000213-0000-4000-a000-000000000001',
+    propertyId: PROPERTY_ID,
+    number: '213',
+    floor: '2',
+    roomTypeId: 'b0000004-0000-4000-a000-000000000004',
+    roomTypeName: 'Suite',
+    status: 'booked',
+    guestName: 'Suresh Reddy',
+    hkOccupancy: 'vacant',
+    isActive: true,
+    amenities: ['wifi', 'tv', 'ac', 'safe', 'minibar', 'living_area', 'bathtub'],
+  },
+  {
+    id: 'r0000214-0000-4000-a000-000000000001',
+    propertyId: PROPERTY_ID,
+    number: '214',
+    floor: '2',
+    roomTypeId: 'b0000004-0000-4000-a000-000000000004',
+    roomTypeName: 'Suite',
+    status: 'vacant_clean',
+    hkOccupancy: 'vacant',
+    isActive: true,
+    amenities: ['wifi', 'tv', 'ac', 'safe', 'minibar', 'living_area', 'bathtub'],
   },
 ];
 
@@ -541,7 +858,7 @@ export function getStoredRooms(): StoredRoom[] {
       const saved = window.localStorage.getItem(ROOMS_STORAGE_KEY);
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
+        if (Array.isArray(parsed) && parsed.length >= 28) {
           return parsed;
         }
       }
@@ -560,6 +877,142 @@ export function saveStoredRooms(rooms: StoredRoom[]) {
   } catch (e) {
     void e;
   }
+}
+
+export function getStoredTariffConfig(): HotelTariffConfig {
+  try {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      const saved = window.localStorage.getItem(TARIFF_CONFIG_STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed && Array.isArray(parsed.categories) && parsed.categories.length === 4) {
+          return parsed;
+        }
+      }
+    }
+  } catch (e) {
+    void e;
+  }
+  return { ...DEFAULT_TARIFF_CONFIG };
+}
+
+export function saveStoredTariffConfig(config: HotelTariffConfig): void {
+  try {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      window.localStorage.setItem(TARIFF_CONFIG_STORAGE_KEY, JSON.stringify(config));
+    }
+  } catch (e) {
+    void e;
+  }
+}
+
+export function reassignRoomInventory(categories: RoomCategoryTariff[]): StoredRoom[] {
+  const currentRooms = getStoredRooms();
+  let roomIdx = 0;
+  const updatedRooms: StoredRoom[] = [];
+
+  for (const cat of categories) {
+    const count = Number(cat.assignedRoomsCount) || 0;
+    for (let i = 0; i < count && roomIdx < currentRooms.length; i++) {
+      const existing = currentRooms[roomIdx];
+      updatedRooms.push({
+        ...existing,
+        roomTypeId: cat.id,
+        roomTypeName: cat.name,
+      });
+      roomIdx++;
+    }
+  }
+
+  while (roomIdx < currentRooms.length) {
+    updatedRooms.push(currentRooms[roomIdx]);
+    roomIdx++;
+  }
+
+  saveStoredRooms(updatedRooms);
+  return updatedRooms;
+}
+
+export interface TariffCalculationResult {
+  roomTariffPerNight: number;
+  totalRoomTariff: number;
+  extraPersonsCount: number;
+  extraPersonRate: number;
+  totalExtraPersonCharges: number;
+  subtotal: number;
+  gstRate: number;
+  isTaxInclusive: boolean;
+  taxableBase: number;
+  cgst: number;
+  sgst: number;
+  totalGst: number;
+  grandTotal: number;
+  formattedGrandTotal: string;
+}
+
+export function calculateTariffInvoice({
+  category,
+  occupancyType,
+  nights = 1,
+  extraPersons = 0,
+  extraCharges = 0,
+  discount = 0,
+  gstPercentage = 12,
+  isTaxInclusive = true,
+}: {
+  category: RoomCategoryTariff;
+  occupancyType: 'single' | 'double';
+  nights?: number;
+  extraPersons?: number;
+  extraCharges?: number;
+  discount?: number;
+  gstPercentage?: number;
+  isTaxInclusive?: boolean;
+}): TariffCalculationResult {
+  const ratePerNight =
+    occupancyType === 'single'
+      ? (category.singleOccupancyPrice ?? category.doubleOccupancyPrice ?? 1599)
+      : (category.doubleOccupancyPrice ?? category.singleOccupancyPrice ?? 2099);
+
+  const totalRoomTariff = ratePerNight * Math.max(1, nights);
+  const extraPersonRate = 399;
+  const totalExtraPersonCharges = Math.max(0, extraPersons) * extraPersonRate * Math.max(1, nights);
+
+  const subtotal = totalRoomTariff + totalExtraPersonCharges + extraCharges - discount;
+
+  let taxableBase: number;
+  let totalGst: number;
+  let grandTotal: number;
+
+  if (isTaxInclusive) {
+    taxableBase = Math.round((subtotal / (1 + gstPercentage / 100)) * 100) / 100;
+    totalGst = Math.round((subtotal - taxableBase) * 100) / 100;
+    grandTotal = subtotal;
+  } else {
+    taxableBase = subtotal;
+    totalGst = Math.round((subtotal * (gstPercentage / 100)) * 100) / 100;
+    grandTotal = Math.round((subtotal + totalGst) * 100) / 100;
+  }
+
+  const cgst = Math.round((totalGst / 2) * 100) / 100;
+  const sgst = Math.round((totalGst - cgst) * 100) / 100;
+
+  return {
+    roomTariffPerNight: ratePerNight,
+    totalRoomTariff,
+    extraPersonsCount: Math.max(0, extraPersons),
+    extraPersonRate,
+    totalExtraPersonCharges,
+    subtotal,
+    gstRate: gstPercentage,
+    isTaxInclusive,
+    taxableBase,
+    cgst,
+    sgst,
+    totalGst,
+    grandTotal,
+    formattedGrandTotal: `₹${grandTotal.toLocaleString('en-IN')}`,
+  };
 }
 
 export function getStoredStays(): StoredStay[] {

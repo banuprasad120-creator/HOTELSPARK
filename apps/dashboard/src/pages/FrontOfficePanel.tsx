@@ -167,7 +167,7 @@ export default function FrontOfficePanel() {
           <div className="bg-white/10 backdrop-blur-xs p-3 rounded-xl border border-white/10">
             <span className="text-teal-100 text-xs block font-medium">In-House Guests</span>
             <strong className="text-xl font-bold text-white mt-0.5 block">{inHouseStays.length} Rooms Active</strong>
-            <span className="text-[10px] text-teal-200">Occupancy: {Math.round((occupiedRooms.length / (rooms.length || 10)) * 100)}%</span>
+            <span className="text-[10px] text-teal-200">Occupancy: {Math.round((occupiedRooms.length / 28) * 100)}% of 28 Rooms</span>
           </div>
 
           <div className="bg-white/10 backdrop-blur-xs p-3 rounded-xl border border-white/10">
@@ -192,31 +192,43 @@ export default function FrontOfficePanel() {
 
       {/* 2. Quick Room Availability Bar (Ready for Instant Assignment) */}
       <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5 space-y-3">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <DoorOpen size={18} className="text-telivity-teal" />
-            <h2 className="text-sm font-bold text-telivity-navy">Quick Room Availability Rack (Front Desk)</h2>
+            <h2 className="text-sm font-bold text-telivity-navy">Quick Room Availability Rack (28 Rooms — Front Desk)</h2>
           </div>
-          <div className="flex items-center gap-1.5 text-xs">
-            <span className="flex items-center gap-1 text-emerald-700 font-semibold">
-              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" /> Available ({availableRooms.length})
+          <div className="flex flex-wrap items-center gap-1.5 text-xs">
+            <span className="flex items-center gap-1 text-emerald-700 font-semibold bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+              <span className="w-2 h-2 rounded-full bg-emerald-500" /> Available ({availableRooms.length})
             </span>
-            <span className="mx-1 text-gray-300">•</span>
-            <span className="flex items-center gap-1 text-teal-800 font-semibold">
-              <span className="w-2.5 h-2.5 rounded-full bg-teal-500" /> Occupied ({occupiedRooms.length})
+            <span className="flex items-center gap-1 text-teal-800 font-semibold bg-teal-50 px-2 py-0.5 rounded-md border border-teal-200">
+              <span className="w-2 h-2 rounded-full bg-teal-500" /> Occupied ({occupiedRooms.length})
             </span>
-            <span className="mx-1 text-gray-300">•</span>
-            <span className="flex items-center gap-1 text-amber-800 font-semibold">
-              <span className="w-2.5 h-2.5 rounded-full bg-amber-500" /> Dirty ({dirtyRooms.length})
+            <span className="flex items-center gap-1 text-amber-800 font-semibold bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200">
+              <span className="w-2 h-2 rounded-full bg-amber-500" /> Dirty ({dirtyRooms.length})
+            </span>
+            <span className="flex items-center gap-1 text-slate-700 font-semibold bg-slate-100 px-2 py-0.5 rounded-md">
+              Total 28 Rooms
             </span>
           </div>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-5 md:grid-cols-10 gap-2">
+        <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-2">
           {rooms.map((room) => {
             const isAvail = room.status === 'vacant_clean' || room.status === 'clean' || room.status === 'available';
             const isOcc = room.status === 'occupied';
             const isDirty = room.status === 'vacant_dirty' || room.status === 'dirty';
+            const isBooked = room.status === 'booked';
+
+            const catShort = room.roomTypeName?.includes('Budget')
+              ? 'Budget'
+              : room.roomTypeName?.includes('Deluxe')
+              ? 'Deluxe'
+              : room.roomTypeName?.includes('Executive')
+              ? 'Executive'
+              : room.roomTypeName?.includes('Suite')
+              ? 'Suite'
+              : 'Room';
 
             return (
               <div
@@ -228,22 +240,31 @@ export default function FrontOfficePanel() {
                 }}
                 className={`p-2.5 rounded-xl border text-center transition-all ${
                   isAvail
-                    ? 'border-emerald-300 bg-emerald-50/70 hover:bg-emerald-100 cursor-pointer shadow-2xs'
+                    ? 'border-emerald-300 bg-emerald-50/70 hover:bg-emerald-100 cursor-pointer shadow-2xs hover:scale-102'
                     : isOcc
-                    ? 'border-teal-300 bg-teal-50/50'
-                    : 'border-amber-300 bg-amber-50/50'
+                    ? 'border-teal-300 bg-teal-50/60'
+                    : isBooked
+                    ? 'border-purple-300 bg-purple-50/60'
+                    : 'border-amber-300 bg-amber-50/60'
                 }`}
+                title={`Room ${room.number} (${catShort}) - Floor ${room.floor || '1'}`}
               >
                 <div className="font-bold text-xs text-telivity-navy">Room {room.number}</div>
-                <div className="text-[10px] text-telivity-mid-grey truncate">
-                  {room.roomTypeName?.includes('Deluxe') ? 'Deluxe' : room.roomTypeName?.includes('Suite') ? 'Suite' : 'Standard'}
+                <div className="text-[10px] text-telivity-mid-grey truncate font-medium">
+                  {catShort} • F{room.floor || (room.number.startsWith('2') ? '2' : '1')}
                 </div>
                 <span
                   className={`inline-block px-1.5 py-0.2 rounded text-[9px] font-bold mt-1 uppercase ${
-                    isAvail ? 'bg-emerald-200 text-emerald-900' : isOcc ? 'bg-teal-200 text-teal-900' : 'bg-amber-200 text-amber-900'
+                    isAvail
+                      ? 'bg-emerald-200 text-emerald-900'
+                      : isOcc
+                      ? 'bg-teal-200 text-teal-900'
+                      : isBooked
+                      ? 'bg-purple-200 text-purple-900'
+                      : 'bg-amber-200 text-amber-900'
                   }`}
                 >
-                  {isAvail ? 'Ready' : isOcc ? 'Occupied' : 'Dirty'}
+                  {isAvail ? 'Ready' : isOcc ? 'Occupied' : isBooked ? 'Booked' : 'Dirty'}
                 </span>
               </div>
             );

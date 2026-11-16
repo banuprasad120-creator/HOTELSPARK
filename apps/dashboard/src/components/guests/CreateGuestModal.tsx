@@ -1,13 +1,19 @@
 import { useState, useEffect, ChangeEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { ShieldAlert, Upload, X, CheckCircle2, FileText, Check } from 'lucide-react';
+import { ShieldAlert, Upload, X, CheckCircle2, FileText, Check, Eye, Sparkles, Lock, FileCheck, Download } from 'lucide-react';
 import { validateCpf, calculateAge } from '@telivityhaip/shared';
 import { api } from '../../lib/api';
 import type { ParsedIdDocument } from '../../lib/id-document-swipe';
 import { useProperty } from '../../context/PropertyContext';
 import Modal from '../ui/Modal';
 import IdSwipeCapture from './IdSwipeCapture';
+import AadhaarViewerModal, {
+  generateSampleAadhaarFront,
+  generateSampleAadhaarBack,
+  maskAadhaar,
+  triggerDownload,
+} from './AadhaarViewerModal';
 import type { Guest } from '../../types/guest';
 
 export interface CreateGuestModalProps {
@@ -80,6 +86,7 @@ export default function CreateGuestModal({
   const [companyName, setCompanyName] = useState('');
   const [notes, setNotes] = useState('');
   const [gdprConsentMarketing, setGdprConsentMarketing] = useState(false);
+  const [viewerOpen, setViewerOpen] = useState(false);
 
   // Handle local file upload for ID proof (converting to base64 for instant preview & secure storage)
   const handleFileUpload = (e: ChangeEvent<HTMLInputElement>, side: 'front' | 'back') => {
@@ -92,6 +99,20 @@ export default function CreateGuestModal({
       if (side === 'back') setIdProofBackUrl(result);
     };
     reader.readAsDataURL(file);
+  };
+
+  const handleLoadDemoAadhaar = () => {
+    const dummyNum = '7823 4512 9012';
+    setIdType('aadhaar');
+    setIdNumber(dummyNum);
+    setIdCountry('IN');
+    setCountryCode('IN');
+    const guestName = `${firstName || 'Banu'} ${lastName || 'Prasad'}`.trim();
+    const addr = addressLine1
+      ? `${addressLine1}, Karimnagar, Telangana - 505001`
+      : 'H.No 4-12/A, Collectorate Road, Karimnagar, Telangana - 505001';
+    setIdProofFrontUrl(generateSampleAadhaarFront(guestName, dummyNum));
+    setIdProofBackUrl(generateSampleAadhaarBack(addr));
   };
 
   // Synchronize initial search term when modal opens
@@ -493,32 +514,90 @@ export default function CreateGuestModal({
         </div>
 
         {/* Section 2: Identification */}
-        <div className="p-4 bg-telivity-teal/5 rounded-xl border border-telivity-teal/10 space-y-3">
+        <div className="p-4 bg-telivity-teal/5 rounded-xl border border-telivity-teal/15 space-y-3">
           <div className="flex items-center justify-between">
-            <h3 className="text-xs font-semibold text-telivity-teal uppercase tracking-wider">
+            <h3 className="text-xs font-bold text-telivity-navy uppercase tracking-wider flex items-center gap-1.5">
+              <FileCheck size={14} className="text-telivity-teal" />
               {isBR
                 ? t('guests.sections.identificationFnrh')
-                : t('guests.sections.identification')}
+                : '2. Identity Document & Aadhaar Verification'}
             </h3>
-            {isBR && (idType === 'cpf' ? taxId : taxId || idNumber) && (
-              <span
-                className={`text-xs font-medium ${(idType === 'cpf' ? taxId : taxId)
-                  ? isCpfValid
-                    ? 'text-green-700'
-                    : 'text-amber-700'
-                  : 'text-telivity-mid-grey'
-                  }`}
-              >
-                {taxId
-                  ? isCpfValid
-                    ? t('guests.guardian.validCpf')
-                    : t('guests.guardian.invalidCpf')
-                  : ''}
+            {idType === 'aadhaar' && (
+              <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-800 bg-emerald-100/70 border border-emerald-300 px-2 py-0.5 rounded-md">
+                <CheckCircle2 size={12} className="text-emerald-700" /> UIDAI Certified
               </span>
             )}
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          {/* Fast Document Type Selector Pills */}
+          <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+            <button
+              type="button"
+              onClick={() => {
+                setIdType('aadhaar');
+                setIdCountry('IN');
+                setCountryCode('IN');
+              }}
+              className={`px-3 py-1.5 text-xs font-bold rounded-lg border transition flex items-center gap-1.5 ${
+                idType === 'aadhaar'
+                  ? 'bg-telivity-teal text-white border-telivity-teal shadow-xs'
+                  : 'bg-white text-telivity-navy border-gray-200 hover:bg-teal-50'
+              }`}
+            >
+              <span>🪪 Aadhaar Card (UIDAI)</span>
+              {idType === 'aadhaar' && <Check size={12} />}
+            </button>
+            <button
+              type="button"
+              onClick={() => setIdType('passport')}
+              className={`px-3 py-1.5 text-xs font-bold rounded-lg border transition flex items-center gap-1.5 ${
+                idType === 'passport'
+                  ? 'bg-telivity-teal text-white border-telivity-teal shadow-xs'
+                  : 'bg-white text-telivity-navy border-gray-200 hover:bg-gray-50'
+              }`}
+            >
+              <span>🛂 Passport</span>
+              {idType === 'passport' && <Check size={12} />}
+            </button>
+            <button
+              type="button"
+              onClick={() => setIdType('drivers_license')}
+              className={`px-3 py-1.5 text-xs font-bold rounded-lg border transition flex items-center gap-1.5 ${
+                idType === 'drivers_license'
+                  ? 'bg-telivity-teal text-white border-telivity-teal shadow-xs'
+                  : 'bg-white text-telivity-navy border-gray-200 hover:bg-gray-50'
+              }`}
+            >
+              <span>🚗 Driving License</span>
+              {idType === 'drivers_license' && <Check size={12} />}
+            </button>
+            <button
+              type="button"
+              onClick={() => setIdType('voter_id')}
+              className={`px-3 py-1.5 text-xs font-bold rounded-lg border transition flex items-center gap-1.5 ${
+                idType === 'voter_id'
+                  ? 'bg-telivity-teal text-white border-telivity-teal shadow-xs'
+                  : 'bg-white text-telivity-navy border-gray-200 hover:bg-gray-50'
+              }`}
+            >
+              <span>🗳️ Voter ID</span>
+              {idType === 'voter_id' && <Check size={12} />}
+            </button>
+            <button
+              type="button"
+              onClick={() => setIdType('pan_card')}
+              className={`px-3 py-1.5 text-xs font-bold rounded-lg border transition flex items-center gap-1.5 ${
+                idType === 'pan_card'
+                  ? 'bg-telivity-teal text-white border-telivity-teal shadow-xs'
+                  : 'bg-white text-telivity-navy border-gray-200 hover:bg-gray-50'
+              }`}
+            >
+              <span>📄 PAN Card</span>
+              {idType === 'pan_card' && <Check size={12} />}
+            </button>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3 pt-1">
             <div>
               <label className="block text-xs font-semibold text-telivity-slate mb-1">
                 {t('guests.labels.idType')} *
@@ -534,7 +613,7 @@ export default function CreateGuestModal({
                 }}
                 className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-telivity-teal bg-white font-medium"
               >
-                <option value="aadhaar">Aadhaar Card (UIDAI)</option>
+                <option value="aadhaar">Aadhaar Card (UIDAI 12-digit)</option>
                 <option value="passport">{t('frontDesk.passport')}</option>
                 <option value="drivers_license">
                   {t('frontDesk.driversLicense')}
@@ -587,7 +666,7 @@ export default function CreateGuestModal({
                 }}
                 placeholder={
                   idType === 'aadhaar'
-                    ? 'e.g. 1234 5678 9012'
+                    ? 'e.g. 7823 4512 9012'
                     : idType === 'cpf'
                       ? '000.000.000-00'
                       : idType === 'rg'
@@ -602,61 +681,20 @@ export default function CreateGuestModal({
                                 ? 'ABCDE1234F'
                                 : t('guests.placeholders.taxId')
                 }
-                className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-telivity-teal bg-white font-medium ${idType === 'cpf' && taxId && !isCpfValid
-                  ? 'border-amber-300'
-                  : 'border-gray-200'
-                  }`}
+                className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-telivity-teal bg-white font-medium ${
+                  idType === 'cpf' && taxId && !isCpfValid
+                    ? 'border-amber-300'
+                    : 'border-gray-200'
+                }`}
               />
+              {idType === 'aadhaar' && idNumber && (
+                <div className="flex items-center gap-1.5 mt-1 text-[11px] font-medium text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                  <Lock size={11} className="text-emerald-600" />
+                  <span>Masked for Privacy: <strong>{maskAadhaar(idNumber)}</strong></span>
+                </div>
+              )}
             </div>
           </div>
-
-          {idType !== 'cpf' && isBR && (
-            <div>
-              <label className="block text-xs font-medium text-telivity-mid-grey mb-1">
-                {t('guests.labels.cpfOptional')}
-              </label>
-              <input
-                type="text"
-                value={taxId}
-                onChange={(e) => setTaxId(e.target.value)}
-                placeholder="000.000.000-00"
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-telivity-teal bg-white"
-              />
-            </div>
-          )}
-
-          {/* SHOW RG ISSUER ONLY FOR BRAZIL */}
-          {isBR && (
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs font-medium text-telivity-mid-grey mb-1">
-                  {t('guests.idIssuer')}
-                </label>
-                <input
-                  type="text"
-                  value={idIssuer}
-                  onChange={(e) => setIdIssuer(e.target.value)}
-                  placeholder={t('guests.placeholders.idIssuer')}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-telivity-teal bg-white"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-telivity-mid-grey mb-1">
-                  {t('guests.idIssuerState')}
-                </label>
-                <input
-                  type="text"
-                  maxLength={2}
-                  value={idIssuerState}
-                  onChange={(e) =>
-                    setIdIssuerState(e.target.value.toUpperCase())
-                  }
-                  placeholder={t('guests.placeholders.idIssuerState')}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm uppercase focus:outline-none focus:border-telivity-teal bg-white"
-                />
-              </div>
-            </div>
-          )}
 
           <div className="grid grid-cols-2 gap-3">
             <div>
@@ -687,16 +725,43 @@ export default function CreateGuestModal({
 
           {/* AADHAAR CARD / ID PROOF UPLOAD (FRONT & BACK) */}
           <div className="pt-3 border-t border-telivity-teal/15 space-y-2.5">
-            <div className="flex items-center justify-between">
-              <label className="block text-xs font-bold text-telivity-navy">
-                {idType === 'aadhaar' ? 'Aadhaar Card Upload (Front & Back)' : 'ID Document Upload (Front & Back)'}
-              </label>
-              {(idProofFrontUrl || idProofBackUrl) && (
-                <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md">
-                  <CheckCircle2 size={13} />
-                  {idProofFrontUrl && idProofBackUrl ? 'Both Sides Attached' : '1 Side Attached'}
-                </span>
-              )}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <label className="block text-xs font-bold text-telivity-navy">
+                  {idType === 'aadhaar'
+                    ? 'Aadhaar Card Upload (Front & Back Required)'
+                    : 'ID Document Upload (Front & Back)'}
+                </label>
+                {(idProofFrontUrl || idProofBackUrl) && (
+                  <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md">
+                    <CheckCircle2 size={13} />
+                    {idProofFrontUrl && idProofBackUrl ? 'Both Sides Attached' : '1 Side Attached'}
+                  </span>
+                )}
+              </div>
+
+              {/* Sample Aadhaar Auto-Fill and Preview Buttons */}
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleLoadDemoAadhaar}
+                  className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-bold bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 rounded-lg transition shadow-2xs"
+                  title="Populate official demo Aadhaar Card images for instant testing"
+                >
+                  <Sparkles size={12} className="text-amber-600" />
+                  <span>✨ Use Sample Aadhaar Card</span>
+                </button>
+                {(idProofFrontUrl || idProofBackUrl) && (
+                  <button
+                    type="button"
+                    onClick={() => setViewerOpen(true)}
+                    className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-bold bg-telivity-teal hover:bg-telivity-light-teal text-white rounded-lg transition shadow-2xs"
+                  >
+                    <Eye size={12} />
+                    <span>👁️ View & Zoom</span>
+                  </button>
+                )}
+              </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -707,7 +772,9 @@ export default function CreateGuestModal({
                     <img
                       src={idProofFrontUrl}
                       alt="ID Proof Front"
-                      className="h-28 w-full object-cover rounded-lg border border-gray-200"
+                      onClick={() => setViewerOpen(true)}
+                      className="h-28 w-full object-cover rounded-lg border border-gray-200 cursor-pointer hover:opacity-90 transition"
+                      title="Click to zoom and view full Aadhaar"
                     />
                     <button
                       type="button"
@@ -717,15 +784,24 @@ export default function CreateGuestModal({
                     >
                       <X size={12} />
                     </button>
-                    <p className="text-[11px] font-bold text-emerald-800 mt-1 flex items-center justify-center gap-1">
-                      <CheckCircle2 size={12} className="text-emerald-600" /> Front Side Uploaded
-                    </p>
+                    <div className="flex items-center justify-between mt-1.5 px-1">
+                      <p className="text-[11px] font-bold text-emerald-800 flex items-center gap-1">
+                        <CheckCircle2 size={12} className="text-emerald-600" /> Front Side Uploaded
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => triggerDownload(idProofFrontUrl, `Aadhaar_FRONT_${firstName || 'Guest'}.jpg`)}
+                        className="text-[11px] text-telivity-teal hover:underline font-semibold flex items-center gap-0.5"
+                      >
+                        <Download size={11} /> Download
+                      </button>
+                    </div>
                   </div>
                 ) : (
                   <label className="flex flex-col items-center justify-center h-28 cursor-pointer group-hover:bg-teal-50/30 rounded-lg transition">
                     <Upload size={22} className="text-telivity-teal mb-1 group-hover:scale-110 transition" />
                     <span className="text-xs font-bold text-telivity-navy">Upload Front Side</span>
-                    <span className="text-[10px] text-telivity-mid-grey mt-0.5">Photo & Aadhaar Details</span>
+                    <span className="text-[10px] text-telivity-mid-grey mt-0.5">Photo & UIDAI Aadhaar Details</span>
                     <input
                       type="file"
                       accept="image/*,application/pdf"
@@ -743,7 +819,9 @@ export default function CreateGuestModal({
                     <img
                       src={idProofBackUrl}
                       alt="ID Proof Back"
-                      className="h-28 w-full object-cover rounded-lg border border-gray-200"
+                      onClick={() => setViewerOpen(true)}
+                      className="h-28 w-full object-cover rounded-lg border border-gray-200 cursor-pointer hover:opacity-90 transition"
+                      title="Click to zoom and view full Aadhaar"
                     />
                     <button
                       type="button"
@@ -753,15 +831,24 @@ export default function CreateGuestModal({
                     >
                       <X size={12} />
                     </button>
-                    <p className="text-[11px] font-bold text-emerald-800 mt-1 flex items-center justify-center gap-1">
-                      <CheckCircle2 size={12} className="text-emerald-600" /> Back Side Uploaded
-                    </p>
+                    <div className="flex items-center justify-between mt-1.5 px-1">
+                      <p className="text-[11px] font-bold text-emerald-800 flex items-center gap-1">
+                        <CheckCircle2 size={12} className="text-emerald-600" /> Back Side Uploaded
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => triggerDownload(idProofBackUrl, `Aadhaar_BACK_${firstName || 'Guest'}.jpg`)}
+                        className="text-[11px] text-telivity-teal hover:underline font-semibold flex items-center gap-0.5"
+                      >
+                        <Download size={11} /> Download
+                      </button>
+                    </div>
                   </div>
                 ) : (
                   <label className="flex flex-col items-center justify-center h-28 cursor-pointer group-hover:bg-teal-50/30 rounded-lg transition">
                     <Upload size={22} className="text-telivity-teal mb-1 group-hover:scale-110 transition" />
                     <span className="text-xs font-bold text-telivity-navy">Upload Back Side</span>
-                    <span className="text-[10px] text-telivity-mid-grey mt-0.5">Address & QR Code</span>
+                    <span className="text-[10px] text-telivity-mid-grey mt-0.5">Address & UIDAI QR Code</span>
                     <input
                       type="file"
                       accept="image/*,application/pdf"
@@ -983,6 +1070,30 @@ export default function CreateGuestModal({
             : t('guests.createGuest')}
         </button>
       </div>
+
+      {/* Aadhaar Document Viewer Modal for Inspection & Zoom */}
+      <AadhaarViewerModal
+        open={viewerOpen}
+        onClose={() => setViewerOpen(false)}
+        guest={{
+          firstName: firstName || 'Guest',
+          lastName: lastName || 'Profile',
+          idProofType: idType === 'aadhaar' ? 'Aadhaar Card' : idType,
+          idProofNumber: idNumber || '7823 4512 9012',
+          idProofFrontUrl,
+          idProofBackUrl,
+          idCountry: idCountry || 'IN',
+          stateProvince: stateProvince || 'Telangana',
+          registrationData: {
+            idProofFrontUrl,
+            idProofBackUrl,
+          },
+        }}
+        onUpdateGuest={(updated) => {
+          if (updated.idProofFrontUrl) setIdProofFrontUrl(updated.idProofFrontUrl);
+          if (updated.idProofBackUrl) setIdProofBackUrl(updated.idProofBackUrl);
+        }}
+      />
     </Modal>
   );
 }

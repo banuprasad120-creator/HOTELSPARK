@@ -372,49 +372,66 @@ export default function ManagerPanel() {
 
       {/* 3. Housekeeping & Cleanliness Oversight (Manager Inspection) */}
       <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 space-y-4">
-        <div className="flex items-center justify-between pb-3 border-b border-gray-100">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-gray-100 gap-2">
           <div>
             <h2 className="text-base font-bold text-telivity-navy flex items-center gap-2">
               <Sparkles size={18} className="text-amber-600" />
-              Room Cleanliness Oversight (Manager Inspection)
+              Room Cleanliness Oversight (28 Rooms — Manager Inspection)
             </h2>
             <p className="text-xs text-telivity-mid-grey">
               Inspect rooms before releasing them to the Front Desk for guest check-in.
             </p>
           </div>
-          <div className="flex items-center gap-2 text-xs">
-            <span className="font-bold text-emerald-700 bg-emerald-50 px-2 py-1 rounded-md border border-emerald-200">
+          <div className="flex flex-wrap items-center gap-2 text-xs">
+            <span className="font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-md border border-emerald-200">
               Clean: {cleanRooms.length}
             </span>
-            <span className="font-bold text-amber-700 bg-amber-50 px-2 py-1 rounded-md border border-amber-200">
+            <span className="font-bold text-amber-700 bg-amber-50 px-2.5 py-1 rounded-md border border-amber-200">
               Dirty: {dirtyRooms.length}
             </span>
-            <span className="font-bold text-teal-700 bg-teal-50 px-2 py-1 rounded-md border border-teal-200">
+            <span className="font-bold text-teal-700 bg-teal-50 px-2.5 py-1 rounded-md border border-teal-200">
               Occupied: {occupiedRooms.length}
+            </span>
+            <span className="font-bold text-purple-700 bg-purple-50 px-2 py-1 rounded-md border border-purple-200">
+              Total: 28 Rooms
             </span>
           </div>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-5 md:grid-cols-10 gap-2.5">
+        <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-2.5">
           {rooms.map((room) => {
             const isClean = room.status === 'vacant_clean' || room.status === 'clean' || room.status === 'available';
             const isDirty = room.status === 'vacant_dirty' || room.status === 'dirty';
             const isOccupied = room.status === 'occupied';
+            const isBooked = room.status === 'booked';
+
+            const catShort = room.roomTypeName?.includes('Budget')
+              ? 'Budget'
+              : room.roomTypeName?.includes('Deluxe')
+              ? 'Deluxe'
+              : room.roomTypeName?.includes('Executive')
+              ? 'Executive'
+              : room.roomTypeName?.includes('Suite')
+              ? 'Suite'
+              : 'Room';
 
             return (
               <div
                 key={room.id}
-                className={`p-3 rounded-xl border text-center transition ${
-                  isClean ? 'border-emerald-300 bg-emerald-50/60' : isOccupied ? 'border-teal-300 bg-teal-50/60' : 'border-amber-400 bg-amber-50 shadow-xs'
+                className={`p-2.5 rounded-xl border text-center transition ${
+                  isClean ? 'border-emerald-300 bg-emerald-50/60' : isOccupied ? 'border-teal-300 bg-teal-50/60' : isBooked ? 'border-purple-300 bg-purple-50/60' : 'border-amber-400 bg-amber-50 shadow-xs'
                 }`}
               >
                 <div className="font-bold text-xs text-telivity-navy">Room {room.number}</div>
+                <div className="text-[10px] text-telivity-mid-grey truncate font-medium">
+                  {catShort} • F{room.floor || (room.number.startsWith('2') ? '2' : '1')}
+                </div>
                 <span
                   className={`inline-block px-1.5 py-0.2 rounded text-[9px] font-bold mt-1 uppercase ${
-                    isClean ? 'bg-emerald-200 text-emerald-900' : isOccupied ? 'bg-teal-200 text-teal-900' : 'bg-amber-200 text-amber-900'
+                    isClean ? 'bg-emerald-200 text-emerald-900' : isOccupied ? 'bg-teal-200 text-teal-900' : isBooked ? 'bg-purple-200 text-purple-900' : 'bg-amber-200 text-amber-900'
                   }`}
                 >
-                  {isClean ? 'Clean' : isOccupied ? 'Occupied' : 'Dirty'}
+                  {isClean ? 'Clean' : isOccupied ? 'Occupied' : isBooked ? 'Booked' : 'Dirty'}
                 </span>
                 <div className="mt-2 pt-1 border-t border-gray-200/50">
                   {isDirty ? (
@@ -425,7 +442,7 @@ export default function ManagerPanel() {
                     >
                       Approve Clean
                     </button>
-                  ) : !isOccupied && isClean ? (
+                  ) : !isOccupied && !isBooked && isClean ? (
                     <button
                       type="button"
                       onClick={() => toggleRoomStatus(room.id, 'vacant_dirty')}
@@ -433,8 +450,10 @@ export default function ManagerPanel() {
                     >
                       Mark Dirty
                     </button>
-                  ) : (
+                  ) : isOccupied ? (
                     <span className="text-[10px] text-gray-500 font-medium">In Stay</span>
+                  ) : (
+                    <span className="text-[10px] text-purple-600 font-medium">Reserved</span>
                   )}
                 </div>
               </div>

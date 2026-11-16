@@ -24,6 +24,13 @@ import { api } from '../../lib/api';
 import { useProperty } from '../../context/PropertyContext';
 import { formatMoney } from '../../lib/money';
 import Modal from '../ui/Modal';
+import {
+  getStoredTariffConfig,
+  getStoredRooms,
+  DEFAULT_TARIFF_CONFIG,
+  type HotelTariffConfig,
+  type RoomCategoryTariff,
+} from '../../lib/supabaseAdapter';
 
 interface WalkInCheckInModalProps {
   open: boolean;
@@ -49,13 +56,24 @@ interface RoomTypeItem {
   price?: number;
 }
 
-function getRoomTypeRate(rt?: RoomTypeItem): number {
-  if (!rt) return 3500;
-  if (rt.basePrice && !isNaN(Number(rt.basePrice))) return Number(rt.basePrice);
-  if (rt.price && !isNaN(Number(rt.price))) return Number(rt.price);
-  if (rt.baseRate && !isNaN(Number(rt.baseRate))) return Number(rt.baseRate);
-  if (rt.baseAmount && !isNaN(Number(rt.baseAmount))) return Number(rt.baseAmount);
-  return rt.code === 'SUT' || rt.name.includes('Suite') ? 6500 : rt.code === 'STD' || rt.name.includes('Standard') ? 2500 : 3500;
+function getRoomTypeRate(rt?: RoomTypeItem, occ: 'single' | 'double' = 'double'): number {
+  if (!rt) return 2099;
+  const name = rt.name.toLowerCase();
+  const code = rt.code?.toUpperCase();
+
+  if (name.includes('budget') || code === 'BGT') {
+    return 1599; // Budget Room Single Occupancy (Double not configured)
+  }
+  if (name.includes('deluxe') || code === 'DLX') {
+    return occ === 'single' ? 1799 : 2099;
+  }
+  if (name.includes('executive') || code === 'EXE') {
+    return occ === 'single' ? 2199 : 2499;
+  }
+  if (name.includes('suite') || code === 'SUT') {
+    return 2799; // Suite Double Occupancy (Single not configured)
+  }
+  return occ === 'single' ? 1799 : 2099;
 }
 
 export default function WalkInCheckInModal({ open, onClose, onSuccess }: WalkInCheckInModalProps) {
@@ -97,10 +115,11 @@ export default function WalkInCheckInModal({ open, onClose, onSuccess }: WalkInC
   const [checkOutDate, setCheckOutDate] = useState(tomorrowStr);
   const [selectedRoomTypeId, setSelectedRoomTypeId] = useState('');
   const [selectedRoomId, setSelectedRoomId] = useState('');
+  const [occupancyType, setOccupancyType] = useState<'single' | 'double'>('double');
 
   // Payment State
-  const [roomRatePerNight, setRoomRatePerNight] = useState(3500);
-  const [advancePaid, setAdvancePaid] = useState(3500);
+  const [roomRatePerNight, setRoomRatePerNight] = useState(2099);
+  const [advancePaid, setAdvancePaid] = useState(2099);
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'upi' | 'card' | 'bank_transfer'>('upi');
   const [paymentReference, setPaymentReference] = useState('');
 
@@ -108,8 +127,8 @@ export default function WalkInCheckInModal({ open, onClose, onSuccess }: WalkInC
   const [confirmedBooking, setConfirmedBooking] = useState<any | null>(null);
   const [errorMsg, setErrorMsg] = useState('');
 
-  // Fetch Room Types
-  const { data: roomTypes = [] } = useQuery<RoomTypeItem[]>({
+  // Fetch Room Types (Fallback to DEFAULT_TARIFF_CONFIG.categories)
+  const { data: rawRoomTypes = [] } = useQuery<RoomTypeItem[]>({
     queryKey: ['room-types', propertyId],
     queryFn: async () => {
       const res = await api.get('/v1/room-types', { params: { propertyId } });
@@ -118,8 +137,15 @@ export default function WalkInCheckInModal({ open, onClose, onSuccess }: WalkInC
     enabled: open,
   });
 
-  // Fetch Available Rooms
-  const { data: rooms = [] } = useQuery<RoomItem[]>({
+  const roomTypes: RoomTypeItem[] = rawRoomTypes.length > 0 ? rawRoomTypes : DEFAULT_TARIFF_CONFIG.categories.map((c) => ({
+    id: c.id,
+    name: c.name,
+    code: c.code,
+    price: c.doubleOccupancyPrice || c.singleOccupancyPrice || 1799,
+  }));
+
+  // Fetch Rooms (Fallback to getStoredRooms() so all 28 rooms are available)
+  const { data: rawRooms = [] } = useQuery<RoomItem[]>({
     queryKey: ['rooms', propertyId],
     queryFn: async () => {
       const res = await api.get('/v1/rooms', { params: { propertyId } });
@@ -128,12 +154,21 @@ export default function WalkInCheckInModal({ open, onClose, onSuccess }: WalkInC
     enabled: open,
   });
 
-  // Filter available rooms
+  const rooms: RoomItem[] = rawRooms.length >= 28 ? rawRooms : (getStoredRooms() as any[]);
+
+  // Filter available rooms (prevent overbooking)
   const availableRooms = rooms.filter(
     (r) =>
       r.status === 'vacant_clean' &&
       (!selectedRoomTypeId || r.roomTypeId === selectedRoomTypeId),
   );
+
+  // Selected Room Type & Occupancy Enforcements
+  const selectedRoomType = roomTypes.find((t) => t.id === selectedRoomTypeId) || roomTypes[0];
+  const isBudget = selectedRoomType?.code === 'BGT' || selectedRoomType?.name?.toLowerCase().includes('budget');
+  const isSuite = selectedRoomType?.code === 'SUT' || selectedRoomType?.name?.toLowerCase().includes('suite');
+
+  const effectiveOccupancy = isBudget ? 'single' : isSuite ? 'double' : occupancyType;
 
   // Calculate nights
   const nights = Math.max(
@@ -144,20 +179,39 @@ export default function WalkInCheckInModal({ open, onClose, onSuccess }: WalkInC
     ),
   );
 
-  const roomTotal = roomRatePerNight * nights;
-  const taxes = Math.round(roomTotal * 0.12); // 12% GST
-  const grandTotal = roomTotal + taxes;
+  // Extra Person Charge (₹399 per person per night)
+  const baseCapacity = effectiveOccupancy === 'single' ? 1 : 2;
+  const extraAdultsCount = Math.max(0, adults - baseCapacity);
+  const extraPersonTotal = extraAdultsCount * 399 * nights;
+
+  const currentRate = getRoomTypeRate(selectedRoomType, effectiveOccupancy);
+  const roomTotal = currentRate * nights;
+  const subtotalBeforeTax = roomTotal + extraPersonTotal;
+
+  const tariffConfig = getStoredTariffConfig();
+  let taxes: number;
+  let grandTotal: number;
+
+  if (tariffConfig.isTaxInclusive) {
+    const taxableBase = Math.round((subtotalBeforeTax / (1 + tariffConfig.gstPercentage / 100)) * 100) / 100;
+    taxes = Math.round((subtotalBeforeTax - taxableBase) * 100) / 100;
+    grandTotal = subtotalBeforeTax;
+  } else {
+    taxes = Math.round((subtotalBeforeTax * (tariffConfig.gstPercentage / 100)) * 100) / 100;
+    grandTotal = Math.round((subtotalBeforeTax + taxes) * 100) / 100;
+  }
+
   const balanceRemaining = Math.max(0, grandTotal - advancePaid);
 
   // Auto-select first room type and room
   useEffect(() => {
     if (roomTypes.length > 0 && !selectedRoomTypeId) {
       setSelectedRoomTypeId(roomTypes[0].id);
-      const rate = getRoomTypeRate(roomTypes[0]);
+      const rate = getRoomTypeRate(roomTypes[0], effectiveOccupancy);
       setRoomRatePerNight(rate);
       setAdvancePaid(rate);
     }
-  }, [roomTypes, selectedRoomTypeId]);
+  }, [roomTypes, selectedRoomTypeId, effectiveOccupancy]);
 
   useEffect(() => {
     if (availableRooms.length > 0 && !selectedRoomId) {
@@ -171,7 +225,7 @@ export default function WalkInCheckInModal({ open, onClose, onSuccess }: WalkInC
     setSelectedRoomId('');
     const rt = roomTypes.find((t) => t.id === rtId);
     if (rt) {
-      const rate = getRoomTypeRate(rt);
+      const rate = getRoomTypeRate(rt, effectiveOccupancy);
       setRoomRatePerNight(rate);
       setAdvancePaid(rate);
     }
@@ -214,9 +268,10 @@ export default function WalkInCheckInModal({ open, onClose, onSuccess }: WalkInC
         adults,
         children,
         billing: {
-          nightlyRate: roomRatePerNight,
+          nightlyRate: currentRate,
           nights,
           roomSubtotal: roomTotal,
+          extraPersonCharges: extraPersonTotal,
           taxes,
           grandTotal,
           advancePaid,
@@ -585,6 +640,68 @@ export default function WalkInCheckInModal({ open, onClose, onSuccess }: WalkInC
               </div>
             </div>
 
+            {/* Occupancy Selection (Single vs Double) */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+              <div>
+                <label className="block text-xs font-semibold text-telivity-navy mb-1">
+                  Occupancy Mode *
+                </label>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    disabled={isSuite}
+                    onClick={() => {
+                      setOccupancyType('single');
+                      const r = getRoomTypeRate(selectedRoomType, 'single');
+                      setRoomRatePerNight(r);
+                      setAdvancePaid(r * nights);
+                    }}
+                    className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-bold border transition ${
+                      isSuite
+                        ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
+                        : effectiveOccupancy === 'single'
+                        ? 'bg-telivity-teal text-white border-telivity-teal shadow-xs'
+                        : 'bg-white text-telivity-navy border-gray-300 hover:bg-gray-100'
+                    }`}
+                  >
+                    Single {isSuite ? '(Not Configured)' : `(₹${getRoomTypeRate(selectedRoomType, 'single')})`}
+                  </button>
+
+                  <button
+                    type="button"
+                    disabled={isBudget}
+                    onClick={() => {
+                      setOccupancyType('double');
+                      const r = getRoomTypeRate(selectedRoomType, 'double');
+                      setRoomRatePerNight(r);
+                      setAdvancePaid(r * nights);
+                    }}
+                    className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-bold border transition ${
+                      isBudget
+                        ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
+                        : effectiveOccupancy === 'double'
+                        ? 'bg-telivity-teal text-white border-telivity-teal shadow-xs'
+                        : 'bg-white text-telivity-navy border-gray-300 hover:bg-gray-100'
+                    }`}
+                  >
+                    Double {isBudget ? '(Not Configured)' : `(₹${getRoomTypeRate(selectedRoomType, 'double')})`}
+                  </button>
+                </div>
+              </div>
+
+              <div className="p-2.5 rounded-xl bg-teal-50/70 border border-teal-200/60 text-xs text-teal-900 flex flex-col justify-center">
+                <span className="font-bold flex items-center gap-1">
+                  <Sparkles size={13} className="text-teal-700" /> Additional Policies:
+                </span>
+                <p className="text-[11px] text-teal-800 mt-0.5">
+                  • Extra Person Charge: <strong className="text-amber-800">₹399/person/night</strong>
+                </p>
+                <p className="text-[11px] text-teal-800">
+                  • Children below 7 years stay free (without extra bed)
+                </p>
+              </div>
+            </div>
+
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">Check-In Date</label>
@@ -615,31 +732,39 @@ export default function WalkInCheckInModal({ open, onClose, onSuccess }: WalkInC
               <span>3. Billing & Advance Payment Collection</span>
             </h3>
 
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-white p-3 rounded-xl border border-gray-200 text-xs">
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 bg-white p-3 rounded-xl border border-gray-200 text-xs">
               <div>
                 <span className="text-gray-400 block font-medium">Nightly Rate</span>
-                <input
-                  type="number"
-                  value={roomRatePerNight}
-                  onChange={(e) => {
-                    const r = Number(e.target.value);
-                    setRoomRatePerNight(r);
-                    setAdvancePaid(r * nights);
-                  }}
-                  className="w-full font-bold text-gray-900 border-b border-gray-300 pb-0.5 text-sm"
-                />
+                <span className="font-bold text-gray-900 text-sm mt-1 block">
+                  ₹{currentRate.toLocaleString('en-IN')}
+                </span>
+                <span className="text-[10px] text-telivity-mid-grey capitalize">{effectiveOccupancy} Occ</span>
               </div>
               <div>
-                <span className="text-gray-400 block font-medium">Room Total ({nights} N)</span>
-                <span className="font-bold text-gray-900 text-sm mt-1 block">{formatMoney(roomTotal, currencyCode)}</span>
+                <span className="text-gray-400 block font-medium">Room Total ({nights}N)</span>
+                <span className="font-bold text-gray-900 text-sm mt-1 block">
+                  ₹{roomTotal.toLocaleString('en-IN')}
+                </span>
               </div>
               <div>
-                <span className="text-gray-400 block font-medium">GST (12%)</span>
-                <span className="font-bold text-gray-600 text-sm mt-1 block">{formatMoney(taxes, currencyCode)}</span>
+                <span className="text-gray-400 block font-medium">Extra Person</span>
+                <span className="font-bold text-amber-700 text-sm mt-1 block">
+                  {extraPersonTotal > 0 ? `+₹${extraPersonTotal.toLocaleString('en-IN')}` : '₹0'}
+                </span>
+                {extraAdultsCount > 0 && <span className="text-[10px] text-amber-700 font-semibold">{extraAdultsCount} × ₹399</span>}
+              </div>
+              <div>
+                <span className="text-gray-400 block font-medium">GST ({tariffConfig.gstPercentage}%)</span>
+                <span className="font-bold text-gray-600 text-sm mt-1 block">
+                  ₹{taxes.toLocaleString('en-IN')}
+                </span>
+                <span className="text-[10px] text-gray-400">{tariffConfig.isTaxInclusive ? 'Inclusive' : 'Exclusive'}</span>
               </div>
               <div>
                 <span className="text-gray-400 block font-medium">Grand Total</span>
-                <span className="font-bold text-teal-800 text-sm mt-1 block">{formatMoney(grandTotal, currencyCode)}</span>
+                <span className="font-bold text-teal-800 text-sm mt-1 block">
+                  ₹{grandTotal.toLocaleString('en-IN')}
+                </span>
               </div>
             </div>
 

@@ -56,9 +56,9 @@ type NavSection = {
 };
 
 const DEPT_ALLOWED_ROUTES: Record<string, string[]> = {
-  admin: ['/', '/admin-panel', '/manager-panel', '/front-office-panel', '/departments', '/current-guests', '/front-desk', '/reservations', '/guests', '/rooms', '/rooms/types', '/housekeeping', '/staff', '/folios', '/guest-history', '/direct-bookings', '/reports', '/settings'],
-  manager: ['/', '/manager-panel', '/front-office-panel', '/departments', '/staff', '/current-guests', '/front-desk', '/housekeeping', '/reports', '/settings'],
-  front_office: ['/', '/front-office-panel', '/departments', '/current-guests', '/front-desk', '/reservations', '/guests', '/guest-history', '/direct-bookings'],
+  admin: ['/', '/admin-panel', '/manager-panel', '/front-office-panel', '/tariff-settings', '/departments', '/current-guests', '/front-desk', '/reservations', '/guests', '/rooms', '/rooms/types', '/housekeeping', '/staff', '/folios', '/guest-history', '/direct-bookings', '/reports', '/settings'],
+  manager: ['/', '/manager-panel', '/front-office-panel', '/tariff-settings', '/departments', '/staff', '/current-guests', '/front-desk', '/housekeeping', '/reports', '/settings'],
+  front_office: ['/', '/front-office-panel', '/tariff-settings', '/departments', '/current-guests', '/front-desk', '/reservations', '/guests', '/guest-history', '/direct-bookings'],
   housekeeping: ['/', '/departments', '/rooms', '/rooms/types', '/housekeeping', '/staff'],
   accounts: ['/', '/departments', '/folios', '/guest-history', '/reports'],
 };
@@ -75,8 +75,8 @@ const NAV_SECTIONS: NavSection[] = [
       { to: '/front-desk', icon: ConciergeBell, labelKey: 'Front Desk', permission: 'frontdesk.access' },
       { to: '/reservations', icon: CalendarDays, labelKey: 'Booking Management', permission: 'reservations.read' },
       { to: '/guests', icon: Users, labelKey: 'Guest Management', permission: 'guests.read' },
-      { to: '/rooms', icon: DoorOpen, labelKey: 'All Rooms & Rack', permission: 'rooms.read' },
-      { to: '/rooms/types', icon: Tags, labelKey: 'Room Categories & Pricing', permission: 'rooms.read' },
+      { to: '/rooms', icon: DoorOpen, labelKey: 'All Rooms Rack (28 Rooms)', permission: 'rooms.read' },
+      { to: '/tariff-settings', icon: Tags, labelKey: 'Room Tariffs & Inventory (28)', permission: 'rooms.read' },
       { to: '/housekeeping', icon: Sparkles, labelKey: 'Housekeeping', permission: 'housekeeping.read' },
       { to: '/staff', icon: Briefcase, labelKey: 'Staff & 3 Shifts', permission: 'admin.users.manage' },
       { to: '/folios', icon: Receipt, labelKey: 'Folios & Billing', permission: 'folios.read' },
