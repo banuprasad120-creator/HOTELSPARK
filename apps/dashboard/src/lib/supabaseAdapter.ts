@@ -1022,7 +1022,6 @@ export function getStoredStays(): StoredStay[] {
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          // Merge defaults if fields like idProofFrontUrl/BackUrl are missing on default records
           return parsed.map((item: StoredStay) => {
             const def = DEFAULT_STAYS.find((d) => d.id === item.id);
             if (def) {
@@ -1607,10 +1606,10 @@ export async function handleSupabaseAdapter(config: AxiosRequestConfig): Promise
       const typesList = typesResult.data && typesResult.data.length > 0
         ? typesResult.data
         : [
-            { id: 'b0000001-0000-4000-a000-000000000001', name: 'Deluxe King Room', code: 'DLX', description: 'Spacious king-size bed room with ensuite bath', max_occupancy: 2, bed_type: 'king', amenities: ['wifi', 'tv', 'ac', 'safe'] },
-            { id: 'b0000002-0000-4000-a000-000000000001', name: 'Executive Spark Suite', code: 'SUT', description: 'Luxurious suite with separate living room', max_occupancy: 4, bed_type: 'king', amenities: ['wifi', 'tv', 'ac', 'bathtub', 'minibar'] },
-            { id: 'b0000003-0000-4000-a000-000000000001', name: 'Standard Queen Room', code: 'STD', description: 'Cozy queen-size bed room', max_occupancy: 2, bed_type: 'queen', amenities: ['wifi', 'tv', 'ac'] },
-          ];
+          { id: 'b0000001-0000-4000-a000-000000000001', name: 'Deluxe King Room', code: 'DLX', description: 'Spacious king-size bed room with ensuite bath', max_occupancy: 2, bed_type: 'king', amenities: ['wifi', 'tv', 'ac', 'safe'] },
+          { id: 'b0000002-0000-4000-a000-000000000001', name: 'Executive Spark Suite', code: 'SUT', description: 'Luxurious suite with separate living room', max_occupancy: 4, bed_type: 'king', amenities: ['wifi', 'tv', 'ac', 'bathtub', 'minibar'] },
+          { id: 'b0000003-0000-4000-a000-000000000001', name: 'Standard Queen Room', code: 'STD', description: 'Cozy queen-size bed room', max_occupancy: 2, bed_type: 'queen', amenities: ['wifi', 'tv', 'ac'] },
+        ];
 
       const mapped = typesList.map((t) => {
         const cached = currentCache[t.id] ?? ratePlanPriceCache[t.id];
@@ -1702,11 +1701,11 @@ export async function handleSupabaseAdapter(config: AxiosRequestConfig): Promise
     const reqStatus = (urlObj.searchParams.get('status') || '').toLowerCase();
     const filtered = reqStatus
       ? rooms.filter((r) => {
-          if (reqStatus === 'guest_ready' || reqStatus === 'available') {
-            return r.status === 'guest_ready' || r.status === 'vacant_clean' || r.status === 'clean' || r.status === 'available';
-          }
-          return r.status.toLowerCase() === reqStatus;
-        })
+        if (reqStatus === 'guest_ready' || reqStatus === 'available') {
+          return r.status === 'guest_ready' || r.status === 'vacant_clean' || r.status === 'clean' || r.status === 'available';
+        }
+        return r.status.toLowerCase() === reqStatus;
+      })
       : rooms;
     return ok(filtered);
   }
@@ -1754,7 +1753,7 @@ export async function handleSupabaseAdapter(config: AxiosRequestConfig): Promise
             saveStoredRooms(merged);
           }
         })
-        .catch(() => {});
+        .catch(() => { });
 
       return ok(result);
     }
@@ -2229,7 +2228,7 @@ export async function handleSupabaseAdapter(config: AxiosRequestConfig): Promise
         supabaseFetch(`rooms?id=eq.${body.roomId}`, {
           method: 'PATCH',
           body: JSON.stringify({ status: 'occupied' }),
-        }).catch(() => {});
+        }).catch(() => { });
       }
 
       return ok({
@@ -2624,7 +2623,7 @@ export async function handleSupabaseAdapter(config: AxiosRequestConfig): Promise
           supabaseFetch(`rooms?id=eq.${matchedRoom.id}`, {
             method: 'PATCH',
             body: JSON.stringify({ status: 'occupied' }),
-          }).catch(() => {});
+          }).catch(() => { });
         }
       }
 
@@ -2654,7 +2653,7 @@ export async function handleSupabaseAdapter(config: AxiosRequestConfig): Promise
           source: 'walk_in',
           notes: newStay.notes,
         }),
-      }).catch(() => {});
+      }).catch(() => { });
 
       return ok({ success: true, stay: newStay });
     }
@@ -2695,7 +2694,7 @@ export async function handleSupabaseAdapter(config: AxiosRequestConfig): Promise
           supabaseFetch(`rooms?id=eq.${rooms[roomIdx].id}`, {
             method: 'PATCH',
             body: JSON.stringify({ status: 'vacant_dirty' }),
-          }).catch(() => {});
+          }).catch(() => { });
         }
 
         // Trigger Admin Notification

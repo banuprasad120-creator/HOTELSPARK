@@ -318,11 +318,10 @@ export default function StaffManagement() {
         <button
           type="button"
           onClick={() => setActiveTab('employees')}
-          className={`flex items-center gap-2 px-5 py-3 text-sm font-bold border-b-2 transition ${
-            activeTab === 'employees'
-              ? 'border-telivity-teal text-telivity-teal'
-              : 'border-transparent text-gray-500 hover:text-gray-900'
-          }`}
+          className={`flex items-center gap-2 px-5 py-3 text-sm font-bold border-b-2 transition ${activeTab === 'employees'
+            ? 'border-telivity-teal text-telivity-teal'
+            : 'border-transparent text-gray-500 hover:text-gray-900'
+            }`}
         >
           <Users size={17} />
           <span>Employees & Shifts ({employees.length})</span>
@@ -331,11 +330,10 @@ export default function StaffManagement() {
         <button
           type="button"
           onClick={() => setActiveTab('departments')}
-          className={`flex items-center gap-2 px-5 py-3 text-sm font-bold border-b-2 transition ${
-            activeTab === 'departments'
-              ? 'border-telivity-teal text-telivity-teal'
-              : 'border-transparent text-gray-500 hover:text-gray-900'
-          }`}
+          className={`flex items-center gap-2 px-5 py-3 text-sm font-bold border-b-2 transition ${activeTab === 'departments'
+            ? 'border-telivity-teal text-telivity-teal'
+            : 'border-transparent text-gray-500 hover:text-gray-900'
+            }`}
         >
           <Building2 size={17} />
           <span>Departments ({departments.length})</span>
@@ -477,11 +475,10 @@ export default function StaffManagement() {
 
                         <td className="py-3 px-4">
                           <span
-                            className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
-                              emp.status === 'active'
-                                ? 'bg-emerald-100 text-emerald-800'
-                                : 'bg-gray-100 text-gray-600'
-                            }`}
+                            className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold ${emp.status === 'active'
+                              ? 'bg-emerald-100 text-emerald-800'
+                              : 'bg-gray-100 text-gray-600'
+                              }`}
                           >
                             {emp.status === 'active' ? (
                               <CheckCircle2 size={11} className="text-emerald-600" />

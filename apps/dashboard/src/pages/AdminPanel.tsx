@@ -445,15 +445,14 @@ export default function AdminPanel() {
                     </td>
                     <td className="py-3 px-3">
                       <span
-                        className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-                          isAvail
-                            ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
-                            : isOcc
+                        className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${isAvail
+                          ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                          : isOcc
                             ? 'bg-teal-100 text-teal-800 border border-teal-300'
                             : isDirty
-                            ? 'bg-amber-100 text-amber-800 border border-amber-300'
-                            : 'bg-red-100 text-red-800 border border-red-300'
-                        }`}
+                              ? 'bg-amber-100 text-amber-800 border border-amber-300'
+                              : 'bg-red-100 text-red-800 border border-red-300'
+                          }`}
                       >
                         {isAvail ? 'Available / Clean' : isOcc ? 'Occupied' : isDirty ? 'Dirty / Cleaning' : 'Out of Order'}
                       </span>
