@@ -87,8 +87,8 @@ export default function ManagerPanel() {
     currentHour >= 6 && currentHour < 14
       ? 'morning'
       : currentHour >= 14 && currentHour < 22
-      ? 'evening'
-      : 'night';
+        ? 'evening'
+        : 'night';
 
   // Load Rooms & Stays
   const { data: roomsData } = useQuery({
@@ -211,20 +211,18 @@ export default function ManagerPanel() {
         <div className="mt-6 pt-4 border-t border-white/15 grid grid-cols-1 md:grid-cols-3 gap-3">
           {/* Morning Shift */}
           <div
-            className={`p-3.5 rounded-xl border backdrop-blur-xs transition ${
-              activeShiftKey === 'morning'
-                ? 'bg-purple-600/30 border-purple-400 ring-2 ring-purple-400/40 shadow-md'
-                : 'bg-white/5 border-white/10'
-            }`}
+            className={`p-3.5 rounded-xl border backdrop-blur-xs transition ${activeShiftKey === 'morning'
+              ? 'bg-purple-600/30 border-purple-400 ring-2 ring-purple-400/40 shadow-md'
+              : 'bg-white/5 border-white/10'
+              }`}
           >
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-white uppercase flex items-center gap-1.5">
                 <Clock size={13} className="text-purple-300" /> Morning Shift (06:00 - 14:00)
               </span>
               <span
-                className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${
-                  activeShiftKey === 'morning' ? 'bg-emerald-500 text-white animate-pulse' : 'bg-white/20 text-purple-200'
-                }`}
+                className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${activeShiftKey === 'morning' ? 'bg-emerald-500 text-white animate-pulse' : 'bg-white/20 text-purple-200'
+                  }`}
               >
                 {activeShiftKey === 'morning' ? 'ACTIVE NOW' : 'Completed'}
               </span>
@@ -238,20 +236,18 @@ export default function ManagerPanel() {
 
           {/* Evening Shift */}
           <div
-            className={`p-3.5 rounded-xl border backdrop-blur-xs transition ${
-              activeShiftKey === 'evening'
-                ? 'bg-purple-600/30 border-purple-400 ring-2 ring-purple-400/40 shadow-md'
-                : 'bg-white/5 border-white/10'
-            }`}
+            className={`p-3.5 rounded-xl border backdrop-blur-xs transition ${activeShiftKey === 'evening'
+              ? 'bg-purple-600/30 border-purple-400 ring-2 ring-purple-400/40 shadow-md'
+              : 'bg-white/5 border-white/10'
+              }`}
           >
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-white uppercase flex items-center gap-1.5">
                 <Clock size={13} className="text-purple-300" /> Evening Shift (14:00 - 22:00)
               </span>
               <span
-                className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${
-                  activeShiftKey === 'evening' ? 'bg-emerald-500 text-white animate-pulse' : 'bg-white/20 text-purple-200'
-                }`}
+                className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${activeShiftKey === 'evening' ? 'bg-emerald-500 text-white animate-pulse' : 'bg-white/20 text-purple-200'
+                  }`}
               >
                 {activeShiftKey === 'evening' ? 'ACTIVE NOW' : 'Upcoming'}
               </span>
@@ -265,20 +261,18 @@ export default function ManagerPanel() {
 
           {/* Night Shift */}
           <div
-            className={`p-3.5 rounded-xl border backdrop-blur-xs transition ${
-              activeShiftKey === 'night'
-                ? 'bg-purple-600/30 border-purple-400 ring-2 ring-purple-400/40 shadow-md'
-                : 'bg-white/5 border-white/10'
-            }`}
+            className={`p-3.5 rounded-xl border backdrop-blur-xs transition ${activeShiftKey === 'night'
+              ? 'bg-purple-600/30 border-purple-400 ring-2 ring-purple-400/40 shadow-md'
+              : 'bg-white/5 border-white/10'
+              }`}
           >
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-white uppercase flex items-center gap-1.5">
                 <Clock size={13} className="text-purple-300" /> Night Shift (22:00 - 06:00)
               </span>
               <span
-                className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${
-                  activeShiftKey === 'night' ? 'bg-emerald-500 text-white animate-pulse' : 'bg-white/20 text-purple-200'
-                }`}
+                className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${activeShiftKey === 'night' ? 'bg-emerald-500 text-white animate-pulse' : 'bg-white/20 text-purple-200'
+                  }`}
               >
                 {activeShiftKey === 'night' ? 'ACTIVE NOW' : 'Night Audit'}
               </span>
@@ -408,28 +402,26 @@ export default function ManagerPanel() {
             const catShort = room.roomTypeName?.includes('Budget')
               ? 'Budget'
               : room.roomTypeName?.includes('Deluxe')
-              ? 'Deluxe'
-              : room.roomTypeName?.includes('Executive')
-              ? 'Executive'
-              : room.roomTypeName?.includes('Suite')
-              ? 'Suite'
-              : 'Room';
+                ? 'Deluxe'
+                : room.roomTypeName?.includes('Executive')
+                  ? 'Executive'
+                  : room.roomTypeName?.includes('Suite')
+                    ? 'Suite'
+                    : 'Room';
 
             return (
               <div
                 key={room.id}
-                className={`p-2.5 rounded-xl border text-center transition ${
-                  isClean ? 'border-emerald-300 bg-emerald-50/60' : isOccupied ? 'border-teal-300 bg-teal-50/60' : isBooked ? 'border-purple-300 bg-purple-50/60' : 'border-amber-400 bg-amber-50 shadow-xs'
-                }`}
+                className={`p-2.5 rounded-xl border text-center transition ${isClean ? 'border-emerald-300 bg-emerald-50/60' : isOccupied ? 'border-teal-300 bg-teal-50/60' : isBooked ? 'border-purple-300 bg-purple-50/60' : 'border-amber-400 bg-amber-50 shadow-xs'
+                  }`}
               >
                 <div className="font-bold text-xs text-telivity-navy">Room {room.number}</div>
                 <div className="text-[10px] text-telivity-mid-grey truncate font-medium">
                   {catShort} • F{room.floor || (room.number.startsWith('2') ? '2' : '1')}
                 </div>
                 <span
-                  className={`inline-block px-1.5 py-0.2 rounded text-[9px] font-bold mt-1 uppercase ${
-                    isClean ? 'bg-emerald-200 text-emerald-900' : isOccupied ? 'bg-teal-200 text-teal-900' : isBooked ? 'bg-purple-200 text-purple-900' : 'bg-amber-200 text-amber-900'
-                  }`}
+                  className={`inline-block px-1.5 py-0.2 rounded text-[9px] font-bold mt-1 uppercase ${isClean ? 'bg-emerald-200 text-emerald-900' : isOccupied ? 'bg-teal-200 text-teal-900' : isBooked ? 'bg-purple-200 text-purple-900' : 'bg-amber-200 text-amber-900'
+                    }`}
                 >
                   {isClean ? 'Clean' : isOccupied ? 'Occupied' : isBooked ? 'Booked' : 'Dirty'}
                 </span>

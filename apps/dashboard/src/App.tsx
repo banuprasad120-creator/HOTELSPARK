@@ -65,8 +65,12 @@ export default function App() {
             <Routes>
               <Route path="/" element={<Dashboard />} />
               <Route path="/admin-panel" element={<AdminPanel />} />
+              <Route path="/panel" element={<AdminPanel />} />
               <Route path="/manager-panel" element={<ManagerPanel />} />
+              <Route path="/manager" element={<ManagerPanel />} />
               <Route path="/front-office-panel" element={<FrontOfficePanel />} />
+              <Route path="/front-office" element={<FrontOfficePanel />} />
+              <Route path="/in-house" element={<InHouseGuests />} />
               <Route path="/tariff-settings" element={<RoomTariffSettings />} />
               <Route path="/rooms/tariff" element={<RoomTariffSettings />} />
               <Route path="/rooms/types" element={<RoomTariffSettings />} />
