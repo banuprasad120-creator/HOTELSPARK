@@ -7,8 +7,9 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const rootDir = path.resolve(__dirname, '..');
 const distNetlify = path.join(rootDir, 'dist_netlify');
+const BUILD_TIME = new Date().toISOString();
 
-console.log('🚀 Starting Hotel Spark Netlify Unified Build...');
+console.log(`🚀 Starting Hotel Spark Netlify Unified Build [${BUILD_TIME}]...`);
 
 function run(cmd, cwd = rootDir) {
   console.log(`\n▶ Running: ${cmd} (in ${path.relative(rootDir, cwd) || '.'})`);

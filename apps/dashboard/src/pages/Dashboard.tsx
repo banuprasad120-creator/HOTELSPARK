@@ -97,6 +97,7 @@ export default function Dashboard() {
     queryKey: ['direct-bookings', propertyId],
     queryFn: () => api.get('/v1/direct-bookings', { params: { propertyId } }).then((r) => r.data),
     enabled: !!propertyId,
+    refetchInterval: 5000,
   });
 
   const { data: arrivals } = useQuery({
@@ -155,7 +156,10 @@ export default function Dashboard() {
     { name: 'Maintenance', value: maintenanceCount, color: '#eec517' },
   ].filter(d => d.value > 0);
 
-  const pendingOnlineCount = onlineBookingsList.filter((b: any) => b.status === 'pending_approval' || b.status === 'pending').length || 2;
+  const pendingOnlineList = onlineBookingsList.filter(
+    (b: any) => b.status === 'pending_approval' || b.status === 'pending',
+  );
+  const pendingOnlineCount = pendingOnlineList.length;
 
   return (
     <div className="space-y-6">
@@ -210,6 +214,48 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
+
+      {/* Live Website Bookings Notification Banner on Central Dashboard */}
+      {pendingOnlineList.length > 0 && (
+        <div className="bg-gradient-to-r from-teal-50 via-emerald-50 to-teal-50 border-2 border-teal-500/30 rounded-2xl p-5 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex items-start md:items-center gap-3.5">
+            <div className="p-3 bg-telivity-teal text-white rounded-xl shadow-md flex-shrink-0 animate-pulse">
+              <Globe size={24} />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-bold uppercase tracking-wider bg-teal-600 text-white px-2 py-0.5 rounded-full">
+                  Direct Website Booking
+                </span>
+                <span className="text-xs font-semibold text-telivity-teal">
+                  {pendingOnlineList.length} Inquir{pendingOnlineList.length > 1 ? 'ies' : 'y'} Pending Approval
+                </span>
+              </div>
+              <h3 className="text-base font-bold text-telivity-navy mt-1">
+                Guest: {pendingOnlineList[0]?.guestFirstName} {pendingOnlineList[0]?.guestLastName} · {pendingOnlineList[0]?.roomTypeName}
+              </h3>
+              <p className="text-xs text-telivity-mid-grey mt-0.5">
+                Reference: <strong className="font-mono text-telivity-teal">{pendingOnlineList[0]?.reference}</strong> · Stay: {pendingOnlineList[0]?.arrivalDate} to {pendingOnlineList[0]?.departureDate} · Total: ₹{pendingOnlineList[0]?.submittedTotal} · Phone: {pendingOnlineList[0]?.guestPhone || '—'}
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2.5 flex-shrink-0">
+            <button
+              onClick={() => navigate('/front-desk')}
+              className="bg-telivity-teal hover:bg-telivity-teal/90 text-white font-bold text-xs px-4 py-2.5 rounded-xl shadow transition-colors flex items-center gap-1.5"
+            >
+              <DoorOpen size={15} />
+              <span>Front Desk Review</span>
+            </button>
+            <button
+              onClick={() => navigate('/direct-bookings')}
+              className="bg-white hover:bg-gray-50 text-telivity-navy border border-gray-200 font-semibold text-xs px-4 py-2.5 rounded-xl transition-colors"
+            >
+              <span>Manage Requests ({pendingOnlineList.length}) &rarr;</span>
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* 2. Room Inventory Live Status Grid (Requirements Section 2) */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">

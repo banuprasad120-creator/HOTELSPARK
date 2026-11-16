@@ -1228,14 +1228,27 @@ export default function FrontDesk() {
             {tab !== 'online' && currentList.length === 0 && (
               <tr>
                 <td colSpan={10} className="px-4 py-8 text-center text-sm text-telivity-mid-grey">
-                  {t('frontDesk.noToday', {
-                    item:
-                      tab === 'arrivals'
-                        ? t('frontDesk.arrivals').toLowerCase()
-                        : tab === 'in-house'
-                          ? t('frontDesk.inHouse').toLowerCase()
-                          : t('frontDesk.departures').toLowerCase(),
-                  })}
+                  <p>
+                    {t('frontDesk.noToday', {
+                      item:
+                        tab === 'arrivals'
+                          ? t('frontDesk.arrivals').toLowerCase()
+                          : tab === 'in-house'
+                            ? t('frontDesk.inHouse').toLowerCase()
+                            : t('frontDesk.departures').toLowerCase(),
+                    })}
+                  </p>
+                  {tab === 'arrivals' && pendingOnlineBookings.length > 0 && (
+                    <div className="mt-3 inline-flex flex-col sm:flex-row items-center gap-2 bg-teal-50 border border-teal-200 text-telivity-navy px-4 py-2.5 rounded-xl text-xs shadow-xs">
+                      <span>💡 You have <strong>{pendingOnlineBookings.length}</strong> website booking request{pendingOnlineBookings.length > 1 ? 's' : ''} awaiting front desk approval.</span>
+                      <button
+                        onClick={() => setTab('online')}
+                        className="bg-telivity-teal hover:bg-teal-700 text-white font-bold px-3 py-1 rounded-lg transition-colors cursor-pointer"
+                      >
+                        Review Online Bookings ({pendingOnlineBookings.length}) &rarr;
+                      </button>
+                    </div>
+                  )}
                 </td>
               </tr>
             )}
