@@ -324,7 +324,7 @@ export const DEFAULT_STAYS: StoredStay[] = [
     idProofType: 'Driving License',
     idProofNumber: 'TS-02-2021-0045211',
     idProofFrontUrl: 'https://images.unsplash.com/photo-1544717305-2782549b5136?w=600&auto=format&fit=crop&q=80',
-    idProofBackUrl: '',
+    idProofBackUrl: 'https://images.unsplash.com/photo-1557683316-973673baf926?w=600&auto=format&fit=crop&q=80',
     adults: 1,
     children: 0,
     roomId: 'r0000102-0000-4000-a000-000000000001',
@@ -360,7 +360,7 @@ export const DEFAULT_STAYS: StoredStay[] = [
     idProofType: 'Passport',
     idProofNumber: 'V8923412',
     idProofFrontUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=600&auto=format&fit=crop&q=80',
-    idProofBackUrl: '',
+    idProofBackUrl: 'https://images.unsplash.com/photo-1557683316-973673baf926?w=600&auto=format&fit=crop&q=80',
     adults: 3,
     children: 1,
     roomId: 'r0000201-0000-4000-a000-000000000001',
@@ -396,7 +396,7 @@ export const DEFAULT_STAYS: StoredStay[] = [
     idProofType: 'Aadhaar Card',
     idProofNumber: '6712 3490 1289',
     idProofFrontUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=600&auto=format&fit=crop&q=80',
-    idProofBackUrl: '',
+    idProofBackUrl: 'https://images.unsplash.com/photo-1579783902614-a3fb3927b675?w=600&auto=format&fit=crop&q=80',
     adults: 2,
     children: 0,
     roomId: 'r0000301-0000-4000-a000-000000000001',
@@ -431,6 +431,8 @@ export const DEFAULT_STAYS: StoredStay[] = [
     state: 'Telangana',
     idProofType: 'Aadhaar Card',
     idProofNumber: '4455 6677 8899',
+    idProofFrontUrl: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=600&auto=format&fit=crop&q=80',
+    idProofBackUrl: 'https://images.unsplash.com/photo-1557683316-973673baf926?w=600&auto=format&fit=crop&q=80',
     adults: 2,
     children: 1,
     roomId: 'r0000103-0000-4000-a000-000000000001',
@@ -466,6 +468,8 @@ export const DEFAULT_STAYS: StoredStay[] = [
     state: 'Telangana',
     idProofType: 'Passport',
     idProofNumber: 'Z1238904',
+    idProofFrontUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=600&auto=format&fit=crop&q=80',
+    idProofBackUrl: 'https://images.unsplash.com/photo-1579783902614-a3fb3927b675?w=600&auto=format&fit=crop&q=80',
     adults: 1,
     children: 0,
     roomId: 'r0000202-0000-4000-a000-000000000001',
@@ -565,7 +569,19 @@ export function getStoredStays(): StoredStay[] {
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          return parsed;
+          // Merge defaults if fields like idProofFrontUrl/BackUrl are missing on default records
+          return parsed.map((item: StoredStay) => {
+            const def = DEFAULT_STAYS.find((d) => d.id === item.id);
+            if (def) {
+              return {
+                ...def,
+                ...item,
+                idProofFrontUrl: item.idProofFrontUrl || def.idProofFrontUrl,
+                idProofBackUrl: item.idProofBackUrl || def.idProofBackUrl,
+              };
+            }
+            return item;
+          });
         }
       }
     }
@@ -618,10 +634,109 @@ const RESERVATIONS_STORAGE_KEY = 'hotel_spark_reservations_list';
 const GUESTS_STORAGE_KEY = 'hotel_spark_guests_list';
 
 const DEFAULT_GUESTS = [
-  { id: 'g0000001-0000-4000-a000-000000000001', propertyId: PROPERTY_ID, firstName: 'Rahul', lastName: 'Verma', email: 'rahul.verma@example.com', phone: '+91 98765 11111', address: 'Banjara Hills, Hyderabad', city: 'Hyderabad', state: 'Telangana', idProofType: 'Aadhaar Card', idProofNumber: '7890 1234 5678', stayCount: 3, totalSpend: 10500, status: 'active', createdAt: '2026-11-10T10:00:00Z' },
-  { id: 'g0000002-0000-4000-a000-000000000001', propertyId: PROPERTY_ID, firstName: 'Priya', lastName: 'Sharma', email: 'priya.s@example.com', phone: '+91 98765 22222', address: 'Madhapur, Hyderabad', city: 'Hyderabad', state: 'Telangana', idProofType: 'Driving License', idProofNumber: 'TS09-2023-009182', stayCount: 2, totalSpend: 7000, status: 'active', createdAt: '2026-11-12T14:30:00Z' },
-  { id: 'g0000003-0000-4000-a000-000000000001', propertyId: PROPERTY_ID, firstName: 'Vikram', lastName: 'Malhotra', email: 'vikram.m@corporatetech.com', phone: '+91 98765 33333', address: 'Koramangala, Bengaluru', city: 'Bengaluru', state: 'Karnataka', idProofType: 'Passport', idProofNumber: 'Z8765432', stayCount: 1, totalSpend: 13000, status: 'active', createdAt: '2026-11-14T09:15:00Z' },
-  { id: 'g0000004-0000-4000-a000-000000000001', propertyId: PROPERTY_ID, firstName: 'Ananya', lastName: 'Reddy', email: 'ananya.reddy@example.com', phone: '+91 98765 44444', address: 'Subhash Nagar, Karimnagar', city: 'Karimnagar', state: 'Telangana', idProofType: 'Aadhaar Card', idProofNumber: '4567 8901 2345', stayCount: 4, totalSpend: 14000, status: 'active', createdAt: '2026-11-05T12:00:00Z' },
+  {
+    id: 'g0000001-0000-4000-a000-000000000001',
+    propertyId: PROPERTY_ID,
+    firstName: 'Rahul',
+    lastName: 'Verma',
+    email: 'rahul.verma@example.com',
+    phone: '+91 98765 11111',
+    address: 'Banjara Hills, Hyderabad',
+    addressLine1: 'Banjara Hills, Road No. 12',
+    city: 'Hyderabad',
+    state: 'Telangana',
+    stateProvince: 'Telangana',
+    postalCode: '500034',
+    countryCode: 'IN',
+    idCountry: 'IN',
+    idType: 'aadhaar',
+    idProofType: 'Aadhaar Card',
+    idNumber: '7890 1234 5678',
+    idProofNumber: '7890 1234 5678',
+    idProofFrontUrl: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=600&auto=format&fit=crop&q=80',
+    idProofBackUrl: 'https://images.unsplash.com/photo-1557683316-973673baf926?w=600&auto=format&fit=crop&q=80',
+    stayCount: 3,
+    totalSpend: 10500,
+    status: 'active',
+    createdAt: '2026-11-10T10:00:00Z',
+  },
+  {
+    id: 'g0000002-0000-4000-a000-000000000001',
+    propertyId: PROPERTY_ID,
+    firstName: 'Priya',
+    lastName: 'Sharma',
+    email: 'priya.s@example.com',
+    phone: '+91 98765 22222',
+    address: 'Madhapur, Hyderabad',
+    addressLine1: 'Plot 45, Silicon Valley, Madhapur',
+    city: 'Hyderabad',
+    state: 'Telangana',
+    stateProvince: 'Telangana',
+    postalCode: '500081',
+    countryCode: 'IN',
+    idCountry: 'IN',
+    idType: 'drivers_license',
+    idProofType: 'Driving License',
+    idNumber: 'TS09-2023-009182',
+    idProofNumber: 'TS09-2023-009182',
+    idProofFrontUrl: 'https://images.unsplash.com/photo-1544717305-2782549b5136?w=600&auto=format&fit=crop&q=80',
+    idProofBackUrl: 'https://images.unsplash.com/photo-1557683316-973673baf926?w=600&auto=format&fit=crop&q=80',
+    stayCount: 2,
+    totalSpend: 7000,
+    status: 'active',
+    createdAt: '2026-11-12T14:30:00Z',
+  },
+  {
+    id: 'g0000003-0000-4000-a000-000000000001',
+    propertyId: PROPERTY_ID,
+    firstName: 'Vikram',
+    lastName: 'Malhotra',
+    email: 'vikram.m@corporatetech.com',
+    phone: '+91 98765 33333',
+    address: 'Koramangala, Bengaluru',
+    addressLine1: '4th Block, Koramangala',
+    city: 'Bengaluru',
+    state: 'Karnataka',
+    stateProvince: 'Karnataka',
+    postalCode: '560034',
+    countryCode: 'IN',
+    idCountry: 'IN',
+    idType: 'passport',
+    idProofType: 'Passport',
+    idNumber: 'Z8765432',
+    idProofNumber: 'Z8765432',
+    idProofFrontUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=600&auto=format&fit=crop&q=80',
+    stayCount: 1,
+    totalSpend: 13000,
+    status: 'active',
+    createdAt: '2026-11-14T09:15:00Z',
+  },
+  {
+    id: 'g0000004-0000-4000-a000-000000000001',
+    propertyId: PROPERTY_ID,
+    firstName: 'Ananya',
+    lastName: 'Reddy',
+    email: 'ananya.reddy@example.com',
+    phone: '+91 98765 44444',
+    address: 'Subhash Nagar, Karimnagar',
+    addressLine1: 'House 3-2-114, Subhash Nagar',
+    city: 'Karimnagar',
+    state: 'Telangana',
+    stateProvince: 'Telangana',
+    postalCode: '505001',
+    countryCode: 'IN',
+    idCountry: 'IN',
+    idType: 'aadhaar',
+    idProofType: 'Aadhaar Card',
+    idNumber: '4567 8901 2345',
+    idProofNumber: '4567 8901 2345',
+    idProofFrontUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=600&auto=format&fit=crop&q=80',
+    idProofBackUrl: 'https://images.unsplash.com/photo-1579783902614-a3fb3927b675?w=600&auto=format&fit=crop&q=80',
+    stayCount: 4,
+    totalSpend: 14000,
+    status: 'active',
+    createdAt: '2026-11-05T12:00:00Z',
+  },
 ];
 
 const DEFAULT_HK_TASKS = [
@@ -1693,6 +1808,20 @@ export async function handleSupabaseAdapter(config: AxiosRequestConfig): Promise
   if (url.includes('/guests')) {
     const guests = getStoredGuests();
     if (method === 'GET') {
+      const singleMatch = url.match(/\/guests\/([^/?]+)/);
+      const singleId = singleMatch ? singleMatch[1] : null;
+      if (singleId && singleId !== 'guests') {
+        const found = guests.find((g) => g.id === singleId);
+        if (found) {
+          return ok({
+            ...found,
+            idProofType: found.idProofType || (found.idType === 'aadhaar' ? 'Aadhaar Card' : found.idType) || 'Aadhaar Card',
+            idProofNumber: found.idProofNumber || found.idNumber || found.taxId || '',
+            idProofFrontUrl: found.idProofFrontUrl || found.registrationData?.idProofFrontUrl || '',
+            idProofBackUrl: found.idProofBackUrl || found.registrationData?.idProofBackUrl || '',
+          });
+        }
+      }
       const search = (config.params?.search || '').toLowerCase();
       let res = guests;
       if (search) {
@@ -1701,7 +1830,8 @@ export async function handleSupabaseAdapter(config: AxiosRequestConfig): Promise
             (g.firstName && g.firstName.toLowerCase().includes(search)) ||
             (g.lastName && g.lastName.toLowerCase().includes(search)) ||
             (g.phone && g.phone.includes(search)) ||
-            (g.email && g.email.toLowerCase().includes(search))
+            (g.email && g.email.toLowerCase().includes(search)) ||
+            (g.idProofNumber && g.idProofNumber.toLowerCase().includes(search))
         );
       }
       return ok(res);
@@ -1718,7 +1848,9 @@ export async function handleSupabaseAdapter(config: AxiosRequestConfig): Promise
         address: body.address || body.addressLine1 || '',
         city: body.city || 'Karimnagar',
         state: body.state || body.stateProvince || 'Telangana',
+        idType: body.idType || 'aadhaar',
         idProofType: body.idProofType || (body.idType === 'aadhaar' ? 'Aadhaar Card' : body.idType) || 'Aadhaar Card',
+        idNumber: body.idProofNumber || body.idNumber || body.taxId || '',
         idProofNumber: body.idProofNumber || body.idNumber || body.taxId || '',
         idProofFrontUrl: body.idProofFrontUrl || body.registrationData?.idProofFrontUrl || '',
         idProofBackUrl: body.idProofBackUrl || body.registrationData?.idProofBackUrl || '',
@@ -1736,8 +1868,9 @@ export async function handleSupabaseAdapter(config: AxiosRequestConfig): Promise
       const gid = idMatch ? idMatch[1] : '';
       const idx = guests.findIndex((g) => g.id === gid);
       if (idx >= 0) {
-        guests[idx] = { ...guests[idx], ...body };
+        guests[idx] = { ...guests[idx], ...body, updatedAt: new Date().toISOString() };
         saveStoredGuests(guests);
+        return ok({ success: true, ...guests[idx] });
       }
       return ok({ success: true, id: gid, ...body });
     }

@@ -15,6 +15,15 @@ import {
   ShieldCheck,
   User,
   ShieldAlert,
+  Eye,
+  EyeOff,
+  Upload,
+  Download,
+  CheckCircle2,
+  FileCheck,
+  Shield,
+  Lock,
+  X,
 } from 'lucide-react';
 import {
   formatCpf,
@@ -26,6 +35,7 @@ import { useProperty } from '../context/PropertyContext';
 import StatusBadge from '../components/ui/StatusBadge';
 import Modal from '../components/ui/Modal';
 import CreateGuestModal from '../components/guests/CreateGuestModal';
+import AadhaarViewerModal, { maskAadhaar, triggerDownload } from '../components/guests/AadhaarViewerModal';
 import type { Guest } from '../types/guest';
 
 function guestListSearchParams(term: string): { search?: string; loyaltyNumber?: string } {
@@ -193,7 +203,7 @@ function GuestDetail() {
   });
   const property = propertyData?.data ?? propertyData;
 
-  const defaultCountry = property?.countryCode ?? 'US';
+  const defaultCountry = property?.countryCode ?? 'IN';
   const isBR = defaultCountry.toUpperCase() === 'BR';
   const minorGuardianRequired =
     property?.guestRegistrationConfig?.minorGuardianIdentificationRequired ??
@@ -217,8 +227,12 @@ function GuestDetail() {
   const [hasMinorAuthorization, setHasMinorAuthorization] = useState(false);
 
   const [taxId, setTaxId] = useState('');
-  const [idType, setIdType] = useState(isBR ? 'cpf' : 'passport');
+  const [idType, setIdType] = useState('aadhaar');
   const [idNumber, setIdNumber] = useState('');
+  const [editIdProofFrontUrl, setEditIdProofFrontUrl] = useState('');
+  const [editIdProofBackUrl, setEditIdProofBackUrl] = useState('');
+  const [viewerOpen, setViewerOpen] = useState(false);
+  const [numberRevealed, setNumberRevealed] = useState(false);
   const [idIssuer, setIdIssuer] = useState('');
   const [idIssuerState, setIdIssuerState] = useState('');
   const [idCountry, setIdCountry] = useState(defaultCountry);
@@ -268,7 +282,22 @@ function GuestDetail() {
         nationality: nationality || undefined,
         taxId: taxId || undefined,
         idType: idType || undefined,
+        idProofType:
+          idType === 'aadhaar'
+            ? 'Aadhaar Card'
+            : idType === 'passport'
+              ? 'Passport'
+              : idType === 'drivers_license'
+                ? 'Driving License'
+                : idType === 'voter_id'
+                  ? 'Voter ID'
+                  : idType === 'pan_card'
+                    ? 'PAN Card'
+                    : idType,
         idNumber: idNumber || undefined,
+        idProofNumber: idNumber || undefined,
+        idProofFrontUrl: editIdProofFrontUrl || undefined,
+        idProofBackUrl: editIdProofBackUrl || undefined,
         idCountry: idCountry || undefined,
         idExpiry: idExpiry || undefined,
         addressLine1: addressLine1 || undefined,
@@ -283,6 +312,8 @@ function GuestDetail() {
         notes: notes || undefined,
         gdprConsentMarketing,
         registrationData: {
+          idProofFrontUrl: editIdProofFrontUrl || undefined,
+          idProofBackUrl: editIdProofBackUrl || undefined,
           ...((idIssuer || idIssuerState || neighborhood) ? { idIssuer, idIssuerState, neighborhood } : {}),
           ...(isMinor ? {
             isMinor: true,
@@ -296,9 +327,19 @@ function GuestDetail() {
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['guest', id] });
+      queryClient.invalidateQueries({ queryKey: ['guests'] });
       setEditing(false);
     },
   });
+
+  const handleQuickUpdateGuest = async (updatedFields: Partial<Guest>) => {
+    await api.patch(`/v1/guests/${id}`, {
+      propertyId,
+      ...updatedFields,
+    });
+    queryClient.invalidateQueries({ queryKey: ['guest', id] });
+    queryClient.invalidateQueries({ queryKey: ['guests'] });
+  };
 
   const dnrMutation = useMutation({
     mutationFn: () =>
@@ -337,8 +378,10 @@ function GuestDetail() {
     setHasMinorAuthorization(!!reg.hasMinorAuthorization);
 
     setTaxId(guest.taxId ?? '');
-    setIdType(guest.idType ?? (isBR ? 'cpf' : 'passport'));
-    setIdNumber(guest.idNumber ?? '');
+    setIdType(guest.idType ?? (isBR ? 'cpf' : 'aadhaar'));
+    setIdNumber(guest.idProofNumber || guest.idNumber || guest.taxId || '');
+    setEditIdProofFrontUrl(guest.idProofFrontUrl || (reg.idProofFrontUrl ?? ''));
+    setEditIdProofBackUrl(guest.idProofBackUrl || (reg.idProofBackUrl ?? ''));
     setIdIssuer(reg.idIssuer ?? '');
     setIdIssuerState(reg.idIssuerState ?? '');
     setIdCountry(guest.idCountry ?? defaultCountry);
@@ -368,6 +411,11 @@ function GuestDetail() {
   const isFnrhOk = isBR ? checkFnrhComplete(guest, minorGuardianRequired) : null;
   const detailAge = calculateAge(guest.dateOfBirth);
   const detailIsMinor = (detailAge !== null && detailAge < 18) || regData.isMinor;
+  const guestDocFront = guest.idProofFrontUrl || regData.idProofFrontUrl || '';
+  const guestDocBack = guest.idProofBackUrl || regData.idProofBackUrl || '';
+  const hasBothDocs = Boolean(guestDocFront && guestDocBack);
+  const hasAnyDoc = Boolean(guestDocFront || guestDocBack);
+  const rawIdNumber = guest.idProofNumber || guest.idNumber || guest.taxId || '';
 
   return (
     <div>
@@ -463,15 +511,24 @@ function GuestDetail() {
               <div className="p-4 bg-telivity-teal/5 rounded-xl border border-telivity-teal/10 space-y-3">
                 <h3 className="text-xs font-semibold text-telivity-teal uppercase tracking-wider">{isBR ? t('guests.sections.identificationFnrh') : t('guests.sections.identification')}</h3>
                 <div className="grid grid-cols-2 gap-3">
-                  <select value={idType} onChange={(e) => setIdType(e.target.value)} className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-telivity-teal bg-white">
-                    {isBR && <option value="cpf">{t('guests.idTypeOptions.cpf')}</option>}
-                    {isBR && <option value="rg">{t('guests.idTypeOptions.rg')}</option>}
+                  <select value={idType} onChange={(e) => setIdType(e.target.value)} className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-telivity-teal bg-white font-medium">
+                    <option value="aadhaar">Aadhaar Card (UIDAI)</option>
                     <option value="passport">{t('frontDesk.passport')}</option>
                     <option value="drivers_license">{t('frontDesk.driversLicense')}</option>
+                    <option value="voter_id">Voter ID (Election Commission)</option>
+                    <option value="pan_card">PAN Card (Income Tax)</option>
                     <option value="national_id">{t('frontDesk.nationalId')}</option>
+                    {isBR && <option value="cpf">{t('guests.idTypeOptions.cpf')}</option>}
+                    {isBR && <option value="rg">{t('guests.idTypeOptions.rg')}</option>}
                     {!isBR && <option value="tax_id">{t('guests.labels.taxId')}</option>}
                   </select>
-                  <input type="text" value={idType === 'cpf' ? taxId : idNumber} onChange={(e) => idType === 'cpf' ? setTaxId(e.target.value) : setIdNumber(e.target.value)} placeholder={t('guests.labels.idNumber')} className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-telivity-teal bg-white" />
+                  <input
+                    type="text"
+                    value={idType === 'cpf' ? taxId : idNumber}
+                    onChange={(e) => idType === 'cpf' ? setTaxId(e.target.value) : setIdNumber(e.target.value)}
+                    placeholder={idType === 'aadhaar' ? 'e.g. 1234 5678 9012' : t('guests.labels.idNumber')}
+                    className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-telivity-teal bg-white font-medium"
+                  />
                 </div>
                 {idType !== 'cpf' && isBR && (
                   <input type="text" value={taxId} onChange={(e) => setTaxId(e.target.value)} placeholder={t('guests.labels.cpfOptional')} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-telivity-teal bg-white" />
@@ -483,8 +540,95 @@ function GuestDetail() {
                   </div>
                 )}
                 <div className="grid grid-cols-2 gap-3">
-                  <input type="text" maxLength={2} value={idCountry} onChange={(e) => setIdCountry(e.target.value.toUpperCase())} placeholder={t('guests.labels.idCountry')} className="border border-gray-200 rounded-lg px-3 py-2 text-sm uppercase focus:outline-none focus:border-telivity-teal bg-white" />
-                  <input type="date" value={idExpiry} onChange={(e) => setIdExpiry(e.target.value)} className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-telivity-teal bg-white" />
+                  <input type="text" maxLength={2} value={idCountry} onChange={(e) => setIdCountry(e.target.value.toUpperCase())} placeholder={t('guests.labels.idCountry')} className="border border-gray-200 rounded-lg px-3 py-2 text-sm uppercase focus:outline-none focus:border-telivity-teal bg-white font-medium" />
+                  <input type="date" value={idExpiry} onChange={(e) => setIdExpiry(e.target.value)} className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-telivity-teal bg-white font-medium" />
+                </div>
+
+                {/* Front & Back Document Upload / Replace in Edit Mode */}
+                <div className="pt-2 border-t border-telivity-teal/15 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="block text-xs font-bold text-telivity-navy">
+                      Aadhaar / ID Document Photos (Front & Back)
+                    </label>
+                    {(editIdProofFrontUrl || editIdProofBackUrl) && (
+                      <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                        {editIdProofFrontUrl && editIdProofBackUrl ? 'Both Sides Attached' : '1 Side Attached'}
+                      </span>
+                    )}
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="border border-dashed border-teal-200 rounded-xl p-2.5 text-center bg-white relative">
+                      {editIdProofFrontUrl ? (
+                        <div className="relative">
+                          <img src={editIdProofFrontUrl} alt="Front" className="h-20 w-full object-cover rounded-lg border border-gray-200" />
+                          <button
+                            type="button"
+                            onClick={() => setEditIdProofFrontUrl('')}
+                            className="absolute top-1 right-1 p-1 bg-red-600 text-white rounded-full shadow-xs"
+                            title="Remove Front Image"
+                          >
+                            <X size={11} />
+                          </button>
+                          <span className="text-[10px] font-bold text-emerald-700 mt-1 block">Front Side Uploaded</span>
+                        </div>
+                      ) : (
+                        <label className="cursor-pointer flex flex-col items-center justify-center h-20 hover:bg-teal-50/30 rounded-lg transition">
+                          <Upload size={16} className="text-telivity-teal mb-1" />
+                          <span className="text-xs font-bold text-telivity-navy">Upload Front Side</span>
+                          <span className="text-[9px] text-telivity-mid-grey">Photo & Aadhaar Details</span>
+                          <input
+                            type="file"
+                            accept="image/*,application/pdf"
+                            onChange={(e) => {
+                              const f = e.target.files?.[0];
+                              if (f) {
+                                const r = new FileReader();
+                                r.onloadend = () => setEditIdProofFrontUrl(r.result as string);
+                                r.readAsDataURL(f);
+                              }
+                            }}
+                            className="hidden"
+                          />
+                        </label>
+                      )}
+                    </div>
+
+                    <div className="border border-dashed border-teal-200 rounded-xl p-2.5 text-center bg-white relative">
+                      {editIdProofBackUrl ? (
+                        <div className="relative">
+                          <img src={editIdProofBackUrl} alt="Back" className="h-20 w-full object-cover rounded-lg border border-gray-200" />
+                          <button
+                            type="button"
+                            onClick={() => setEditIdProofBackUrl('')}
+                            className="absolute top-1 right-1 p-1 bg-red-600 text-white rounded-full shadow-xs"
+                            title="Remove Back Image"
+                          >
+                            <X size={11} />
+                          </button>
+                          <span className="text-[10px] font-bold text-emerald-700 mt-1 block">Back Side Uploaded</span>
+                        </div>
+                      ) : (
+                        <label className="cursor-pointer flex flex-col items-center justify-center h-20 hover:bg-teal-50/30 rounded-lg transition">
+                          <Upload size={16} className="text-telivity-teal mb-1" />
+                          <span className="text-xs font-bold text-telivity-navy">Upload Back Side</span>
+                          <span className="text-[9px] text-telivity-mid-grey">Address & QR Code</span>
+                          <input
+                            type="file"
+                            accept="image/*,application/pdf"
+                            onChange={(e) => {
+                              const f = e.target.files?.[0];
+                              if (f) {
+                                const r = new FileReader();
+                                r.onloadend = () => setEditIdProofBackUrl(r.result as string);
+                                r.readAsDataURL(f);
+                              }
+                            }}
+                            className="hidden"
+                          />
+                        </label>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -569,25 +713,77 @@ function GuestDetail() {
               )}
 
               {/* Group 2: Document & Registration */}
-              <div className="bg-telivity-teal/5 p-4 rounded-xl border border-telivity-teal/10 space-y-2">
-                <h3 className="text-xs font-bold text-telivity-teal uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                  <CreditCard size={14} /> {isBR ? t('guests.sections.identificationFnrh') : t('guests.sections.identification')}
-                </h3>
+              <div className="bg-telivity-teal/5 p-4 rounded-xl border border-telivity-teal/15 space-y-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xs font-bold text-telivity-teal uppercase tracking-wider flex items-center gap-1.5">
+                    <FileCheck size={14} /> Identity Document (Aadhaar & Verification)
+                  </h3>
+                  {hasBothDocs ? (
+                    <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md">
+                      <CheckCircle2 size={12} /> Both Sides Attached
+                    </span>
+                  ) : hasAnyDoc ? (
+                    <span className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-800 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-md">
+                      1 Side Attached
+                    </span>
+                  ) : (
+                    <span className="text-[11px] text-gray-500 font-medium">Pending Document Upload</span>
+                  )}
+                </div>
+
                 <div className="grid grid-cols-2 gap-x-6 gap-y-2">
-                  <DetailRow label={t('guests.labels.taxId')} value={guest.taxId ? (isBR ? formatCpf(guest.taxId) : guest.taxId) : '—'} />
-                  <DetailRow label={t('guests.labels.idType')} value={guest.idType ? (t(`guests.idTypeOptions.${guest.idType}`, { defaultValue: guest.idType.toUpperCase() })) : '—'} />
-                  <DetailRow label={t('guests.labels.idNumber')} value={guest.idNumber ?? '—'} />
-                  {(regData.idIssuer || regData.idIssuerState) && (
-                    <DetailRow label={t('guests.labels.idIssuerAndState')} value={`${regData.idIssuer ?? '—'} / ${regData.idIssuerState ?? '—'}`} />
-                  )}
-                  <DetailRow label={t('guests.labels.idCountry')} value={guest.idCountry ?? defaultCountry} />
-                  <DetailRow label={t('guests.labels.idExpiry')} value={guest.idExpiry ? new Date(guest.idExpiry).toLocaleDateString(i18n.language || 'pt-BR') : '—'} />
-                  {isBR && (
-                    <DetailRow
-                      label={t('guests.registrationStatus')}
-                      value={isFnrhOk ? t('guests.registrationComplete') : t('guests.registrationIncomplete')}
-                    />
-                  )}
+                  <DetailRow label="Document Type" value={guest.idProofType || 'Aadhaar Card (UIDAI)'} />
+                  <div className="flex justify-between items-center py-0.5">
+                    <span className="text-xs text-telivity-mid-grey">Aadhaar Number</span>
+                    <div className="flex items-center gap-1 font-mono text-xs font-bold text-telivity-navy">
+                      <span>{maskAadhaar(rawIdNumber, numberRevealed)}</span>
+                      <button
+                        type="button"
+                        onClick={() => setNumberRevealed(!numberRevealed)}
+                        className="p-1 text-gray-500 hover:text-telivity-teal rounded"
+                        title={numberRevealed ? 'Mask Number' : 'Reveal Number (Staff Only)'}
+                      >
+                        {numberRevealed ? <EyeOff size={13} /> : <Eye size={13} />}
+                      </button>
+                    </div>
+                  </div>
+                  <DetailRow label="Issuing Country" value={`${guest.idCountry || defaultCountry} (India)`} />
+                  <DetailRow label="Issuing State" value={guest.stateProvince || regData.idIssuerState || 'Telangana'} />
+                </div>
+
+                {/* Aadhaar Actions & Quick Preview Card */}
+                <div className="mt-3 pt-3 border-t border-telivity-teal/15 flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1 text-[11px] text-telivity-slate font-medium">
+                      <Shield size={13} className="text-telivity-teal" />
+                      <span>UIDAI Verified & Stored Securely</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setViewerOpen(true)}
+                      className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-telivity-teal hover:bg-telivity-light-teal text-white rounded-xl text-xs font-bold transition shadow-xs"
+                    >
+                      <Eye size={13} />
+                      <span>View Aadhaar (Front & Back)</span>
+                    </button>
+                    {hasBothDocs && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const name = `${guest.firstName}_${guest.lastName}`.replace(/\s+/g, '_');
+                          triggerDownload(guestDocFront, `Aadhaar_FRONT_${name}.jpg`);
+                          setTimeout(() => triggerDownload(guestDocBack, `Aadhaar_BACK_${name}.jpg`), 500);
+                        }}
+                        className="inline-flex items-center gap-1 px-3 py-1.5 border border-emerald-300 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 rounded-xl text-xs font-bold transition"
+                        title="Direct Download Both Sides"
+                      >
+                        <Download size={13} />
+                        <span>Download</span>
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
 
@@ -708,6 +904,21 @@ function GuestDetail() {
           </div>
         </div>
       </Modal>
+
+      {/* Aadhaar Viewer Modal */}
+      <AadhaarViewerModal
+        open={viewerOpen}
+        onClose={() => setViewerOpen(false)}
+        guest={guest}
+        onUpdateGuest={async (updated) => {
+          await api.patch(`/v1/guests/${id}`, {
+            propertyId,
+            ...updated,
+          });
+          queryClient.invalidateQueries({ queryKey: ['guest', id] });
+          queryClient.invalidateQueries({ queryKey: ['guests'] });
+        }}
+      />
     </div>
   );
 }

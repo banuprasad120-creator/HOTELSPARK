@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
-import { X, Printer, CheckCircle, Hotel, Phone, MapPin, Calendar, ShieldCheck, Settings2 } from 'lucide-react';
+import { X, Printer, CheckCircle, Hotel, Phone, MapPin, Calendar, ShieldCheck, Settings2, Eye, Download, FileCheck } from 'lucide-react';
 import type { StoredStay } from '../../lib/supabaseAdapter';
+import AadhaarViewerModal from '../guests/AadhaarViewerModal';
 
 interface BillInvoiceModalProps {
   stay: StoredStay | null;
@@ -18,6 +19,7 @@ export default function BillInvoiceModal({ stay, isOpen, onClose }: BillInvoiceM
   const [customNote, setCustomNote] = useState('');
   const [showTerms, setShowTerms] = useState(true);
   const [showSettings, setShowSettings] = useState(false);
+  const [showAadhaarModal, setShowAadhaarModal] = useState(false);
 
   if (!isOpen || !stay) return null;
 
@@ -201,9 +203,19 @@ export default function BillInvoiceModal({ stay, isOpen, onClose }: BillInvoiceM
               {stay.email && <p className="text-telivity-mid-grey">Email: <span className="font-medium text-telivity-slate">{stay.email}</span></p>}
               <p className="text-telivity-mid-grey">City/State: <span className="font-medium text-telivity-slate">{stay.city || 'Karimnagar'}, {stay.state || 'Telangana'}</span></p>
               {stay.address && <p className="text-telivity-mid-grey">Address: <span className="font-medium text-telivity-slate">{stay.address}</span></p>}
-              <div className="mt-2 pt-2 border-t border-gray-200/60 flex items-center gap-1.5 text-[11px] text-emerald-700">
-                <ShieldCheck size={13} />
-                <span>ID Proof: {stay.idProofType} ({stay.idProofNumber || 'Verified & Attached'})</span>
+              <div className="mt-2.5 pt-2 border-t border-gray-200/60 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                <div className="flex items-center gap-1.5 text-[11px] text-emerald-800 font-semibold truncate">
+                  <ShieldCheck size={14} className="text-emerald-600 shrink-0" />
+                  <span className="truncate">ID Proof: {stay.idProofType} ({stay.idProofNumber || 'Verified'})</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowAadhaarModal(true)}
+                  className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-telivity-teal hover:bg-telivity-light-teal text-white rounded-lg text-xs font-bold transition shadow-xs shrink-0"
+                >
+                  <Eye size={13} />
+                  <span>View & Download Aadhaar</span>
+                </button>
               </div>
             </div>
 
@@ -373,6 +385,30 @@ export default function BillInvoiceModal({ stay, isOpen, onClose }: BillInvoiceM
           </div>
         </div>
       </div>
+
+      {showAadhaarModal && (
+        <AadhaarViewerModal
+          open={showAadhaarModal}
+          onClose={() => setShowAadhaarModal(false)}
+          guest={{
+            id: stay.id,
+            firstName: stay.guestName.split(' ')[0] || 'Guest',
+            lastName: stay.guestName.split(' ').slice(1).join(' ') || '',
+            idProofType: stay.idProofType,
+            idProofNumber: stay.idProofNumber,
+            idProofFrontUrl: stay.idProofFrontUrl,
+            idProofBackUrl: stay.idProofBackUrl,
+            stateProvince: stay.state || 'Telangana',
+            idCountry: 'IN',
+          }}
+          onUpdateGuest={(updated) => {
+            if (stay) {
+              if (updated.idProofFrontUrl) stay.idProofFrontUrl = updated.idProofFrontUrl;
+              if (updated.idProofBackUrl) stay.idProofBackUrl = updated.idProofBackUrl;
+            }
+          }}
+        />
+      )}
     </div>
   );
 }

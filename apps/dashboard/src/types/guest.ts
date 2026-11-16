@@ -17,6 +17,10 @@ export interface Guest {
   companyName?: string;
   idType?: string;
   idNumber?: string;
+  idProofType?: string;
+  idProofNumber?: string;
+  idProofFrontUrl?: string;
+  idProofBackUrl?: string;
   idCountry?: string;
   idExpiry?: string;
   gender?: string;

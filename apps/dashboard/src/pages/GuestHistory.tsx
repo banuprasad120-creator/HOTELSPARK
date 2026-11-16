@@ -12,16 +12,20 @@ import {
   CheckCircle,
   IndianRupee,
   Clock,
+  Eye,
+  Download,
 } from 'lucide-react';
 import { api } from '../lib/api';
 import { useProperty } from '../context/PropertyContext';
 import { getStoredStays, type StoredStay } from '../lib/supabaseAdapter';
 import BillInvoiceModal from '../components/billing/BillInvoiceModal';
+import AadhaarViewerModal from '../components/guests/AadhaarViewerModal';
 
 export default function GuestHistory() {
   const { propertyId } = useProperty();
   const [searchTerm, setSearchTerm] = useState('');
   const [invoiceStay, setInvoiceStay] = useState<StoredStay | null>(null);
+  const [aadhaarStay, setAadhaarStay] = useState<StoredStay | null>(null);
 
   // Load stays
   const { data: staysData } = useQuery({
@@ -187,14 +191,24 @@ export default function GuestHistory() {
                       </span>
                     </td>
 
-                    {/* Bill Action */}
+                    {/* Bill & Aadhaar Actions */}
                     <td className="py-3 px-4 text-center">
-                      <button
-                        onClick={() => setInvoiceStay(stay)}
-                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-telivity-teal/10 hover:bg-telivity-teal text-telivity-teal hover:text-white font-bold text-xs transition"
-                      >
-                        <FileText size={13} /> View Invoice
-                      </button>
+                      <div className="flex items-center justify-center gap-1.5">
+                        <button
+                          onClick={() => setInvoiceStay(stay)}
+                          className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-telivity-teal/10 hover:bg-telivity-teal text-telivity-teal hover:text-white font-bold text-xs transition"
+                          title="View Tax Folio & Invoice"
+                        >
+                          <FileText size={13} /> View Invoice
+                        </button>
+                        <button
+                          onClick={() => setAadhaarStay(stay)}
+                          className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-600 text-emerald-800 hover:text-white border border-emerald-200 font-bold text-xs transition shadow-2xs"
+                          title="View and download Aadhaar card (Front & Back)"
+                        >
+                          <Eye size={13} /> View Aadhaar
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 );
@@ -220,6 +234,25 @@ export default function GuestHistory() {
         isOpen={Boolean(invoiceStay)}
         onClose={() => setInvoiceStay(null)}
       />
+
+      {/* Aadhaar Viewer Modal */}
+      {aadhaarStay && (
+        <AadhaarViewerModal
+          open={Boolean(aadhaarStay)}
+          onClose={() => setAadhaarStay(null)}
+          guest={{
+            id: aadhaarStay.id,
+            firstName: aadhaarStay.guestName.split(' ')[0] || 'Guest',
+            lastName: aadhaarStay.guestName.split(' ').slice(1).join(' ') || '',
+            idProofType: aadhaarStay.idProofType,
+            idProofNumber: aadhaarStay.idProofNumber,
+            idProofFrontUrl: aadhaarStay.idProofFrontUrl,
+            idProofBackUrl: aadhaarStay.idProofBackUrl,
+            stateProvince: aadhaarStay.state || 'Telangana',
+            idCountry: 'IN',
+          }}
+        />
+      )}
     </div>
   );
 }

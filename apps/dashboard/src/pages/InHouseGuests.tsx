@@ -19,6 +19,7 @@ import {
   MapPin,
   X,
   AlertTriangle,
+  Download,
 } from 'lucide-react';
 import { api } from '../lib/api';
 import { useProperty } from '../context/PropertyContext';
@@ -27,6 +28,7 @@ import { getStoredStays, type StoredStay } from '../lib/supabaseAdapter';
 import AddGuestModal from '../components/front-desk/AddGuestModal';
 import CheckoutModal from '../components/front-desk/CheckOutModal';
 import BillInvoiceModal from '../components/billing/BillInvoiceModal';
+import { triggerDownload } from '../components/guests/AadhaarViewerModal';
 
 export default function InHouseGuests() {
   const { propertyId } = useProperty();
@@ -386,7 +388,21 @@ export default function InHouseGuests() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <span className="block text-xs font-semibold text-telivity-slate mb-1">Front Image</span>
+                <div className="flex items-center justify-between mb-1">
+                  <span className="block text-xs font-semibold text-telivity-slate">Front Image</span>
+                  {idDocStay.idProofFrontUrl && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const name = idDocStay.guestName.replace(/\s+/g, '_');
+                        triggerDownload(idDocStay.idProofFrontUrl!, `Aadhaar_FRONT_${name}.jpg`);
+                      }}
+                      className="text-[11px] text-emerald-700 hover:text-emerald-800 font-bold flex items-center gap-1 hover:underline"
+                    >
+                      <Download size={12} /> Download Front
+                    </button>
+                  )}
+                </div>
                 {idDocStay.idProofFrontUrl ? (
                   <img src={idDocStay.idProofFrontUrl} alt="ID Front" className="h-44 w-full object-cover rounded-xl border border-gray-200" />
                 ) : (
@@ -397,7 +413,21 @@ export default function InHouseGuests() {
               </div>
 
               <div>
-                <span className="block text-xs font-semibold text-telivity-slate mb-1">Back Image</span>
+                <div className="flex items-center justify-between mb-1">
+                  <span className="block text-xs font-semibold text-telivity-slate">Back Image</span>
+                  {idDocStay.idProofBackUrl && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const name = idDocStay.guestName.replace(/\s+/g, '_');
+                        triggerDownload(idDocStay.idProofBackUrl!, `Aadhaar_BACK_${name}.jpg`);
+                      }}
+                      className="text-[11px] text-emerald-700 hover:text-emerald-800 font-bold flex items-center gap-1 hover:underline"
+                    >
+                      <Download size={12} /> Download Back
+                    </button>
+                  )}
+                </div>
                 {idDocStay.idProofBackUrl ? (
                   <img src={idDocStay.idProofBackUrl} alt="ID Back" className="h-44 w-full object-cover rounded-xl border border-gray-200" />
                 ) : (
@@ -412,10 +442,25 @@ export default function InHouseGuests() {
               🔒 Document is stored privately in compliance with hotel registration and local jurisdiction guidelines.
             </div>
 
-            <div className="flex justify-end mt-4">
+            <div className="flex items-center justify-between mt-4">
+              {idDocStay.idProofFrontUrl && idDocStay.idProofBackUrl ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const name = idDocStay.guestName.replace(/\s+/g, '_');
+                    triggerDownload(idDocStay.idProofFrontUrl!, `Aadhaar_FRONT_${name}.jpg`);
+                    setTimeout(() => triggerDownload(idDocStay.idProofBackUrl!, `Aadhaar_BACK_${name}.jpg`), 500);
+                  }}
+                  className="px-3.5 py-2 border border-emerald-300 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 rounded-xl text-xs font-bold transition flex items-center gap-1.5"
+                >
+                  <Download size={13} />
+                  <span>Download Both Sides</span>
+                </button>
+              ) : <div />}
+
               <button
                 onClick={() => setIdDocStay(null)}
-                className="px-4 py-2 rounded-xl bg-telivity-teal text-white text-xs font-bold hover:bg-telivity-light-teal transition"
+                className="px-5 py-2 rounded-xl bg-telivity-teal text-white text-xs font-bold hover:bg-telivity-light-teal transition"
               >
                 Close
               </button>
