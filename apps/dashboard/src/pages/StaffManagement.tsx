@@ -18,6 +18,10 @@ import {
   Search,
   Sparkles,
   KeyRound,
+  Clock,
+  Sun,
+  Sunset,
+  Moon,
 } from 'lucide-react';
 import { api } from '../lib/api';
 import { useProperty } from '../context/PropertyContext';
@@ -32,6 +36,8 @@ interface Department {
   managerName?: string;
   employeeCount?: number;
 }
+
+export type ShiftType = 'morning' | 'evening' | 'night' | 'general';
 
 interface Employee {
   id: string;
@@ -48,8 +54,36 @@ interface Employee {
   reportingManager?: string;
   salary: number;
   role: string;
+  shift?: ShiftType;
   status: 'active' | 'inactive' | 'on_leave';
 }
+
+export const SHIFT_DETAILS: Record<ShiftType, { name: string; hours: string; badge: string; icon: string }> = {
+  morning: {
+    name: 'Morning Shift',
+    hours: '06:00 AM – 02:00 PM',
+    badge: 'bg-amber-100 text-amber-900 border-amber-300',
+    icon: '🌅',
+  },
+  evening: {
+    name: 'Evening Shift',
+    hours: '02:00 PM – 10:00 PM',
+    badge: 'bg-blue-100 text-blue-900 border-blue-300',
+    icon: '🌆',
+  },
+  night: {
+    name: 'Night Shift',
+    hours: '10:00 PM – 06:00 AM',
+    badge: 'bg-purple-100 text-purple-900 border-purple-300',
+    icon: '🌙',
+  },
+  general: {
+    name: 'General Shift',
+    hours: '09:00 AM – 06:00 PM',
+    badge: 'bg-emerald-100 text-emerald-900 border-emerald-300',
+    icon: '☀️',
+  },
+};
 
 const ROLES_LIST = [
   'Hotel Admin / Owner',
@@ -67,6 +101,7 @@ export default function StaffManagement() {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<'employees' | 'departments'>('employees');
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedShiftFilter, setSelectedShiftFilter] = useState<'all' | ShiftType>('all');
 
   // Modals
   const [employeeModalOpen, setEmployeeModalOpen] = useState(false);
@@ -83,6 +118,7 @@ export default function StaffManagement() {
   const [empDesignation, setEmpDesignation] = useState('');
   const [empSalary, setEmpSalary] = useState<number>(35000);
   const [empRole, setEmpRole] = useState(ROLES_LIST[2]); // Receptionist
+  const [empShift, setEmpShift] = useState<ShiftType>('morning');
   const [empStatus, setEmpStatus] = useState<'active' | 'inactive'>('active');
 
   // New Department Form State
@@ -125,8 +161,9 @@ export default function StaffManagement() {
         designation: empDesignation.trim(),
         salary: Number(empSalary),
         role: empRole,
+        shift: empShift,
         status: empStatus,
-        joiningDate: new Date().toISOString().split('T')[0],
+        joiningDate: editingEmployee?.joiningDate || new Date().toISOString().split('T')[0],
       };
 
       if (editingEmployee) {
@@ -137,8 +174,20 @@ export default function StaffManagement() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['employees'] });
+      queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
       setEmployeeModalOpen(false);
       resetEmployeeForm();
+    },
+  });
+
+  // Delete Employee Mutation
+  const deleteEmployeeMutation = useMutation({
+    mutationFn: async (id: string) => {
+      await api.delete(`/v1/employees/${id}`, { params: { propertyId } });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['employees'] });
+      queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
     },
   });
 
@@ -171,6 +220,7 @@ export default function StaffManagement() {
     setEmpDesignation('');
     setEmpSalary(35000);
     setEmpRole(ROLES_LIST[2]);
+    setEmpShift('morning');
     setEmpStatus('active');
   };
 
@@ -192,17 +242,30 @@ export default function StaffManagement() {
     setEmpDesignation(emp.designation);
     setEmpSalary(emp.salary);
     setEmpRole(emp.role);
+    setEmpShift(emp.shift || 'morning');
     setEmpStatus(emp.status === 'inactive' ? 'inactive' : 'active');
     setEmployeeModalOpen(true);
   };
 
-  const filteredEmployees = employees.filter(
-    (e) =>
+  const filteredEmployees = employees.filter((e) => {
+    const matchesSearch =
       e.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       e.employeeId.toLowerCase().includes(searchQuery.toLowerCase()) ||
       e.role.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (e.departmentName && e.departmentName.toLowerCase().includes(searchQuery.toLowerCase())),
-  );
+      (e.departmentName && e.departmentName.toLowerCase().includes(searchQuery.toLowerCase()));
+
+    const matchesShift = selectedShiftFilter === 'all' || (e.shift || 'general') === selectedShiftFilter;
+    return matchesSearch && matchesShift;
+  });
+
+  // Shift counts
+  const shiftCounts = {
+    all: employees.length,
+    morning: employees.filter((e) => (e.shift || 'morning') === 'morning').length,
+    evening: employees.filter((e) => e.shift === 'evening').length,
+    night: employees.filter((e) => e.shift === 'night').length,
+    general: employees.filter((e) => e.shift === 'general').length,
+  };
 
   return (
     <div className="space-y-6">
@@ -211,13 +274,13 @@ export default function StaffManagement() {
         <div>
           <div className="flex items-center gap-2">
             <span className="px-2 py-0.5 bg-teal-100 text-teal-800 text-[10px] font-extrabold uppercase rounded-full">
-              Single Hotel HR & Org
+              Single Hotel HR & 3-Shift Staffing
             </span>
             <span className="text-xs text-gray-500 font-medium">Spark Hotel Karimnagar</span>
           </div>
-          <h1 className="text-2xl font-bold text-telivity-navy mt-1">Departments & Employees</h1>
+          <h1 className="text-2xl font-bold text-telivity-navy mt-1">Staff & Three-Shift Management</h1>
           <p className="text-xs text-gray-500">
-            Manage hotel staff, designations, department managers, and system operational roles.
+            Manage hotel staff, assignments across Morning, Evening, and Night shifts, and department managers.
           </p>
         </div>
 
@@ -262,7 +325,7 @@ export default function StaffManagement() {
           }`}
         >
           <Users size={17} />
-          <span>Employees ({employees.length})</span>
+          <span>Employees & Shifts ({employees.length})</span>
         </button>
 
         <button
@@ -282,6 +345,48 @@ export default function StaffManagement() {
       {/* EMPLOYEES TAB */}
       {activeTab === 'employees' && (
         <div className="space-y-4">
+          {/* Shift Filter Pills */}
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-xs font-bold text-gray-500 uppercase tracking-wide mr-1 flex items-center gap-1">
+              <Clock size={13} className="text-telivity-teal" /> Shift:
+            </span>
+            <button
+              type="button"
+              onClick={() => setSelectedShiftFilter('all')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition ${selectedShiftFilter === 'all' ? 'bg-telivity-teal text-white border-telivity-teal shadow-2xs' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
+            >
+              All Staff ({shiftCounts.all})
+            </button>
+            <button
+              type="button"
+              onClick={() => setSelectedShiftFilter('morning')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition ${selectedShiftFilter === 'morning' ? 'bg-amber-600 text-white border-amber-600 shadow-2xs' : 'bg-white text-gray-700 border-gray-200 hover:bg-amber-50'}`}
+            >
+              🌅 Morning Shift ({shiftCounts.morning}) <span className="text-[10px] font-normal opacity-80">06:00-14:00</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setSelectedShiftFilter('evening')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition ${selectedShiftFilter === 'evening' ? 'bg-blue-600 text-white border-blue-600 shadow-2xs' : 'bg-white text-gray-700 border-gray-200 hover:bg-blue-50'}`}
+            >
+              🌆 Evening Shift ({shiftCounts.evening}) <span className="text-[10px] font-normal opacity-80">14:00-22:00</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setSelectedShiftFilter('night')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition ${selectedShiftFilter === 'night' ? 'bg-purple-600 text-white border-purple-600 shadow-2xs' : 'bg-white text-gray-700 border-gray-200 hover:bg-purple-50'}`}
+            >
+              🌙 Night Shift ({shiftCounts.night}) <span className="text-[10px] font-normal opacity-80">22:00-06:00</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setSelectedShiftFilter('general')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition ${selectedShiftFilter === 'general' ? 'bg-emerald-600 text-white border-emerald-600 shadow-2xs' : 'bg-white text-gray-700 border-gray-200 hover:bg-emerald-50'}`}
+            >
+              ☀️ General Shift ({shiftCounts.general})
+            </button>
+          </div>
+
           <div className="flex items-center justify-between gap-3 bg-white p-3 rounded-xl border border-gray-200 shadow-2xs">
             <div className="flex items-center gap-2 flex-1 max-w-md">
               <Search size={16} className="text-gray-400" />
@@ -293,6 +398,9 @@ export default function StaffManagement() {
                 className="w-full text-xs border-0 focus:ring-0 text-gray-900 placeholder:text-gray-400"
               />
             </div>
+            <div className="text-xs text-gray-500 font-medium">
+              Showing {filteredEmployees.length} of {employees.length} employees
+            </div>
           </div>
 
           <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-xs">
@@ -302,8 +410,8 @@ export default function StaffManagement() {
                   <tr className="bg-gray-50/70 border-b border-gray-200 text-gray-500 font-bold uppercase tracking-wider">
                     <th className="py-3 px-4">Employee</th>
                     <th className="py-3 px-4">Department & Role</th>
+                    <th className="py-3 px-4">Assigned Shift</th>
                     <th className="py-3 px-4">Login Credentials</th>
-                    <th className="py-3 px-4">Designation</th>
                     <th className="py-3 px-4">Contact</th>
                     <th className="py-3 px-4">Salary</th>
                     <th className="py-3 px-4">Status</th>
@@ -311,83 +419,106 @@ export default function StaffManagement() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
-                  {filteredEmployees.map((emp) => (
-                    <tr key={emp.id} className="hover:bg-gray-50/60 transition">
-                      <td className="py-3 px-4">
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-teal-100 text-teal-800 font-bold flex items-center justify-center text-xs">
-                            {emp.name.charAt(0)}
+                  {filteredEmployees.map((emp) => {
+                    const shiftInfo = SHIFT_DETAILS[emp.shift || 'morning'] || SHIFT_DETAILS.morning;
+                    return (
+                      <tr key={emp.id} className="hover:bg-gray-50/60 transition">
+                        <td className="py-3 px-4">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-teal-100 text-teal-800 font-bold flex items-center justify-center text-xs">
+                              {emp.name.charAt(0)}
+                            </div>
+                            <div>
+                              <div className="font-bold text-gray-900">{emp.name}</div>
+                              <div className="text-[11px] text-gray-400 font-mono">{emp.employeeId} · {emp.designation}</div>
+                            </div>
                           </div>
-                          <div>
-                            <div className="font-bold text-gray-900">{emp.name}</div>
-                            <div className="text-[11px] text-gray-400 font-mono">{emp.employeeId}</div>
+                        </td>
+
+                        <td className="py-3 px-4">
+                          <div className="font-medium text-gray-800">{emp.departmentName || 'Front Office'}</div>
+                          <span className="inline-block mt-0.5 px-2 py-0.2 bg-teal-50 text-teal-700 border border-teal-200 rounded text-[10px] font-semibold">
+                            {emp.role}
+                          </span>
+                        </td>
+
+                        <td className="py-3 px-4">
+                          <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-bold border ${shiftInfo.badge}`}>
+                            <span>{shiftInfo.icon}</span>
+                            <span>{shiftInfo.name}</span>
+                          </span>
+                          <div className="text-[10px] text-gray-500 mt-0.5 font-medium">{shiftInfo.hours}</div>
+                        </td>
+
+                        <td className="py-3 px-4">
+                          <div className="font-mono text-gray-900 text-xs font-semibold flex items-center gap-1.5">
+                            <KeyRound size={13} className="text-teal-600" />
+                            <span>SparkHotel@2026</span>
                           </div>
-                        </div>
-                      </td>
+                          <div className="text-[11px] text-teal-700 font-medium truncate max-w-[170px]" title={emp.email}>
+                            {emp.email}
+                          </div>
+                        </td>
 
-                      <td className="py-3 px-4">
-                        <div className="font-medium text-gray-800">{emp.departmentName || 'Front Office'}</div>
-                        <span className="inline-block mt-0.5 px-2 py-0.2 bg-teal-50 text-teal-700 border border-teal-200 rounded text-[10px] font-semibold">
-                          {emp.role}
-                        </span>
-                      </td>
+                        <td className="py-3 px-4">
+                          <div className="flex items-center gap-1.5 text-gray-700">
+                            <Phone size={12} className="text-gray-400" />
+                            <span>{emp.mobile}</span>
+                          </div>
+                          <div className="flex items-center gap-1.5 text-gray-400 text-[11px]">
+                            <Mail size={12} />
+                            <span>{emp.email}</span>
+                          </div>
+                        </td>
 
-                      <td className="py-3 px-4">
-                        <div className="font-mono text-gray-900 text-xs font-semibold flex items-center gap-1.5">
-                          <KeyRound size={13} className="text-teal-600" />
-                          <span>SparkHotel@2026</span>
-                        </div>
-                        <div className="text-[11px] text-teal-700 font-medium truncate max-w-[170px]" title={emp.email}>
-                          {emp.email}
-                        </div>
-                      </td>
+                        <td className="py-3 px-4 font-bold text-gray-900">
+                          {formatMoney(emp.salary, currencyCode)}/mo
+                        </td>
 
-                      <td className="py-3 px-4 font-medium text-gray-700">{emp.designation}</td>
+                        <td className="py-3 px-4">
+                          <span
+                            className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
+                              emp.status === 'active'
+                                ? 'bg-emerald-100 text-emerald-800'
+                                : 'bg-gray-100 text-gray-600'
+                            }`}
+                          >
+                            {emp.status === 'active' ? (
+                              <CheckCircle2 size={11} className="text-emerald-600" />
+                            ) : (
+                              <XCircle size={11} className="text-gray-400" />
+                            )}
+                            <span className="capitalize">{emp.status}</span>
+                          </span>
+                        </td>
 
-                      <td className="py-3 px-4">
-                        <div className="flex items-center gap-1.5 text-gray-700">
-                          <Phone size={12} className="text-gray-400" />
-                          <span>{emp.mobile}</span>
-                        </div>
-                        <div className="flex items-center gap-1.5 text-gray-400 text-[11px]">
-                          <Mail size={12} />
-                          <span>{emp.email}</span>
-                        </div>
-                      </td>
-
-                      <td className="py-3 px-4 font-bold text-gray-900">
-                        {formatMoney(emp.salary, currencyCode)}/mo
-                      </td>
-
-                      <td className="py-3 px-4">
-                        <span
-                          className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
-                            emp.status === 'active'
-                              ? 'bg-emerald-100 text-emerald-800'
-                              : 'bg-gray-100 text-gray-600'
-                          }`}
-                        >
-                          {emp.status === 'active' ? (
-                            <CheckCircle2 size={11} className="text-emerald-600" />
-                          ) : (
-                            <XCircle size={11} className="text-gray-400" />
-                          )}
-                          <span className="capitalize">{emp.status}</span>
-                        </span>
-                      </td>
-
-                      <td className="py-3 px-4 text-right">
-                        <button
-                          type="button"
-                          onClick={() => startEditEmployee(emp)}
-                          className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-600 hover:text-teal-700 transition"
-                          title="Edit employee"
-                        >
-                          <Pencil size={14} />
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
+                        <td className="py-3 px-4 text-right">
+                          <div className="flex items-center justify-end gap-1">
+                            <button
+                              type="button"
+                              onClick={() => startEditEmployee(emp)}
+                              className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-600 hover:text-teal-700 transition"
+                              title="Edit employee"
+                            >
+                              <Pencil size={14} />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (window.confirm(`Are you sure you want to delete employee record for ${emp.name}?`)) {
+                                  deleteEmployeeMutation.mutate(emp.id);
+                                }
+                              }}
+                              className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-600 transition"
+                              title="Delete employee"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -523,7 +654,21 @@ export default function StaffManagement() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Assigned Shift *</label>
+              <select
+                value={empShift}
+                onChange={(e) => setEmpShift(e.target.value as ShiftType)}
+                className="w-full rounded-lg border border-teal-400 bg-teal-50/50 px-3 py-2 text-sm font-bold text-telivity-navy"
+              >
+                <option value="morning">🌅 Morning Shift (06:00 AM – 02:00 PM)</option>
+                <option value="evening">🌆 Evening Shift (02:00 PM – 10:00 PM)</option>
+                <option value="night">🌙 Night Shift (10:00 PM – 06:00 AM)</option>
+                <option value="general">☀️ General Shift (09:00 AM – 06:00 PM)</option>
+              </select>
+            </div>
+
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Monthly Salary (INR)</label>
               <input

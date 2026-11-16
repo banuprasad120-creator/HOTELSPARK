@@ -34,13 +34,13 @@ const DEFAULT_DEPARTMENTS = [
 ];
 
 const DEFAULT_EMPLOYEES = [
-  { id: 'e0000001-0000-4000-a000-000000000001', employeeId: 'EMP-SPARK-001', name: 'Banu Prasad (Owner)', mobile: '+91 98765 43210', email: 'admin@sparkhotel.com', designation: 'Hotel Owner / Managing Director', role: 'Hotel Admin / Owner', departmentName: 'Management', salary: 150000, status: 'active', joiningDate: '2025-01-01' },
-  { id: 'e0000002-0000-4000-a000-000000000001', employeeId: 'EMP-SPARK-002', name: 'Ramesh Rao', mobile: '+91 98765 43211', email: 'frontdesk.mgr@sparkhotel.com', designation: 'Front Office Manager', role: 'Front Office Manager', departmentName: 'Front Office', salary: 60000, status: 'active', joiningDate: '2025-02-01' },
-  { id: 'e0000003-0000-4000-a000-000000000001', employeeId: 'EMP-SPARK-003', name: 'Priya Sharma', mobile: '+91 98765 43212', email: 'reception1@sparkhotel.com', designation: 'Senior Receptionist', role: 'Receptionist', departmentName: 'Front Office', salary: 35000, status: 'active', joiningDate: '2025-03-15' },
-  { id: 'e0000004-0000-4000-a000-000000000001', employeeId: 'EMP-SPARK-004', name: 'Kavitha Devi', mobile: '+91 98765 43213', email: 'hk.mgr@sparkhotel.com', designation: 'Housekeeping Manager', role: 'Housekeeping Manager', departmentName: 'Housekeeping', salary: 45000, status: 'active', joiningDate: '2025-02-10' },
-  { id: 'e0000005-0000-4000-a000-000000000001', employeeId: 'EMP-SPARK-005', name: 'Sunil Kumar', mobile: '+91 98765 43214', email: 'accounts@sparkhotel.com', designation: 'Hotel Accountant', role: 'Accountant', departmentName: 'Accounts', salary: 50000, status: 'active', joiningDate: '2025-01-15' },
-  { id: 'e0000006-0000-4000-a000-000000000001', employeeId: 'EMP-SPARK-006', name: 'Raju Nayak', mobile: '+91 98765 43215', email: 'hk.staff1@sparkhotel.com', designation: 'Housekeeping Supervisor', role: 'Housekeeping Staff', departmentName: 'Housekeeping', salary: 25000, status: 'active', joiningDate: '2025-04-01' },
-  { id: 'e0000007-0000-4000-a000-000000000001', employeeId: 'EMP-SPARK-007', name: 'Satish Reddy', mobile: '+91 98765 43216', email: 'maintenance@sparkhotel.com', designation: 'Chief Maintenance Technician', role: 'Maintenance Staff', departmentName: 'Maintenance', salary: 32000, status: 'active', joiningDate: '2025-02-01' },
+  { id: 'e0000001-0000-4000-a000-000000000001', employeeId: 'EMP-SPARK-001', name: 'Banu Prasad (Owner)', mobile: '+91 98765 43210', email: 'admin@sparkhotel.com', designation: 'Hotel Owner / Managing Director', role: 'Hotel Admin / Owner', departmentName: 'Management', salary: 150000, status: 'active', joiningDate: '2025-01-01', shift: 'morning' },
+  { id: 'e0000002-0000-4000-a000-000000000001', employeeId: 'EMP-SPARK-002', name: 'Ramesh Rao', mobile: '+91 98765 43211', email: 'frontdesk.mgr@sparkhotel.com', designation: 'Front Office Manager', role: 'Front Office Manager', departmentName: 'Front Office', salary: 60000, status: 'active', joiningDate: '2025-02-01', shift: 'morning' },
+  { id: 'e0000003-0000-4000-a000-000000000001', employeeId: 'EMP-SPARK-003', name: 'Priya Sharma', mobile: '+91 98765 43212', email: 'reception1@sparkhotel.com', designation: 'Senior Receptionist', role: 'Receptionist', departmentName: 'Front Office', salary: 35000, status: 'active', joiningDate: '2025-03-15', shift: 'evening' },
+  { id: 'e0000004-0000-4000-a000-000000000001', employeeId: 'EMP-SPARK-004', name: 'Kavitha Devi', mobile: '+91 98765 43213', email: 'hk.mgr@sparkhotel.com', designation: 'Housekeeping Manager', role: 'Housekeeping Manager', departmentName: 'Housekeeping', salary: 45000, status: 'active', joiningDate: '2025-02-10', shift: 'morning' },
+  { id: 'e0000005-0000-4000-a000-000000000001', employeeId: 'EMP-SPARK-005', name: 'Sunil Kumar', mobile: '+91 98765 43214', email: 'accounts@sparkhotel.com', designation: 'Hotel Accountant', role: 'Accountant', departmentName: 'Accounts', salary: 50000, status: 'active', joiningDate: '2025-01-15', shift: 'general' },
+  { id: 'e0000006-0000-4000-a000-000000000001', employeeId: 'EMP-SPARK-006', name: 'Raju Nayak', mobile: '+91 98765 43215', email: 'hk.staff1@sparkhotel.com', designation: 'Housekeeping Supervisor', role: 'Housekeeping Staff', departmentName: 'Housekeeping', salary: 25000, status: 'active', joiningDate: '2025-04-01', shift: 'night' },
+  { id: 'e0000007-0000-4000-a000-000000000001', employeeId: 'EMP-SPARK-007', name: 'Satish Reddy', mobile: '+91 98765 43216', email: 'maintenance@sparkhotel.com', designation: 'Chief Maintenance Technician', role: 'Maintenance Staff', departmentName: 'Maintenance', salary: 32000, status: 'active', joiningDate: '2025-02-01', shift: 'evening' },
 ];
 
 const RATE_STORAGE_KEY = 'hotel_spark_rates_cache';
@@ -611,6 +611,214 @@ export function saveStoredNotifications(notifs: StoredNotification[]) {
   }
 }
 
+const EMPLOYEES_STORAGE_KEY = 'hotel_spark_employees_list';
+const HK_TASKS_STORAGE_KEY = 'hotel_spark_hk_tasks_list';
+const RESERVATIONS_STORAGE_KEY = 'hotel_spark_reservations_list';
+const GUESTS_STORAGE_KEY = 'hotel_spark_guests_list';
+
+const DEFAULT_GUESTS = [
+  { id: 'g0000001-0000-4000-a000-000000000001', propertyId: PROPERTY_ID, firstName: 'Rahul', lastName: 'Verma', email: 'rahul.verma@example.com', phone: '+91 98765 11111', address: 'Banjara Hills, Hyderabad', city: 'Hyderabad', state: 'Telangana', idProofType: 'Aadhaar Card', idProofNumber: '7890 1234 5678', stayCount: 3, totalSpend: 10500, status: 'active', createdAt: '2026-11-10T10:00:00Z' },
+  { id: 'g0000002-0000-4000-a000-000000000001', propertyId: PROPERTY_ID, firstName: 'Priya', lastName: 'Sharma', email: 'priya.s@example.com', phone: '+91 98765 22222', address: 'Madhapur, Hyderabad', city: 'Hyderabad', state: 'Telangana', idProofType: 'Driving License', idProofNumber: 'TS09-2023-009182', stayCount: 2, totalSpend: 7000, status: 'active', createdAt: '2026-11-12T14:30:00Z' },
+  { id: 'g0000003-0000-4000-a000-000000000001', propertyId: PROPERTY_ID, firstName: 'Vikram', lastName: 'Malhotra', email: 'vikram.m@corporatetech.com', phone: '+91 98765 33333', address: 'Koramangala, Bengaluru', city: 'Bengaluru', state: 'Karnataka', idProofType: 'Passport', idProofNumber: 'Z8765432', stayCount: 1, totalSpend: 13000, status: 'active', createdAt: '2026-11-14T09:15:00Z' },
+  { id: 'g0000004-0000-4000-a000-000000000001', propertyId: PROPERTY_ID, firstName: 'Ananya', lastName: 'Reddy', email: 'ananya.reddy@example.com', phone: '+91 98765 44444', address: 'Subhash Nagar, Karimnagar', city: 'Karimnagar', state: 'Telangana', idProofType: 'Aadhaar Card', idProofNumber: '4567 8901 2345', stayCount: 4, totalSpend: 14000, status: 'active', createdAt: '2026-11-05T12:00:00Z' },
+];
+
+const DEFAULT_HK_TASKS = [
+  {
+    id: 'hk-104',
+    roomId: 'r0000104-0000-4000-a000-000000000001',
+    roomNumber: '104',
+    floor: '1',
+    type: 'checkout_clean',
+    status: 'pending',
+    priority: 1,
+    assignedTo: 'e0000006-0000-4000-a000-000000000001', // Raju Nayak
+    serviceDate: new Date().toISOString().split('T')[0],
+    checklist: [
+      { item: 'Change bed linen & pillow covers', checked: false },
+      { item: 'Sanitize bathroom and replace towels', checked: false },
+      { item: 'Dust surfaces & restock water bottles', checked: false },
+      { item: 'Vacuum carpet & mop floor', checked: false },
+    ],
+    notes: 'Previous guest checked out. Ready for deep clean.',
+  },
+  {
+    id: 'hk-103',
+    roomId: 'r0000103-0000-4000-a000-000000000001',
+    roomNumber: '103',
+    floor: '1',
+    type: 'inspection',
+    status: 'completed',
+    priority: 2,
+    assignedTo: 'e0000004-0000-4000-a000-000000000001', // Kavitha Devi
+    serviceDate: new Date().toISOString().split('T')[0],
+    checklist: [
+      { item: 'Linen fresh and bed made to standard', checked: true },
+      { item: 'All electrical fittings & AC tested', checked: true },
+      { item: 'Ensuite bath inspection', checked: true },
+    ],
+    notes: 'Room inspected and guest ready.',
+  },
+  {
+    id: 'hk-201',
+    roomId: 'r0000201-0000-4000-a000-000000000001',
+    roomNumber: '201',
+    floor: '2',
+    type: 'stayover',
+    status: 'in_progress',
+    priority: 2,
+    assignedTo: 'e0000006-0000-4000-a000-000000000001', // Raju Nayak
+    serviceDate: new Date().toISOString().split('T')[0],
+    checklist: [
+      { item: 'Make bed & tidy room', checked: true },
+      { item: 'Replenish toiletries', checked: false },
+      { item: 'Empty trash bins', checked: true },
+    ],
+    notes: 'Daily stayover housekeeping for staying guest.',
+  },
+];
+
+const DEFAULT_RESERVATIONS = [
+  {
+    id: 'resv-001',
+    propertyId: PROPERTY_ID,
+    confirmationNumber: 'SPARK-RES-8801',
+    guestName: 'Suresh Goud',
+    guest: { firstName: 'Suresh', lastName: 'Goud', email: 'suresh.goud@example.com', phone: '+91 98480 12345' },
+    roomNumber: '103',
+    roomId: 'r0000103-0000-4000-a000-000000000001',
+    roomTypeId: 'b0000001-0000-4000-a000-000000000001',
+    roomTypeName: 'Deluxe King Room',
+    arrivalDate: new Date().toISOString().split('T')[0],
+    departureDate: new Date(Date.now() + 2 * 24 * 3600 * 1000).toISOString().split('T')[0],
+    nights: 2,
+    status: 'confirmed',
+    totalAmount: 7000,
+    source: 'FRONT_DESK',
+    paymentStatus: 'partially_paid',
+    advancePaid: 3500,
+  },
+  {
+    id: 'resv-002',
+    propertyId: PROPERTY_ID,
+    confirmationNumber: 'SPARK-RES-8802',
+    guestName: 'Mohammed Rafi',
+    guest: { firstName: 'Mohammed', lastName: 'Rafi', email: 'rafi.m@example.com', phone: '+91 99890 54321' },
+    roomNumber: '202',
+    roomId: 'r0000202-0000-4000-a000-000000000001',
+    roomTypeId: 'b0000002-0000-4000-a000-000000000001',
+    roomTypeName: 'Executive Spark Suite',
+    arrivalDate: new Date(Date.now() + 24 * 3600 * 1000).toISOString().split('T')[0],
+    departureDate: new Date(Date.now() + 3 * 24 * 3600 * 1000).toISOString().split('T')[0],
+    nights: 2,
+    status: 'confirmed',
+    totalAmount: 13000,
+    source: 'WEBSITE',
+    paymentStatus: 'paid',
+    advancePaid: 13000,
+  },
+];
+
+export function getStoredEmployees(): any[] {
+  try {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      const saved = window.localStorage.getItem(EMPLOYEES_STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    }
+  } catch (e) {
+    void e;
+  }
+  return [...DEFAULT_EMPLOYEES];
+}
+
+export function saveStoredEmployees(list: any[]) {
+  try {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      window.localStorage.setItem(EMPLOYEES_STORAGE_KEY, JSON.stringify(list));
+    }
+  } catch (e) {
+    void e;
+  }
+}
+
+export function getStoredHkTasks(): any[] {
+  try {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      const saved = window.localStorage.getItem(HK_TASKS_STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    }
+  } catch (e) {
+    void e;
+  }
+  return [...DEFAULT_HK_TASKS];
+}
+
+export function saveStoredHkTasks(list: any[]) {
+  try {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      window.localStorage.setItem(HK_TASKS_STORAGE_KEY, JSON.stringify(list));
+    }
+  } catch (e) {
+    void e;
+  }
+}
+
+export function getStoredReservations(): any[] {
+  try {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      const saved = window.localStorage.getItem(RESERVATIONS_STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    }
+  } catch (e) {
+    void e;
+  }
+  return [...DEFAULT_RESERVATIONS];
+}
+
+export function saveStoredReservations(list: any[]) {
+  try {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      window.localStorage.setItem(RESERVATIONS_STORAGE_KEY, JSON.stringify(list));
+    }
+  } catch (e) {
+    void e;
+  }
+}
+
+export function getStoredGuests(): any[] {
+  try {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      const saved = window.localStorage.getItem(GUESTS_STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    }
+  } catch (e) {
+    void e;
+  }
+  return [...DEFAULT_GUESTS];
+}
+
+export function saveStoredGuests(list: any[]) {
+  try {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      window.localStorage.setItem(GUESTS_STORAGE_KEY, JSON.stringify(list));
+    }
+  } catch (e) {
+    void e;
+  }
+}
+
 export function addNotification(
   title: string,
   message: string,
@@ -818,10 +1026,11 @@ export async function handleSupabaseAdapter(config: AxiosRequestConfig): Promise
       ]);
 
       const plans = plansResult.data || [];
+      const currentCache = getStoredRateCache();
       const planPriceByRoomType: Record<string, number> = {};
       for (const p of plans) {
         if (p.room_type_id) {
-          const cached = ratePlanPriceCache[p.id] ?? ratePlanPriceCache[p.room_type_id];
+          const cached = currentCache[p.id] ?? currentCache[p.room_type_id] ?? ratePlanPriceCache[p.id] ?? ratePlanPriceCache[p.room_type_id];
           planPriceByRoomType[p.room_type_id] = cached !== undefined ? cached : Number(p.base_amount || p.base_rate || 3500);
         }
       }
@@ -835,7 +1044,7 @@ export async function handleSupabaseAdapter(config: AxiosRequestConfig): Promise
           ];
 
       const mapped = typesList.map((t) => {
-        const cached = ratePlanPriceCache[t.id];
+        const cached = currentCache[t.id] ?? ratePlanPriceCache[t.id];
         const defaultPrice = t.code === 'SUT' ? 6500 : t.code === 'STD' ? 2500 : 3500;
         const price = cached !== undefined ? cached : (planPriceByRoomType[t.id] ?? defaultPrice);
         return {
@@ -989,6 +1198,7 @@ export async function handleSupabaseAdapter(config: AxiosRequestConfig): Promise
       const idx = rooms.findIndex((r) => r.id === roomId || r.number === roomId);
 
       if (idx >= 0) {
+        if (body.number) rooms[idx].number = String(body.number);
         if (body.status) rooms[idx].status = body.status;
         if (body.floor) rooms[idx].floor = String(body.floor);
         if (body.roomTypeId || body.room_type_id) {
@@ -1005,6 +1215,7 @@ export async function handleSupabaseAdapter(config: AxiosRequestConfig): Promise
       if (roomId) {
         try {
           const supabasePayload: Record<string, any> = {};
+          if (body.number) supabasePayload.number = String(body.number);
           if (body.status) supabasePayload.status = body.status;
           if (body.floor) supabasePayload.floor = body.floor;
           if (body.roomTypeId || body.room_type_id) supabasePayload.room_type_id = body.roomTypeId || body.room_type_id;
@@ -1106,8 +1317,9 @@ export async function handleSupabaseAdapter(config: AxiosRequestConfig): Promise
         { id: 'c0000003-0000-4000-a000-000000000001', room_type_id: 'b0000003-0000-4000-a000-000000000001', name: 'Standard Best Flexible Rate', code: 'BAR-STD', type: 'bar', base_amount: 2500, base_rate: 2500, currency_code: 'INR' },
       ];
       const list = plans && plans.length > 0 ? plans : defaultPlans;
+      const currentCache = getStoredRateCache();
       const mapped = list.map((p) => {
-        const cached = ratePlanPriceCache[p.id] ?? (p.room_type_id ? ratePlanPriceCache[p.room_type_id] : undefined);
+        const cached = currentCache[p.id] ?? (p.room_type_id ? currentCache[p.room_type_id] : undefined) ?? ratePlanPriceCache[p.id] ?? (p.room_type_id ? ratePlanPriceCache[p.room_type_id] : undefined);
         const price = cached !== undefined ? cached : Number(p.base_amount || p.base_rate || 3500);
         return {
           id: p.id,
@@ -1290,6 +1502,14 @@ export async function handleSupabaseAdapter(config: AxiosRequestConfig): Promise
 
       let filtered = list;
 
+      // Also merge any locally stored reservations created via Front Desk or booking modal
+      const localResvs = getStoredReservations();
+      for (const lr of localResvs) {
+        if (!list.some((existing) => existing.id === lr.id || existing.confirmationNumber === lr.confirmationNumber)) {
+          list.push(lr);
+        }
+      }
+
       // Filter by status if specified
       if (config.params?.status) {
         filtered = filtered.filter((r) => r.status === config.params.status);
@@ -1310,9 +1530,46 @@ export async function handleSupabaseAdapter(config: AxiosRequestConfig): Promise
       return ok(filtered);
     }
 
+    if (method === 'PATCH' || method === 'PUT') {
+      const body = typeof config.data === 'string' ? JSON.parse(config.data || '{}') : (config.data || {});
+      const idMatch = url.match(/\/reservations\/([^/?]+)/);
+      const resvId = idMatch ? idMatch[1] : '';
+
+      const localResvs = getStoredReservations();
+      const resvIdx = localResvs.findIndex((r) => r.id === resvId || r.confirmationNumber === resvId);
+
+      // Handle Cancel Reservation
+      if (url.includes('/cancel') || body.status === 'cancelled') {
+        if (resvIdx >= 0) {
+          localResvs[resvIdx].status = 'cancelled';
+          saveStoredReservations(localResvs);
+
+          // Free up room if assigned
+          const roomId = localResvs[resvIdx].roomId;
+          if (roomId) {
+            const rooms = getStoredRooms();
+            const rmIdx = rooms.findIndex((rm) => rm.id === roomId || rm.number === localResvs[resvIdx].roomNumber);
+            if (rmIdx >= 0 && rooms[rmIdx].status === 'occupied') {
+              rooms[rmIdx].status = 'vacant_clean';
+              delete rooms[rmIdx].guestName;
+              saveStoredRooms(rooms);
+            }
+          }
+        }
+        return ok({ success: true, id: resvId, status: 'cancelled' });
+      }
+
+      // Normal edit/update
+      if (resvIdx >= 0) {
+        localResvs[resvIdx] = { ...localResvs[resvIdx], ...body };
+        saveStoredReservations(localResvs);
+      }
+      return ok({ success: true, id: resvId, ...body });
+    }
+
     if (method === 'POST') {
       const body = typeof config.data === 'string' ? JSON.parse(config.data || '{}') : (config.data || {});
-      const confCode = `CONF-WALKIN-${Date.now().toString(36).toUpperCase()}`;
+      const confCode = body.confirmationNumber || `CONF-SPARK-${Date.now().toString(36).toUpperCase()}`;
 
       // Synchronize directly into StoredStays and StoredRooms
       const rooms = getStoredRooms();
@@ -1323,6 +1580,28 @@ export async function handleSupabaseAdapter(config: AxiosRequestConfig): Promise
       const advance = body.stay?.advancePaid ?? body.advancePaid ?? rate;
       const total = body.stay?.grandTotal ?? body.totalAmount ?? (nights * rate);
       const balance = Math.max(0, total - advance);
+
+      const newReservation = {
+        id: `resv-${Date.now()}`,
+        propertyId: PROPERTY_ID,
+        confirmationNumber: confCode,
+        status: body.status || 'confirmed',
+        arrivalDate: body.arrivalDate || new Date().toISOString().split('T')[0],
+        departureDate: body.departureDate || new Date(Date.now() + nights * 24 * 3600 * 1000).toISOString().split('T')[0],
+        roomId: matchedRoom?.id || body.roomId,
+        roomNumber: matchedRoom?.number || body.roomNumber || '101',
+        roomTypeId: body.roomTypeId || matchedRoom?.roomTypeId || DEFAULT_ROOM_TYPES[0].id,
+        roomTypeName: matchedRoom?.roomTypeName || 'Deluxe King Room',
+        guestName,
+        guest: body.guest || { firstName: guestName, lastName: '', phone: body.mobile || '' },
+        nights,
+        totalAmount: total,
+        advancePaid: advance,
+        source: 'FRONT_DESK',
+      };
+
+      const localResvs = getStoredReservations();
+      saveStoredReservations([newReservation, ...localResvs]);
 
       const newStay: StoredStay = {
         id: `stay-${Date.now()}`,
@@ -1385,7 +1664,7 @@ export async function handleSupabaseAdapter(config: AxiosRequestConfig): Promise
       }
 
       return ok({
-        id: `resv-${Date.now()}`,
+        id: newReservation.id,
         confirmationNumber: confCode,
         status: 'checked_in',
         ...body,
@@ -1410,46 +1689,245 @@ export async function handleSupabaseAdapter(config: AxiosRequestConfig): Promise
   }
 
   // 15. Guests
-  if (url.includes('/guests') && method === 'GET') {
-    const { data: guests } = await supabaseFetch<any[]>('guests?select=*&order=created_at.desc');
-    if (guests && guests.length > 0) return ok(guests);
-
-    const { data: reqs } = await supabaseFetch<any[]>('booking_requests?select=*&order=created_at.desc');
-    const synthGuests = (reqs || []).map((r) => ({
-      id: r.id,
-      propertyId: PROPERTY_ID,
-      firstName: r.guest_first_name,
-      lastName: r.guest_last_name,
-      email: r.guest_email,
-      phone: r.guest_phone || '',
-      status: 'active',
-      stayCount: 1,
-      totalSpend: r.submitted_total || 3500,
-      createdAt: r.created_at,
-    }));
-    return ok(synthGuests);
+  if (url.includes('/guests')) {
+    const guests = getStoredGuests();
+    if (method === 'GET') {
+      const search = (config.params?.search || '').toLowerCase();
+      let res = guests;
+      if (search) {
+        res = guests.filter(
+          (g) =>
+            (g.firstName && g.firstName.toLowerCase().includes(search)) ||
+            (g.lastName && g.lastName.toLowerCase().includes(search)) ||
+            (g.phone && g.phone.includes(search)) ||
+            (g.email && g.email.toLowerCase().includes(search))
+        );
+      }
+      return ok(res);
+    }
+    if (method === 'POST') {
+      const body = typeof config.data === 'string' ? JSON.parse(config.data || '{}') : (config.data || {});
+      const newGuest = {
+        id: `g-${Date.now()}`,
+        propertyId: PROPERTY_ID,
+        firstName: body.firstName || 'Guest',
+        lastName: body.lastName || '',
+        email: body.email || '',
+        phone: body.phone || '',
+        address: body.address || '',
+        city: body.city || 'Karimnagar',
+        state: body.state || 'Telangana',
+        idProofType: body.idProofType || 'Aadhaar Card',
+        idProofNumber: body.idProofNumber || '',
+        status: 'active',
+        stayCount: 1,
+        totalSpend: 3500,
+        createdAt: new Date().toISOString(),
+      };
+      saveStoredGuests([newGuest, ...guests]);
+      return ok({ success: true, ...newGuest });
+    }
+    if (method === 'PATCH' || method === 'PUT') {
+      const body = typeof config.data === 'string' ? JSON.parse(config.data || '{}') : (config.data || {});
+      const idMatch = url.match(/\/guests\/([^/?]+)/);
+      const gid = idMatch ? idMatch[1] : '';
+      const idx = guests.findIndex((g) => g.id === gid);
+      if (idx >= 0) {
+        guests[idx] = { ...guests[idx], ...body };
+        saveStoredGuests(guests);
+      }
+      return ok({ success: true, id: gid, ...body });
+    }
   }
 
-  // 16. Housekeeping tasks
+  // 16. Housekeeping
   if (url.includes('/housekeeping')) {
-    if (method === 'GET') {
-      const { data: tasks } = await supabaseFetch<any[]>('housekeeping_tasks?select=*');
-      if (tasks && tasks.length > 0) return ok(tasks);
+    const tasks = getStoredHkTasks();
+    const rooms = getStoredRooms();
+    const employees = getStoredEmployees();
+    const housekeepers = employees.filter((e) => e.departmentName === 'Housekeeping' || e.role.toLowerCase().includes('housekeep'));
 
-      const defaultTasks = [
-        { id: 'hk-1', roomNumber: '101', floor: '1', status: 'dirty', priority: 'high', assignee: 'Raju Nayak', taskType: 'checkout_clean', notes: 'Complete linen refresh and bathroom sanitization' },
-        { id: 'hk-2', roomNumber: '201', floor: '2', status: 'inspecting', priority: 'medium', assignee: 'Kavitha Devi', taskType: 'inspection', notes: 'Awaiting manager approval' },
-        { id: 'hk-3', roomNumber: '301', floor: '3', status: 'clean', priority: 'normal', assignee: 'Raju Nayak', taskType: 'stayover', notes: 'Guest ready' },
-      ];
-      return ok(defaultTasks);
+    // Dashboard
+    if (url.includes('/dashboard')) {
+      const taskSummary = {
+        pending: tasks.filter((t) => t.status === 'pending').length,
+        assigned: tasks.filter((t) => t.status === 'assigned').length,
+        in_progress: tasks.filter((t) => t.status === 'in_progress').length,
+        completed: tasks.filter((t) => t.status === 'completed').length,
+        inspected: tasks.filter((t) => t.status === 'inspected').length,
+      };
+
+      const roomSummary: Record<string, number> = { total: rooms.length };
+      for (const r of rooms) {
+        const st = r.status || 'vacant_clean';
+        roomSummary[st] = (roomSummary[st] || 0) + 1;
+      }
+
+      const housekeeperSummary = housekeepers.map((hk) => ({
+        housekeeperId: hk.id,
+        tasksAssigned: tasks.filter((t) => t.assignedTo === hk.id).length,
+        tasksCompleted: tasks.filter((t) => t.assignedTo === hk.id && t.status === 'completed').length,
+        tasksInProgress: tasks.filter((t) => t.assignedTo === hk.id && t.status === 'in_progress').length,
+        avgTurnTimeMinutes: 25,
+      }));
+
+      const urgentRooms = rooms
+        .filter((r) => r.status === 'vacant_dirty' || r.status === 'out_of_order')
+        .map((r) => ({
+          roomId: r.id,
+          roomNumber: r.number,
+          floor: r.floor || '1',
+          status: r.status,
+          taskStatus: 'pending',
+          priority: 1,
+          reason: r.status === 'vacant_dirty' ? 'Checkout Clean Needed' : 'Maintenance Required',
+        }));
+
+      return ok({ taskSummary, roomSummary, housekeeperSummary, urgentRooms });
     }
+
+    // Operations Forecast
+    if (url.includes('/ops-forecast')) {
+      const tomorrow = new Date(Date.now() + 86400000).toISOString().split('T')[0];
+      return ok({
+        date: tomorrow,
+        expectedCheckouts: 2,
+        expectedStayovers: 4,
+      });
+    }
+
+    // Auto Assign
+    if (url.includes('/auto-assign') && method === 'POST') {
+      const body = typeof config.data === 'string' ? JSON.parse(config.data || '{}') : (config.data || {});
+      const staffIds: string[] = body.housekeepers || housekeepers.map((h) => h.id);
+      if (staffIds.length > 0) {
+        let staffIdx = 0;
+        for (const t of tasks) {
+          if (t.status === 'pending') {
+            t.status = 'assigned';
+            t.assignedTo = staffIds[staffIdx % staffIds.length];
+            t.assignedAt = new Date().toISOString();
+            staffIdx++;
+          }
+        }
+        saveStoredHkTasks(tasks);
+      }
+      return ok({ success: true, message: 'Tasks auto-assigned successfully' });
+    }
+
+    // Generate stayover tasks
+    if (url.includes('/generate-stayover-tasks')) {
+      return ok({ success: true, count: 2 });
+    }
+
+    // Task Actions & Tasks List
+    if (url.includes('/tasks')) {
+      if (method === 'GET') {
+        const statusFilter = (config.params?.status || '').toLowerCase();
+        let res = tasks;
+        if (statusFilter) {
+          res = tasks.filter((t) => t.status.toLowerCase() === statusFilter);
+        }
+        return ok(res);
+      }
+
+      if (method === 'PATCH') {
+        const body = typeof config.data === 'string' ? JSON.parse(config.data || '{}') : (config.data || {});
+        const actionMatch = url.match(/\/tasks\/([^/?]+)\/([^/?]+)/);
+
+        if (actionMatch) {
+          const taskId = actionMatch[1];
+          const action = actionMatch[2];
+          const idx = tasks.findIndex((t) => t.id === taskId);
+
+          if (idx >= 0) {
+            if (action === 'assign') {
+              tasks[idx].assignedTo = body.assignedTo;
+              tasks[idx].status = 'assigned';
+              tasks[idx].assignedAt = new Date().toISOString();
+            } else if (action === 'start') {
+              tasks[idx].status = 'in_progress';
+              tasks[idx].startedAt = new Date().toISOString();
+            } else if (action === 'complete' || action === 'inspect') {
+              tasks[idx].status = action === 'inspect' ? 'inspected' : 'completed';
+              tasks[idx].completedAt = new Date().toISOString();
+
+              // Update room status to clean in stored rooms!
+              const roomId = tasks[idx].roomId;
+              const roomNum = tasks[idx].roomNumber;
+              const rmIdx = rooms.findIndex((r) => r.id === roomId || r.number === roomNum);
+              if (rmIdx >= 0) {
+                rooms[rmIdx].status = 'vacant_clean';
+                saveStoredRooms(rooms);
+              }
+            } else if (action === 'unassign') {
+              tasks[idx].assignedTo = undefined;
+              tasks[idx].status = 'pending';
+            } else if (action === 'skip') {
+              tasks[idx].status = 'completed';
+            }
+            saveStoredHkTasks(tasks);
+          }
+          return ok({ success: true, taskId, action });
+        }
+
+        // Direct task update (e.g. checklist)
+        const idMatch = url.match(/\/tasks\/([^/?]+)/);
+        const taskId = idMatch ? idMatch[1] : '';
+        const idx = tasks.findIndex((t) => t.id === taskId);
+        if (idx >= 0) {
+          tasks[idx] = { ...tasks[idx], ...body };
+          saveStoredHkTasks(tasks);
+        }
+        return ok({ success: true, id: taskId, ...body });
+      }
+
+      if (method === 'POST') {
+        const body = typeof config.data === 'string' ? JSON.parse(config.data || '{}') : (config.data || {});
+        const newTask = {
+          id: `hk-${Date.now()}`,
+          roomId: body.roomId,
+          roomNumber: body.roomNumber || '101',
+          type: body.type || 'clean',
+          status: 'pending',
+          priority: body.priority || 1,
+          serviceDate: new Date().toISOString().split('T')[0],
+          checklist: body.checklist || [
+            { item: 'Change linen', checked: false },
+            { item: 'Clean bathroom', checked: false },
+            { item: 'Restock amenities', checked: false },
+          ],
+          notes: body.notes || '',
+        };
+        saveStoredHkTasks([newTask, ...tasks]);
+        return ok({ success: true, ...newTask });
+      }
+    }
+
     return ok({ success: true });
   }
 
-  // 17. Folios & Invoices
-  if (url.includes('/folios')) {
-    const { data: folios } = await supabaseFetch<any[]>('folios?select=*');
-    return ok(folios || []);
+  // 16b. Admin Users (for Housekeeping and Staff assignment)
+  if (url.includes('/admin/users')) {
+    const emps = getStoredEmployees();
+    const mapped = emps.map((e) => {
+      let roleKey = 'front_desk';
+      const r = (e.role || '').toLowerCase();
+      const d = (e.departmentName || '').toLowerCase();
+      if (d.includes('housekeep') || r.includes('housekeep')) {
+        roleKey = 'housekeeping';
+      } else if (d.includes('manage') || r.includes('admin') || r.includes('owner')) {
+        roleKey = 'admin';
+      }
+      return {
+        id: e.id,
+        name: e.name,
+        email: e.email,
+        status: e.status || 'active',
+        roles: [{ key: roleKey, name: e.role }],
+      };
+    });
+    return ok(mapped);
   }
 
   // 17b. Stays & In-House Guest Register
@@ -1735,18 +2213,48 @@ export async function handleSupabaseAdapter(config: AxiosRequestConfig): Promise
 
   // 22. Employees
   if (url.includes('/employees')) {
+    const emps = getStoredEmployees();
     if (method === 'GET') {
-      const { data } = await supabaseFetch<any[]>('employees?select=*&order=created_at.asc');
-      if (data && data.length > 0) return ok(data);
-      return ok(DEFAULT_EMPLOYEES);
+      return ok(emps);
     }
-    if (method === 'POST' || method === 'PUT') {
+    if (method === 'POST') {
       const body = typeof config.data === 'string' ? JSON.parse(config.data || '{}') : (config.data || {});
-      await supabaseFetch('employees', {
-        method: 'POST',
-        body: JSON.stringify(body),
-      });
-      return ok({ success: true, ...body, id: body.id || `emp-${Date.now()}` });
+      const newEmp = {
+        id: body.id || `e${Date.now().toString().slice(-7)}-0000-4000-a000-000000000001`,
+        employeeId: body.employeeId || `EMP-SPARK-${Math.floor(100 + Math.random() * 900)}`,
+        name: body.name || 'Staff Member',
+        mobile: body.mobile || '',
+        email: body.email || '',
+        address: body.address || '',
+        departmentId: body.departmentId || '',
+        departmentName: body.departmentName || 'Front Office',
+        designation: body.designation || 'Staff',
+        salary: Number(body.salary) || 35000,
+        role: body.role || 'Receptionist',
+        shift: body.shift || 'morning',
+        status: body.status || 'active',
+        joiningDate: body.joiningDate || new Date().toISOString().split('T')[0],
+      };
+      saveStoredEmployees([...emps, newEmp]);
+      return ok({ success: true, ...newEmp });
+    }
+    if (method === 'PUT' || method === 'PATCH') {
+      const body = typeof config.data === 'string' ? JSON.parse(config.data || '{}') : (config.data || {});
+      const idMatch = url.match(/\/employees\/([^/?]+)/);
+      const empId = idMatch ? idMatch[1] : (body.id || '');
+      const idx = emps.findIndex((e) => e.id === empId || e.employeeId === empId);
+      if (idx >= 0) {
+        emps[idx] = { ...emps[idx], ...body };
+        saveStoredEmployees(emps);
+      }
+      return ok({ success: true, id: empId, ...body });
+    }
+    if (method === 'DELETE') {
+      const idMatch = url.match(/\/employees\/([^/?]+)/);
+      const empId = idMatch ? idMatch[1] : '';
+      const filtered = emps.filter((e) => e.id !== empId && e.employeeId !== empId);
+      saveStoredEmployees(filtered);
+      return ok({ success: true, id: empId });
     }
   }
 

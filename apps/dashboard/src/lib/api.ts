@@ -13,12 +13,15 @@ export const api = axios.create({
   headers: { 'Content-Type': 'application/json' },
 });
 
-const isStaticHosting = typeof window !== 'undefined' && (
+const isStandalonePms = typeof window !== 'undefined' && (
   window.location.hostname.includes('netlify.app') ||
-  window.location.hostname.includes('spark')
+  window.location.hostname.includes('spark') ||
+  window.location.port === '5173' ||
+  window.location.port === '5174' ||
+  !window.location.port
 );
 
-if (isStaticHosting) {
+if (isStandalonePms) {
   api.interceptors.request.use(async (config) => {
     config.adapter = async (cfg) => {
       try {

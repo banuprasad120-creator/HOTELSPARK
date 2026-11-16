@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { X, LogOut, IndianRupee, Sparkles, CheckCircle2, AlertCircle, CreditCard } from 'lucide-react';
 import { api } from '../../lib/api';
@@ -23,13 +23,17 @@ export default function CheckoutModal({ stay, isOpen, onClose, onCheckoutSuccess
   const [discountAdjustment, setDiscountAdjustment] = useState<number>(0);
   const [extraChargesAdjustment, setExtraChargesAdjustment] = useState<number>(0);
 
-  if (!isOpen || !stay) return null;
-
-  const currentBalance = Math.max(0, (stay.balance || 0) + extraChargesAdjustment - discountAdjustment);
-  const roomCharges = (stay.nights || 1) * (stay.pricePerNight || 0);
+  useEffect(() => {
+    if (stay) {
+      setFinalPayment(String(Math.max(0, stay.balance || 0)));
+      setDiscountAdjustment(0);
+      setExtraChargesAdjustment(0);
+    }
+  }, [stay]);
 
   const checkoutMutation = useMutation({
     mutationFn: () => {
+      if (!stay) throw new Error('No active stay selected');
       const payAmt = Number(finalPayment) || 0;
       return api
         .post(`/v1/stays/${stay.id}/checkout`, {
@@ -40,18 +44,27 @@ export default function CheckoutModal({ stay, isOpen, onClose, onCheckoutSuccess
         .then((r) => r.data?.stay || r.data);
     },
     onSuccess: (updatedStay: StoredStay) => {
-      toast('success', `Guest ${stay.guestName} successfully checked out from Room ${stay.roomNumber}! Room is marked DIRTY for housekeeping.`);
+      if (stay) {
+        toast('success', `Guest ${stay.guestName} successfully checked out from Room ${stay.roomNumber}! Room is marked DIRTY for housekeeping.`);
+      }
       queryClient.invalidateQueries({ queryKey: ['stays'] });
       queryClient.invalidateQueries({ queryKey: ['rooms'] });
       queryClient.invalidateQueries({ queryKey: ['rooms', 'status-summary'] });
       queryClient.invalidateQueries({ queryKey: ['staff-notifications'] });
       queryClient.invalidateQueries({ queryKey: ['staff-notifications-unread'] });
-      onCheckoutSuccess(updatedStay || { ...stay, stayStatus: 'checked_out', balance: 0 });
+      if (stay) {
+        onCheckoutSuccess(updatedStay || { ...stay, stayStatus: 'checked_out', balance: 0 });
+      }
     },
     onError: (err: any) => {
       toast('error', err?.response?.data?.message || 'Failed to complete checkout. Please try again.');
     },
   });
+
+  if (!isOpen || !stay) return null;
+
+  const currentBalance = Math.max(0, (stay.balance || 0) + extraChargesAdjustment - discountAdjustment);
+  const roomCharges = (stay.nights || 1) * (stay.pricePerNight || 0);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 overflow-y-auto">

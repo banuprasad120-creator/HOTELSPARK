@@ -7,18 +7,18 @@ export const SUPABASE_URL =
 const DEFAULT_ADMIN_KEY_B64 = 'c2Jfc2VjcmV0X0tuV3ZJOUlWTWdacVdoYUNOY095dHdfSG5wV3BCYUI=';
 const DEFAULT_ANON_KEY_B64 = 'c2JfcHVibGlzaGFibGVfWGo2QU9BZ2QtT0JZSkxNTnRadG45UV9HdkliSU9ZZA==';
 
-// The Admin Console requires administrative permissions to manage rooms, rates, bookings and staff.
-export const SUPABASE_KEY =
-  import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY ||
-  (typeof atob === 'function' ? atob(DEFAULT_ADMIN_KEY_B64) : '') ||
-  import.meta.env.VITE_SUPABASE_ANON_KEY ||
-  import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ||
-  '';
-
 export const SUPABASE_ANON_KEY =
   import.meta.env.VITE_SUPABASE_ANON_KEY ||
   import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ||
   (typeof atob === 'function' ? atob(DEFAULT_ANON_KEY_B64) : '');
+
+// In the browser, secret keys (sb_secret_...) are rejected with HTTP 401 by Supabase Gateway.
+// Always use the publishable anon key in the browser.
+export const SUPABASE_KEY =
+  (typeof window !== 'undefined'
+    ? SUPABASE_ANON_KEY
+    : (import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY || (typeof atob === 'function' ? atob(DEFAULT_ADMIN_KEY_B64) : ''))) ||
+  SUPABASE_ANON_KEY;
 
 export const isSupabaseConfigured = Boolean(SUPABASE_URL && SUPABASE_KEY);
 

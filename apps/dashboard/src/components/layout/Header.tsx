@@ -82,31 +82,32 @@ export default function Header({ onMenuClick }: HeaderProps) {
           </span>
         </div>
 
-        <div className="flex items-center gap-2 sm:gap-3">
+        <div className="flex items-center gap-1.5 sm:gap-3 flex-shrink-0">
           {/* WALK-IN CHECK-IN QUICK ACTION BUTTON */}
           <button
             type="button"
             onClick={() => setWalkInOpen(true)}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-telivity-teal hover:bg-teal-600 text-white text-xs font-bold shadow-xs transition"
+            className="inline-flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg bg-telivity-teal hover:bg-teal-600 text-white text-xs font-bold shadow-xs transition flex-shrink-0"
           >
-            <Sparkles size={14} />
-            <span>Walk-In Check-In</span>
+            <Sparkles size={14} className="text-emerald-200" />
+            <span className="hidden sm:inline">Walk-In Check-In</span>
+            <span className="sm:hidden">Check-In</span>
           </button>
 
           <a
             href={websiteUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-teal-50 border border-teal-200 text-teal-800 text-xs font-semibold hover:bg-teal-100 transition-colors shadow-xs"
+            className="hidden md:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-teal-50 border border-teal-200 text-teal-800 text-xs font-semibold hover:bg-teal-100 transition-colors shadow-xs"
             title="Open Hotel Spark Guest Direct Booking Website"
           >
             <Globe size={14} className="text-teal-700" />
             <span>Hotel Website</span>
           </a>
 
-          <div className="flex items-center gap-1.5">
+          <div className="hidden sm:flex items-center gap-1.5">
             <div className={`w-2 h-2 rounded-full ${connected || !isLocal ? 'bg-telivity-dark-teal' : 'bg-telivity-orange'}`} aria-hidden="true" />
-            <span className="text-xs text-telivity-mid-grey hidden sm:inline">{connected || !isLocal ? (!isLocal ? 'Live (Cloud)' : t('header.statusLive')) : t('header.statusOffline')}</span>
+            <span className="text-xs text-telivity-mid-grey hidden md:inline">{connected || !isLocal ? (!isLocal ? 'Live (Cloud)' : t('header.statusLive')) : t('header.statusOffline')}</span>
           </div>
 
           <button

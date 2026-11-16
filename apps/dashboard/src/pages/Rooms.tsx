@@ -115,7 +115,37 @@ function RoomDetailPanel({
   const [amenities, setAmenities] = useState<string[]>(room.amenities ?? []);
   const [newAmenity, setNewAmenity] = useState('');
   const [photosOpen, setPhotosOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+  const [editNumber, setEditNumber] = useState(room.number);
+  const [editFloor, setEditFloor] = useState(room.floor || '1');
+  const [editRoomTypeId, setEditRoomTypeId] = useState(room.roomTypeId);
   const dirty = JSON.stringify(amenities) !== JSON.stringify(room.amenities ?? []);
+
+  const { data: roomTypesData } = useQuery({
+    queryKey: ['rooms', 'types', propertyId],
+    queryFn: () => api.get('/v1/rooms/types', { params: { propertyId } }).then((r) => r.data),
+    enabled: !!propertyId,
+  });
+  const roomTypes: RoomType[] = Array.isArray(roomTypesData?.data) ? roomTypesData.data : (Array.isArray(roomTypesData) ? roomTypesData : []);
+
+  const editRoomMutation = useMutation({
+    mutationFn: () =>
+      api.patch(
+        `/v1/rooms/${room.id}`,
+        { number: editNumber, floor: editFloor, roomTypeId: editRoomTypeId },
+        { params: { propertyId } },
+      ),
+    onSuccess: () => {
+      toast('success', `Room ${editNumber} updated successfully.`);
+      queryClient.invalidateQueries({ queryKey: ['rooms'] });
+      queryClient.invalidateQueries({ queryKey: ['rooms', 'status-summary'] });
+      setEditOpen(false);
+      onClose();
+    },
+    onError: (err: any) => {
+      toast('error', err?.response?.data?.message || 'Failed to update room.');
+    },
+  });
 
   const saveAmenities = useMutation({
     mutationFn: () => api.patch(`/v1/rooms/${room.id}`, { amenities }, { params: { propertyId } }),
@@ -253,9 +283,16 @@ function RoomDetailPanel({
             )}
           </div>
 
-          {/* Quick Actions: Block Room / Delete Room */}
+          {/* Quick Actions: Edit Room / Block Room / Delete Room */}
           <div className="pt-4 border-t border-gray-100 flex flex-col gap-2">
             <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setEditOpen(true)}
+                className="flex-1 border border-teal-300 bg-teal-50 text-teal-800 rounded-lg px-3 py-2 text-xs font-semibold hover:bg-teal-100 transition flex items-center justify-center gap-1.5"
+              >
+                <Pencil size={13} /> Edit Room
+              </button>
               {room.status !== 'out_of_order' ? (
                 <button
                   type="button"
@@ -294,6 +331,62 @@ function RoomDetailPanel({
           </div>
         </div>
       </div>
+
+      {editOpen && (
+        <Modal open={editOpen} onClose={() => setEditOpen(false)} title={`Edit Room ${room.number}`}>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-xs font-semibold text-telivity-slate mb-1">Room Number *</label>
+              <input
+                type="text"
+                value={editNumber}
+                onChange={(e) => setEditNumber(e.target.value)}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-telivity-teal"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-telivity-slate mb-1">Room Category *</label>
+              <select
+                value={editRoomTypeId}
+                onChange={(e) => setEditRoomTypeId(e.target.value)}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-telivity-teal bg-white"
+              >
+                {roomTypes.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.name} ({t.code})
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-telivity-slate mb-1">Floor</label>
+              <input
+                type="text"
+                value={editFloor}
+                onChange={(e) => setEditFloor(e.target.value)}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-telivity-teal"
+              />
+            </div>
+            <div className="pt-2 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setEditOpen(false)}
+                className="px-4 py-2 border border-gray-300 rounded-lg text-xs font-medium text-gray-700 hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => editRoomMutation.mutate()}
+                disabled={!editNumber.trim() || editRoomMutation.isPending}
+                className="px-4 py-2 bg-telivity-teal text-white rounded-lg text-xs font-semibold hover:bg-telivity-light-teal disabled:opacity-50"
+              >
+                {editRoomMutation.isPending ? 'Saving...' : 'Save Changes'}
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
 
       {canManagePhotos && (
         <Modal open={photosOpen} onClose={() => setPhotosOpen(false)} title={t('rooms.photosForRoom', { number: room.number })}>
@@ -679,7 +772,7 @@ function RoomList() {
             disabled={!newRoomNumber.trim() || isDuplicateNumber || createMutation.isPending}
             className="w-full bg-telivity-teal hover:bg-telivity-light-teal text-white rounded-lg px-4 py-2.5 text-sm font-bold shadow-xs disabled:opacity-50 transition"
           >
-            {createMutation.isPending ? t('common.creating') : t('rooms.createRoom')}
+            {createMutation.isPending ? 'Creating Room...' : 'Create Room'}
           </button>
         </div>
       </Modal>

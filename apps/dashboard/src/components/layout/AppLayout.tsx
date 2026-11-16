@@ -40,12 +40,12 @@ export default function AppLayout({ children }: { children: ReactNode }) {
   }, [activeProperty?.staffPrimaryColor, activeProperty?.staffAccentColor]);
 
   return (
-    <div className="min-h-screen bg-telivity-light-grey">
+    <div className="min-h-screen bg-telivity-light-grey overflow-x-hidden">
       <BookingAlertCard />
       <Sidebar mobileOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-      <div className="flex min-h-screen flex-col lg:ml-60">
+      <div className="flex min-h-screen flex-col lg:ml-60 overflow-x-hidden">
         <Header onMenuClick={() => setSidebarOpen(true)} />
-        <main className="flex flex-1 flex-col p-3 sm:p-4 lg:p-6">{children}</main>
+        <main className="flex flex-1 flex-col p-3 sm:p-4 lg:p-6 overflow-x-hidden">{children}</main>
       </div>
     </div>
   );

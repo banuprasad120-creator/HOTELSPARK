@@ -55,24 +55,28 @@ type NavSection = {
 const NAV_SECTIONS: NavSection[] = [
   {
     items: [
-      { to: '/', icon: LayoutDashboard, labelKey: 'nav.dashboard', permission: 'dashboard.view' },
+      { to: '/', icon: LayoutDashboard, labelKey: 'Dashboard', permission: 'dashboard.view' },
       { to: '/current-guests', icon: Users, labelKey: 'In-House Guests', permission: 'frontdesk.access' },
-      { to: '/front-desk', icon: ConciergeBell, labelKey: 'nav.frontDesk', permission: 'frontdesk.access' },
+      { to: '/front-desk', icon: ConciergeBell, labelKey: 'Front Desk', permission: 'frontdesk.access' },
+      { to: '/reservations', icon: CalendarDays, labelKey: 'Booking Management', permission: 'reservations.read' },
+      { to: '/guests', icon: Users, labelKey: 'Guest Management', permission: 'guests.read' },
       { to: '/rooms', icon: DoorOpen, labelKey: 'All Rooms & Rack', permission: 'rooms.read' },
       { to: '/rooms/types', icon: Tags, labelKey: 'Room Categories & Pricing', permission: 'rooms.read' },
+      { to: '/housekeeping', icon: Sparkles, labelKey: 'Housekeeping', permission: 'housekeeping.read' },
+      { to: '/staff', icon: Briefcase, labelKey: 'Staff & 3 Shifts', permission: 'admin.users.manage' },
+      { to: '/folios', icon: Receipt, labelKey: 'Folios & Billing', permission: 'folios.read' },
       { to: '/guest-history', icon: History, labelKey: 'Guest History', permission: 'guests.read' },
-      { to: '/housekeeping', icon: Sparkles, labelKey: 'nav.housekeeping', permission: 'housekeeping.read' },
-      { to: '/folios', icon: Receipt, labelKey: 'nav.foliosBilling', permission: 'folios.read' },
     ],
   },
   {
-    sectionKey: 'Direct Booking Requests',
+    sectionKey: 'Direct Website Bookings',
     items: [
-      { to: '/direct-bookings', icon: Inbox, labelKey: 'Website Booking Inquiries', permission: 'reservations.read' },
+      { to: '/direct-bookings', icon: Inbox, labelKey: 'Booking Inquiries', permission: 'reservations.read' },
     ],
   },
   {
     items: [
+      { to: '/reports', icon: BarChart3, labelKey: 'Reports & Analytics', permission: 'reports.view' },
       { to: '/settings', icon: Settings, labelKey: 'Hotel Settings', permission: 'settings.manage' },
     ],
   },
