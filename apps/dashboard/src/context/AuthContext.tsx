@@ -38,16 +38,87 @@ export interface AuthUser {
   email: string;
   name: string;
   roles: string[];
+  roleTitle?: string;
+  employeeId?: string;
+  department?: string;
 }
 
-interface AuthContextType {
+export const SPARK_CREDENTIAL_USERS: AuthUser[] = [
+  {
+    sub: 'e0000001-0000-4000-a000-000000000001',
+    email: 'admin@sparkhotel.com',
+    name: 'Banu Prasad (Owner)',
+    employeeId: 'EMP-SPARK-001',
+    roleTitle: 'Hotel Admin / Owner',
+    department: 'Management',
+    roles: ['admin', 'general_manager', 'front_desk', 'front_desk_manager', 'housekeeping_manager', 'accountant'],
+  },
+  {
+    sub: 'e0000002-0000-4000-a000-000000000001',
+    email: 'frontdesk.mgr@sparkhotel.com',
+    name: 'Ramesh Rao',
+    employeeId: 'EMP-SPARK-002',
+    roleTitle: 'Front Office Manager',
+    department: 'Front Office',
+    roles: ['front_desk', 'front_desk_manager'],
+  },
+  {
+    sub: 'e0000003-0000-4000-a000-000000000001',
+    email: 'reception1@sparkhotel.com',
+    name: 'Priya Sharma',
+    employeeId: 'EMP-SPARK-003',
+    roleTitle: 'Receptionist',
+    department: 'Front Office',
+    roles: ['front_desk'],
+  },
+  {
+    sub: 'e0000004-0000-4000-a000-000000000001',
+    email: 'hk.mgr@sparkhotel.com',
+    name: 'Kavitha Devi',
+    employeeId: 'EMP-SPARK-004',
+    roleTitle: 'Housekeeping Manager',
+    department: 'Housekeeping',
+    roles: ['housekeeping_manager', 'housekeeping'],
+  },
+  {
+    sub: 'e0000005-0000-4000-a000-000000000001',
+    email: 'accounts@sparkhotel.com',
+    name: 'Sunil Kumar',
+    employeeId: 'EMP-SPARK-005',
+    roleTitle: 'Accountant',
+    department: 'Accounts',
+    roles: ['accountant', 'night_auditor'],
+  },
+  {
+    sub: 'e0000006-0000-4000-a000-000000000001',
+    email: 'hk.staff1@sparkhotel.com',
+    name: 'Raju Nayak',
+    employeeId: 'EMP-SPARK-006',
+    roleTitle: 'Housekeeping Staff',
+    department: 'Housekeeping',
+    roles: ['housekeeping'],
+  },
+  {
+    sub: 'e0000007-0000-4000-a000-000000000001',
+    email: 'maintenance@sparkhotel.com',
+    name: 'Satish Reddy',
+    employeeId: 'EMP-SPARK-007',
+    roleTitle: 'Maintenance Staff',
+    department: 'Maintenance',
+    roles: ['maintenance'],
+  },
+];
+
+export interface AuthContextType {
   user: AuthUser | null;
   roles: string[];
   permissions: string[];
   isAuthenticated: boolean;
   isLoading: boolean;
   authEnabled: boolean;
+  login: (email: string, password?: string) => { success: boolean; error?: string };
   logout: () => void;
+  switchUser: (identifier: string) => boolean;
   hasRole: (...roles: string[]) => boolean;
   hasPermission: (...permissions: string[]) => boolean;
   /** Set the current user's effective permissions (fetched once a property is active). */
@@ -61,7 +132,9 @@ const AuthContext = createContext<AuthContextType>({
   isAuthenticated: false,
   isLoading: true,
   authEnabled: false,
+  login: () => ({ success: true }),
   logout: () => {},
+  switchUser: () => true,
   hasRole: () => true,
   hasPermission: () => true,
   setPermissions: () => {},
@@ -85,7 +158,19 @@ export function useAuth() {
  * - All role checks return true (unrestricted)
  */
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<AuthUser | null>(null);
+  const [user, setUser] = useState<AuthUser | null>(() => {
+    if (AUTH_ENABLED) return null;
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        const saved = window.localStorage.getItem('hotel_spark_active_user');
+        if (saved === 'logged_out') return null;
+        if (saved) return JSON.parse(saved);
+      }
+    } catch (e) {
+      void e;
+    }
+    return SPARK_CREDENTIAL_USERS[0];
+  });
   const [permissions, setPermissions] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(AUTH_ENABLED);
   const { toast } = useToast();
@@ -181,30 +266,77 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, [toast, t]);
 
+  const login = useCallback((email: string, _password?: string) => {
+    const cleanEmail = email.trim().toLowerCase();
+    const matched = SPARK_CREDENTIAL_USERS.find(
+      (u) =>
+        u.email.toLowerCase() === cleanEmail ||
+        u.employeeId?.toLowerCase() === cleanEmail ||
+        (cleanEmail === 'admin' && u.email === 'admin@sparkhotel.com'),
+    );
+    if (!matched) {
+      return { success: false, error: `Staff account not found for "${email}". Check credentials list.` };
+    }
+    setUser(matched);
+    if (typeof window !== 'undefined' && window.localStorage) {
+      window.localStorage.setItem('hotel_spark_active_user', JSON.stringify(matched));
+    }
+    return { success: true };
+  }, []);
+
   const logout = useCallback(() => {
     if (AUTH_ENABLED) {
       keycloak.logout({ redirectUri: window.location.origin });
+    } else {
+      setUser(null);
+      if (typeof window !== 'undefined' && window.localStorage) {
+        window.localStorage.setItem('hotel_spark_active_user', 'logged_out');
+      }
     }
+  }, []);
+
+  const switchUser = useCallback((identifier: string) => {
+    const clean = identifier.trim().toLowerCase();
+    const matched = SPARK_CREDENTIAL_USERS.find(
+      (u) =>
+        u.email.toLowerCase() === clean ||
+        u.employeeId?.toLowerCase() === clean ||
+        u.roleTitle?.toLowerCase().includes(clean),
+    );
+    if (matched) {
+      setUser(matched);
+      if (typeof window !== 'undefined' && window.localStorage) {
+        window.localStorage.setItem('hotel_spark_active_user', JSON.stringify(matched));
+      }
+      return true;
+    }
+    return false;
   }, []);
 
   const roles = user?.roles ?? [];
 
   const hasRole = useCallback(
     (...requiredRoles: string[]) => {
-      if (!AUTH_ENABLED) return true;
       if (!user) return false;
+      if (roles.includes('admin') || roles.includes('general_manager') || user.email === 'admin@sparkhotel.com') {
+        return true;
+      }
       return requiredRoles.some((role) => roles.includes(role));
     },
     [user, roles],
   );
 
-  // Permission-based gating. When auth is disabled (demo), everything is granted.
+  // Permission-based gating. When auth is disabled (demo), admin has full permissions.
   const hasPermission = useCallback(
     (...required: string[]) => {
+      if (!user) return false;
+      if (roles.includes('admin') || roles.includes('general_manager') || user.email === 'admin@sparkhotel.com') {
+        return true;
+      }
       if (!AUTH_ENABLED) return true;
       return required.every((p) => permissions.includes(p));
     },
-    [permissions],
+    [user, roles, permissions],
   );
 
   const value = useMemo<AuthContextType>(
@@ -212,15 +344,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       user,
       roles,
       permissions,
-      isAuthenticated: AUTH_ENABLED ? !!user : true,
+      isAuthenticated: !!user,
       isLoading,
       authEnabled: AUTH_ENABLED,
+      login,
       logout,
+      switchUser,
       hasRole,
       hasPermission,
       setPermissions,
     }),
-    [user, roles, permissions, isLoading, logout, hasRole, hasPermission],
+    [user, roles, permissions, isLoading, login, logout, switchUser, hasRole, hasPermission],
   );
 
   if (isLoading) {

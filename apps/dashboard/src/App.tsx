@@ -6,7 +6,9 @@ import { ErrorBoundary } from './components/ui/ErrorBoundary';
 import { SkeletonPage } from './components/ui/Skeleton';
 import { useRealtimeInvalidation } from './hooks/useRealtimeInvalidation';
 import { isBookingRequestsUiEnabled } from './lib/bookingRequestsFeature';
+import { useAuth } from './context/AuthContext';
 
+const AdminLogin = lazy(() => import('./pages/AdminLogin'));
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const FrontDesk = lazy(() => import('./pages/FrontDesk'));
 const Reservations = lazy(() => import('./pages/Reservations'));
@@ -36,6 +38,17 @@ const StaffManagement = lazy(() => import('./pages/StaffManagement'));
 
 export default function App() {
   useRealtimeInvalidation();
+  const { isAuthenticated } = useAuth();
+
+  if (!isAuthenticated) {
+    return (
+      <ErrorBoundary>
+        <Suspense fallback={<SkeletonPage />}>
+          <AdminLogin />
+        </Suspense>
+      </ErrorBoundary>
+    );
+  }
 
   return (
     <AppLayout>

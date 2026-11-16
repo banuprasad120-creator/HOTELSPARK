@@ -1,0 +1,214 @@
+import React, { useState } from 'react';
+import {
+  Lock,
+  Mail,
+  ShieldCheck,
+  CheckCircle2,
+  Sparkles,
+  ArrowRight,
+  Eye,
+  EyeOff,
+  UserCheck,
+  Building2,
+  KeyRound,
+} from 'lucide-react';
+import { useAuth, SPARK_CREDENTIAL_USERS } from '../context/AuthContext';
+
+export default function AdminLogin() {
+  const { login } = useAuth();
+  const [email, setEmail] = useState('admin@sparkhotel.com');
+  const [password, setPassword] = useState('SparkHotel@2026');
+  const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setLoading(true);
+
+    setTimeout(() => {
+      const res = login(email, password);
+      if (!res.success) {
+        setError(res.error || 'Invalid credentials');
+        setLoading(false);
+      }
+    }, 250);
+  };
+
+  const handleQuickLogin = (uEmail: string) => {
+    setEmail(uEmail);
+    setPassword('SparkHotel@2026');
+    setError(null);
+    login(uEmail, 'SparkHotel@2026');
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-[#0c1a2e] via-[#102a43] to-[#0b3c49] flex flex-col justify-center items-center p-4 sm:p-6 text-white">
+      {/* Header & Logo */}
+      <div className="w-full max-w-4xl mb-6 text-center">
+        <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-teal-500/20 border border-teal-400/40 text-teal-300 text-2xl font-bold shadow-lg shadow-teal-500/20 mb-3 backdrop-blur-md">
+          ⚡
+        </div>
+        <h1 className="text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
+          Hotel Spark
+        </h1>
+        <p className="text-teal-300 text-sm font-semibold tracking-wide uppercase mt-1">
+          Single Hotel Management System · Karimnagar
+        </p>
+        <p className="text-xs text-gray-300 max-w-md mx-auto mt-1">
+          Staff & Administrative Console access for front office, housekeeping, billing, and hotel management.
+        </p>
+      </div>
+
+      <div className="w-full max-w-4xl grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+        {/* Login Form Card */}
+        <div className="lg:col-span-6 bg-white/95 backdrop-blur-md text-gray-900 rounded-3xl p-6 sm:p-8 shadow-2xl border border-white/20 flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between mb-5">
+              <div>
+                <h2 className="text-xl font-bold text-gray-900">Staff Sign In</h2>
+                <p className="text-xs text-gray-500 mt-0.5">Enter your hotel staff credentials to continue</p>
+              </div>
+              <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-teal-100 text-teal-800 uppercase tracking-wider border border-teal-200">
+                Authorized Staff
+              </span>
+            </div>
+
+            {error && (
+              <div className="mb-4 p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs font-semibold flex items-center gap-2">
+                <span>⚠️ {error}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
+                  Email Address / Staff ID
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
+                    <Mail size={16} />
+                  </div>
+                  <input
+                    type="text"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="e.g. admin@sparkhotel.com"
+                    className="w-full pl-10 pr-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:bg-white focus:outline-none focus:border-teal-600 focus:ring-1 focus:ring-teal-600 transition"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider">
+                    Password
+                  </label>
+                  <span className="text-[11px] text-teal-700 font-semibold cursor-pointer" onClick={() => setPassword('SparkHotel@2026')}>
+                    Default: SparkHotel@2026
+                  </span>
+                </div>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
+                    <Lock size={16} />
+                  </div>
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Enter password"
+                    className="w-full pl-10 pr-10 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:bg-white focus:outline-none focus:border-teal-600 focus:ring-1 focus:ring-teal-600 transition"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-gray-400 hover:text-gray-600"
+                  >
+                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full mt-2 py-3 px-4 bg-teal-600 hover:bg-teal-700 active:bg-teal-800 text-white font-bold text-sm rounded-xl shadow-md shadow-teal-700/20 flex items-center justify-center gap-2 transition disabled:opacity-50"
+              >
+                <span>{loading ? 'Authenticating…' : 'Sign In to Admin Panel'}</span>
+                <ArrowRight size={16} />
+              </button>
+            </form>
+          </div>
+
+          <div className="pt-4 mt-4 border-t border-gray-100 flex items-center justify-between text-[11px] text-gray-400">
+            <span className="flex items-center gap-1">
+              <ShieldCheck size={14} className="text-teal-600" /> Single Hotel Isolated System
+            </span>
+            <span>Hotel Spark v0.1.0</span>
+          </div>
+        </div>
+
+        {/* Credentials & Role Switcher Directory */}
+        <div className="lg:col-span-6 bg-white/10 backdrop-blur-md rounded-3xl p-6 sm:p-8 border border-white/15 flex flex-col justify-between">
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <KeyRound size={18} className="text-teal-300" />
+              <h2 className="text-lg font-bold text-white">Official Hotel Credentials</h2>
+            </div>
+            <p className="text-xs text-gray-300 mb-4">
+              Click any role card below to instantly sign in with pre-configured staff credentials:
+            </p>
+
+            <div className="space-y-2.5">
+              {SPARK_CREDENTIAL_USERS.slice(0, 5).map((u) => {
+                const isSelected = email.toLowerCase() === u.email.toLowerCase();
+                return (
+                  <button
+                    key={u.email}
+                    type="button"
+                    onClick={() => handleQuickLogin(u.email)}
+                    className={`w-full text-left p-3 rounded-2xl border transition flex items-center justify-between group ${
+                      isSelected
+                        ? 'bg-teal-500/25 border-teal-400 shadow-md shadow-teal-500/10'
+                        : 'bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/20'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-xl bg-teal-400/20 text-teal-300 font-bold flex items-center justify-center text-xs border border-teal-400/30">
+                        {u.name.slice(0, 2).toUpperCase()}
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-sm text-white group-hover:text-teal-200 transition">
+                            {u.name}
+                          </span>
+                          <span className="text-[10px] px-2 py-0.2 rounded-full font-bold bg-teal-400/20 text-teal-300 border border-teal-400/30">
+                            {u.roleTitle}
+                          </span>
+                        </div>
+                        <div className="text-[11px] text-gray-300 font-mono mt-0.5">
+                          {u.email} · <span className="text-teal-300">Password: SparkHotel@2026</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="opacity-0 group-hover:opacity-100 transition text-teal-300 pl-2">
+                      <ArrowRight size={16} />
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="mt-4 pt-3 border-t border-white/10 text-[11px] text-gray-300 flex items-center justify-between">
+            <span>Hotel Spark · Karimnagar, Telangana</span>
+            <span className="text-teal-300 font-semibold">1-Click Fast Login Enabled</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

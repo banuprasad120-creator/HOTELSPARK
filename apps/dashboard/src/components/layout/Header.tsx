@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { useProperty } from '../../context/PropertyContext';
 import { PORTFOLIO_MODE_ID } from '../../lib/property-types';
 import { getDateLocale } from '../../lib/date-locale';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth, SPARK_CREDENTIAL_USERS } from '../../context/AuthContext';
 import { useSocket } from '../../hooks/useSocket';
 import { SUPPORTED_LANGUAGES } from '../../i18n';
 import CommandPalette, { useCommandPaletteShortcut } from '../search/CommandPalette';
@@ -20,13 +20,14 @@ interface HeaderProps {
 export default function Header({ onMenuClick }: HeaderProps) {
   const { t, i18n } = useTranslation();
   const { propertyId, setPropertyId, properties, isPortfolioMode } = useProperty();
-  const { user, roles, authEnabled, logout } = useAuth();
+  const { user, roles, logout, switchUser } = useAuth();
   const { connected } = useSocket();
   const [open, setOpen] = useState(false);
   const [langOpen, setLangOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
   const [walkInOpen, setWalkInOpen] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
 
   useCommandPaletteShortcut(() => setSearchOpen(true));
 
@@ -160,24 +161,85 @@ export default function Header({ onMenuClick }: HeaderProps) {
 
           <NotificationBell />
 
-          {authEnabled && user && (
-            <div className="flex items-center gap-2 ml-2 pl-3 border-l border-gray-200">
-              <div className="hidden sm:block text-right">
-                <p className="text-xs font-medium text-telivity-slate">{user.name || user.email}</p>
-                <p className="text-[10px] text-telivity-mid-grey capitalize">
-                  {roles.filter(r => !r.startsWith('default-')).join(', ') || t('header.user')}
-                </p>
-              </div>
-              <User size={16} className="sm:hidden text-telivity-slate" />
+          {user ? (
+            <div className="relative ml-2 pl-3 border-l border-gray-200">
               <button
-                onClick={logout}
-                className="p-1.5 rounded-lg hover:bg-red-50 transition-colors"
-                aria-label={t('header.logout')}
-                title={t('header.logout')}
+                type="button"
+                onClick={() => setUserMenuOpen(!userMenuOpen)}
+                className="flex items-center gap-2 p-1 rounded-xl hover:bg-gray-100 transition"
               >
-                <LogOut size={16} className="text-telivity-mid-grey hover:text-red-600" />
+                <div className="w-8 h-8 rounded-full bg-telivity-teal text-white font-bold text-xs flex items-center justify-center shadow-xs">
+                  {user.name.slice(0, 2).toUpperCase()}
+                </div>
+                <div className="hidden sm:block text-left">
+                  <p className="text-xs font-bold text-telivity-navy leading-tight">{user.name}</p>
+                  <p className="text-[10px] text-teal-700 font-semibold">{user.roleTitle || user.roles[0] || 'Hotel Admin'}</p>
+                </div>
+                <ChevronDown size={14} className="text-gray-400" />
               </button>
+
+              {userMenuOpen && (
+                <div className="absolute right-0 mt-2 w-72 bg-white rounded-2xl shadow-xl border border-gray-200 p-3 z-50 space-y-3">
+                  <div className="p-3 bg-gray-50 rounded-xl">
+                    <p className="font-bold text-sm text-gray-900">{user.name}</p>
+                    <p className="text-xs text-gray-500 font-mono mt-0.5">{user.email}</p>
+                    <div className="flex items-center gap-2 mt-2">
+                      <span className="px-2 py-0.5 bg-teal-100 text-teal-800 rounded text-[10px] font-bold">
+                        {user.roleTitle || 'Hotel Staff'}
+                      </span>
+                      <span className="text-[10px] text-gray-400 font-mono">{user.employeeId || 'ID: EMP-001'}</span>
+                    </div>
+                  </div>
+
+                  {/* Switch Role Fast Selection */}
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 px-1 mb-1.5">
+                      Switch Staff Account
+                    </p>
+                    <div className="grid grid-cols-1 gap-1">
+                      {SPARK_CREDENTIAL_USERS.slice(0, 5).map((u) => (
+                        <button
+                          key={u.email}
+                          type="button"
+                          onClick={() => {
+                            switchUser(u.email);
+                            setUserMenuOpen(false);
+                          }}
+                          className={`w-full text-left px-2.5 py-1.5 rounded-lg text-xs flex items-center justify-between transition ${
+                            user.email === u.email ? 'bg-teal-50 text-teal-900 font-bold' : 'hover:bg-gray-100 text-gray-700'
+                          }`}
+                        >
+                          <span>{u.name}</span>
+                          <span className="text-[10px] text-gray-400">{u.roleTitle?.split(' ')[0]}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="pt-2 border-t border-gray-100">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        logout();
+                        setUserMenuOpen(false);
+                      }}
+                      className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-bold text-red-600 hover:bg-red-50 rounded-lg transition"
+                    >
+                      <LogOut size={14} />
+                      <span>Lock & Sign Out</span>
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => logout()}
+              className="px-3 py-1.5 text-xs font-bold bg-telivity-teal text-white rounded-lg hover:bg-teal-600 transition"
+            >
+              Sign In
+            </button>
           )}
         </div>
       </header>

@@ -302,6 +302,7 @@ export default function StaffManagement() {
                   <tr className="bg-gray-50/70 border-b border-gray-200 text-gray-500 font-bold uppercase tracking-wider">
                     <th className="py-3 px-4">Employee</th>
                     <th className="py-3 px-4">Department & Role</th>
+                    <th className="py-3 px-4">Login Credentials</th>
                     <th className="py-3 px-4">Designation</th>
                     <th className="py-3 px-4">Contact</th>
                     <th className="py-3 px-4">Salary</th>
@@ -329,6 +330,16 @@ export default function StaffManagement() {
                         <span className="inline-block mt-0.5 px-2 py-0.2 bg-teal-50 text-teal-700 border border-teal-200 rounded text-[10px] font-semibold">
                           {emp.role}
                         </span>
+                      </td>
+
+                      <td className="py-3 px-4">
+                        <div className="font-mono text-gray-900 text-xs font-semibold flex items-center gap-1.5">
+                          <KeyRound size={13} className="text-teal-600" />
+                          <span>SparkHotel@2026</span>
+                        </div>
+                        <div className="text-[11px] text-teal-700 font-medium truncate max-w-[170px]" title={emp.email}>
+                          {emp.email}
+                        </div>
                       </td>
 
                       <td className="py-3 px-4 font-medium text-gray-700">{emp.designation}</td>
@@ -533,6 +544,23 @@ export default function StaffManagement() {
                 <option value="active">Active</option>
                 <option value="inactive">Inactive</option>
               </select>
+            </div>
+          </div>
+
+          <div className="p-3 bg-teal-50 border border-teal-200 rounded-xl space-y-1.5">
+            <div className="flex items-center gap-1.5 text-xs font-bold text-teal-900">
+              <KeyRound size={13} className="text-teal-700" />
+              <span>Admin Panel Login Credentials</span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+              <div>
+                <span className="text-gray-500 font-medium">Username:</span>
+                <p className="font-mono font-bold text-gray-800">{empEmail || `${empName.toLowerCase().replace(/\s+/g, '') || 'staff'}@sparkhotel.com`}</p>
+              </div>
+              <div>
+                <span className="text-gray-500 font-medium">Default Password:</span>
+                <p className="font-mono font-bold text-gray-800">SparkHotel@2026</p>
+              </div>
             </div>
           </div>
 
