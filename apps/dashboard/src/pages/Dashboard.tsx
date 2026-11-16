@@ -22,8 +22,10 @@ import {
   Wrench,
   Brush,
   IndianRupee,
+  History,
 } from 'lucide-react';
 import WalkInCheckInModal from '../components/front-desk/WalkInCheckInModal';
+import AddGuestModal from '../components/front-desk/AddGuestModal';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 import { format } from 'date-fns';
 import { api } from '../lib/api';
@@ -186,30 +188,37 @@ export default function Dashboard() {
               <span>WALK-IN CHECK-IN</span>
             </button>
             <button
-              onClick={() => navigate('/front-desk')}
+              onClick={() => navigate('/current-guests')}
+              className="flex items-center gap-2 bg-telivity-teal hover:bg-telivity-teal/90 text-white font-bold text-xs px-4 py-2.5 rounded-xl shadow transition-colors"
+            >
+              <Users size={15} />
+              <span>In-House Guests</span>
+            </button>
+            <button
+              onClick={() => navigate('/guest-history')}
+              className="flex items-center gap-2 bg-white/10 hover:bg-white/20 text-white font-medium text-xs px-3.5 py-2.5 rounded-xl backdrop-blur-sm transition-colors"
+            >
+              <History size={15} />
+              <span>Guest History</span>
+            </button>
+            <button
+              onClick={() => navigate('/rooms')}
               className="flex items-center gap-2 bg-white/10 hover:bg-white/20 text-white font-medium text-xs px-3.5 py-2.5 rounded-xl backdrop-blur-sm transition-colors"
             >
               <DoorOpen size={15} />
-              <span>Front Desk</span>
+              <span>Rooms & Rack</span>
             </button>
             <button
               onClick={() => navigate('/direct-bookings')}
               className="flex items-center gap-2 bg-white/10 hover:bg-white/20 text-white font-medium text-xs px-3.5 py-2.5 rounded-xl backdrop-blur-sm transition-colors relative"
             >
               <Globe size={15} />
-              <span>Online Bookings</span>
+              <span>Website Bookings</span>
               {pendingOnlineCount > 0 && (
                 <span className="bg-amber-500 text-white text-[10px] font-bold px-1.5 py-0.2 rounded-full">
                   {pendingOnlineCount}
                 </span>
               )}
-            </button>
-            <button
-              onClick={() => navigate('/staff')}
-              className="flex items-center gap-2 bg-white/10 hover:bg-white/20 text-white font-medium text-xs px-3.5 py-2.5 rounded-xl backdrop-blur-sm transition-colors"
-            >
-              <Briefcase size={15} />
-              <span>Staff & Depts</span>
             </button>
           </div>
         </div>
@@ -452,7 +461,7 @@ export default function Dashboard() {
       </div>
 
       {/* 6. Walk-In Check-In Modal */}
-      <WalkInCheckInModal open={walkInOpen} onClose={() => setWalkInOpen(false)} />
+      <AddGuestModal isOpen={walkInOpen} onClose={() => setWalkInOpen(false)} />
     </div>
   );
 }

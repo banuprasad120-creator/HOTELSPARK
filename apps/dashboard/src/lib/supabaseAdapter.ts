@@ -223,6 +223,312 @@ export const DEFAULT_ROOMS: StoredRoom[] = [
 ];
 
 const ROOMS_STORAGE_KEY = 'hotel_spark_rooms_list';
+const STAYS_STORAGE_KEY = 'hotel_spark_stays_list';
+const NOTIFICATIONS_STORAGE_KEY = 'hotel_spark_notifications_list';
+
+export interface StoredStay {
+  id: string;
+  propertyId: string;
+  guestName: string;
+  mobile: string;
+  email?: string;
+  address?: string;
+  city?: string;
+  state?: string;
+  idProofType: string;
+  idProofNumber: string;
+  idProofFrontUrl?: string;
+  idProofBackUrl?: string;
+  adults: number;
+  children: number;
+  roomId: string;
+  roomNumber: string;
+  roomTypeName: string;
+  checkInTime: string;
+  expectedCheckoutTime: string;
+  actualCheckoutTime?: string;
+  nights: number;
+  pricePerNight: number;
+  extraCharges: number;
+  discount: number;
+  totalAmount: number;
+  advancePaid: number;
+  previousPayments: number;
+  balance: number;
+  paymentMethod: string;
+  paymentStatus: 'paid' | 'partially_paid' | 'unpaid';
+  stayStatus: 'in_house' | 'checked_out';
+  billNumber?: string;
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface StoredNotification {
+  id: string;
+  type: string;
+  title: string;
+  message: string;
+  severity: 'info' | 'warning' | 'critical';
+  createdAt: string;
+  isRead: boolean;
+}
+
+export const DEFAULT_STAYS: StoredStay[] = [
+  {
+    id: 'stay-001',
+    propertyId: PROPERTY_ID,
+    guestName: 'Rahul Verma',
+    mobile: '+91 98490 12345',
+    email: 'rahul.verma@example.com',
+    address: 'Flat 402, Sai Residency, Jagtial Road',
+    city: 'Karimnagar',
+    state: 'Telangana',
+    idProofType: 'Aadhaar Card',
+    idProofNumber: '7823 4512 9012',
+    idProofFrontUrl: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=600&auto=format&fit=crop&q=80',
+    idProofBackUrl: 'https://images.unsplash.com/photo-1557683316-973673baf926?w=600&auto=format&fit=crop&q=80',
+    adults: 2,
+    children: 0,
+    roomId: 'r0000101-0000-4000-a000-000000000001',
+    roomNumber: '101',
+    roomTypeName: 'Deluxe King Room',
+    checkInTime: new Date(Date.now() - 24 * 3600 * 1000).toISOString(),
+    expectedCheckoutTime: new Date(Date.now() + 24 * 3600 * 1000).toISOString(),
+    nights: 2,
+    pricePerNight: 3500,
+    extraCharges: 0,
+    discount: 0,
+    totalAmount: 7000,
+    advancePaid: 5000,
+    previousPayments: 0,
+    balance: 2000,
+    paymentMethod: 'UPI',
+    paymentStatus: 'partially_paid',
+    stayStatus: 'in_house',
+    billNumber: 'INV-SPARK-2026-101',
+    notes: 'Requested quiet room away from elevator.',
+    createdAt: new Date(Date.now() - 24 * 3600 * 1000).toISOString(),
+    updatedAt: new Date(Date.now() - 24 * 3600 * 1000).toISOString(),
+  },
+  {
+    id: 'stay-002',
+    propertyId: PROPERTY_ID,
+    guestName: 'Priya Sharma',
+    mobile: '+91 98490 23456',
+    email: 'priya.s@example.com',
+    address: 'Plot 12, Jubilee Hills',
+    city: 'Hyderabad',
+    state: 'Telangana',
+    idProofType: 'Driving License',
+    idProofNumber: 'TS-02-2021-0045211',
+    idProofFrontUrl: 'https://images.unsplash.com/photo-1544717305-2782549b5136?w=600&auto=format&fit=crop&q=80',
+    idProofBackUrl: '',
+    adults: 1,
+    children: 0,
+    roomId: 'r0000102-0000-4000-a000-000000000001',
+    roomNumber: '102',
+    roomTypeName: 'Deluxe King Room',
+    checkInTime: new Date(Date.now() - 12 * 3600 * 1000).toISOString(),
+    expectedCheckoutTime: new Date(Date.now() + 12 * 3600 * 1000).toISOString(),
+    nights: 1,
+    pricePerNight: 3500,
+    extraCharges: 0,
+    discount: 0,
+    totalAmount: 3500,
+    advancePaid: 3500,
+    previousPayments: 0,
+    balance: 0,
+    paymentMethod: 'Card',
+    paymentStatus: 'paid',
+    stayStatus: 'in_house',
+    billNumber: 'INV-SPARK-2026-102',
+    notes: 'Corporate stay (Infosys).',
+    createdAt: new Date(Date.now() - 12 * 3600 * 1000).toISOString(),
+    updatedAt: new Date(Date.now() - 12 * 3600 * 1000).toISOString(),
+  },
+  {
+    id: 'stay-003',
+    propertyId: PROPERTY_ID,
+    guestName: 'Vikram Malhotra',
+    mobile: '+91 98490 34567',
+    email: 'vikram.m@example.com',
+    address: 'H.No 3-4-192, Kakatiya Colony',
+    city: 'Hanamkonda',
+    state: 'Telangana',
+    idProofType: 'Passport',
+    idProofNumber: 'V8923412',
+    idProofFrontUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=600&auto=format&fit=crop&q=80',
+    idProofBackUrl: '',
+    adults: 3,
+    children: 1,
+    roomId: 'r0000201-0000-4000-a000-000000000001',
+    roomNumber: '201',
+    roomTypeName: 'Executive Spark Suite',
+    checkInTime: new Date(Date.now() - 48 * 3600 * 1000).toISOString(),
+    expectedCheckoutTime: new Date(Date.now() + 24 * 3600 * 1000).toISOString(),
+    nights: 3,
+    pricePerNight: 6500,
+    extraCharges: 1000,
+    discount: 500,
+    totalAmount: 20000,
+    advancePaid: 10000,
+    previousPayments: 0,
+    balance: 10000,
+    paymentMethod: 'Bank Transfer',
+    paymentStatus: 'partially_paid',
+    stayStatus: 'in_house',
+    billNumber: 'INV-SPARK-2026-201',
+    notes: 'Extra bed added in master bedroom.',
+    createdAt: new Date(Date.now() - 48 * 3600 * 1000).toISOString(),
+    updatedAt: new Date(Date.now() - 48 * 3600 * 1000).toISOString(),
+  },
+  {
+    id: 'stay-004',
+    propertyId: PROPERTY_ID,
+    guestName: 'Sneha Reddy',
+    mobile: '+91 98490 45678',
+    email: 'sneha.reddy@example.com',
+    address: 'Main Road, Korutla',
+    city: 'Jagtial',
+    state: 'Telangana',
+    idProofType: 'Aadhaar Card',
+    idProofNumber: '6712 3490 1289',
+    idProofFrontUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=600&auto=format&fit=crop&q=80',
+    idProofBackUrl: '',
+    adults: 2,
+    children: 0,
+    roomId: 'r0000301-0000-4000-a000-000000000001',
+    roomNumber: '301',
+    roomTypeName: 'Standard Queen Room',
+    checkInTime: new Date(Date.now() - 18 * 3600 * 1000).toISOString(),
+    expectedCheckoutTime: new Date(Date.now() + 6 * 3600 * 1000).toISOString(),
+    nights: 1,
+    pricePerNight: 2500,
+    extraCharges: 0,
+    discount: 0,
+    totalAmount: 2500,
+    advancePaid: 2000,
+    previousPayments: 0,
+    balance: 500,
+    paymentMethod: 'Cash',
+    paymentStatus: 'partially_paid',
+    stayStatus: 'in_house',
+    billNumber: 'INV-SPARK-2026-301',
+    notes: 'Late checkout requested by 2:00 PM.',
+    createdAt: new Date(Date.now() - 18 * 3600 * 1000).toISOString(),
+    updatedAt: new Date(Date.now() - 18 * 3600 * 1000).toISOString(),
+  },
+  {
+    id: 'stay-hist-001',
+    propertyId: PROPERTY_ID,
+    guestName: 'Anil Kumar Goud',
+    mobile: '+91 98760 11223',
+    email: 'anil.goud@example.com',
+    address: 'Kishan Nagar',
+    city: 'Karimnagar',
+    state: 'Telangana',
+    idProofType: 'Aadhaar Card',
+    idProofNumber: '4455 6677 8899',
+    adults: 2,
+    children: 1,
+    roomId: 'r0000103-0000-4000-a000-000000000001',
+    roomNumber: '103',
+    roomTypeName: 'Deluxe King Room',
+    checkInTime: new Date(Date.now() - 5 * 24 * 3600 * 1000).toISOString(),
+    expectedCheckoutTime: new Date(Date.now() - 3 * 24 * 3600 * 1000).toISOString(),
+    actualCheckoutTime: new Date(Date.now() - 3 * 24 * 3600 * 1000).toISOString(),
+    nights: 2,
+    pricePerNight: 3500,
+    extraCharges: 500,
+    discount: 0,
+    totalAmount: 7500,
+    advancePaid: 4000,
+    previousPayments: 3500,
+    balance: 0,
+    paymentMethod: 'UPI',
+    paymentStatus: 'paid',
+    stayStatus: 'checked_out',
+    billNumber: 'INV-SPARK-2026-0042',
+    notes: 'Checked out cleanly.',
+    createdAt: new Date(Date.now() - 5 * 24 * 3600 * 1000).toISOString(),
+    updatedAt: new Date(Date.now() - 3 * 24 * 3600 * 1000).toISOString(),
+  },
+  {
+    id: 'stay-hist-002',
+    propertyId: PROPERTY_ID,
+    guestName: 'Sunita Rao',
+    mobile: '+91 99887 76655',
+    email: 'sunita.rao@example.com',
+    address: 'Ashok Nagar',
+    city: 'Hyderabad',
+    state: 'Telangana',
+    idProofType: 'Passport',
+    idProofNumber: 'Z1238904',
+    adults: 1,
+    children: 0,
+    roomId: 'r0000202-0000-4000-a000-000000000001',
+    roomNumber: '202',
+    roomTypeName: 'Executive Spark Suite',
+    checkInTime: new Date(Date.now() - 8 * 24 * 3600 * 1000).toISOString(),
+    expectedCheckoutTime: new Date(Date.now() - 6 * 24 * 3600 * 1000).toISOString(),
+    actualCheckoutTime: new Date(Date.now() - 6 * 24 * 3600 * 1000).toISOString(),
+    nights: 2,
+    pricePerNight: 6500,
+    extraCharges: 0,
+    discount: 1000,
+    totalAmount: 12000,
+    advancePaid: 12000,
+    previousPayments: 0,
+    balance: 0,
+    paymentMethod: 'Card',
+    paymentStatus: 'paid',
+    stayStatus: 'checked_out',
+    billNumber: 'INV-SPARK-2026-0038',
+    notes: 'Very satisfied with service.',
+    createdAt: new Date(Date.now() - 8 * 24 * 3600 * 1000).toISOString(),
+    updatedAt: new Date(Date.now() - 6 * 24 * 3600 * 1000).toISOString(),
+  },
+];
+
+export const DEFAULT_NOTIFICATIONS: StoredNotification[] = [
+  {
+    id: 'notif-1',
+    type: 'check_in',
+    title: 'Guest Checked In: Room 101',
+    message: 'Rahul Verma has checked into Room 101. Advance ₹5,000 received via UPI.',
+    severity: 'info',
+    createdAt: new Date(Date.now() - 2 * 3600 * 1000).toISOString(),
+    isRead: false,
+  },
+  {
+    id: 'notif-2',
+    type: 'payment',
+    title: 'Advance Payment Received',
+    message: '₹10,000 recorded for Vikram Malhotra in Room 201 (Executive Spark Suite).',
+    severity: 'info',
+    createdAt: new Date(Date.now() - 5 * 3600 * 1000).toISOString(),
+    isRead: false,
+  },
+  {
+    id: 'notif-3',
+    type: 'balance_due',
+    title: 'Outstanding Balance Alert',
+    message: 'Room 201 (Vikram Malhotra) has an outstanding balance of ₹10,000.',
+    severity: 'warning',
+    createdAt: new Date(Date.now() - 8 * 3600 * 1000).toISOString(),
+    isRead: false,
+  },
+  {
+    id: 'notif-4',
+    type: 'check_out',
+    title: 'Room 104 Marked Dirty',
+    message: 'Previous guest checked out. Room 104 marked VACANT DIRTY for housekeeping.',
+    severity: 'info',
+    createdAt: new Date(Date.now() - 10 * 3600 * 1000).toISOString(),
+    isRead: true,
+  },
+];
 
 export function getStoredRooms(): StoredRoom[] {
   try {
@@ -249,6 +555,81 @@ export function saveStoredRooms(rooms: StoredRoom[]) {
   } catch (e) {
     void e;
   }
+}
+
+export function getStoredStays(): StoredStay[] {
+  try {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      const saved = window.localStorage.getItem(STAYS_STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed;
+        }
+      }
+    }
+  } catch (e) {
+    void e;
+  }
+  return [...DEFAULT_STAYS];
+}
+
+export function saveStoredStays(stays: StoredStay[]) {
+  try {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      window.localStorage.setItem(STAYS_STORAGE_KEY, JSON.stringify(stays));
+    }
+  } catch (e) {
+    void e;
+  }
+}
+
+export function getStoredNotifications(): StoredNotification[] {
+  try {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      const saved = window.localStorage.getItem(NOTIFICATIONS_STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed;
+        }
+      }
+    }
+  } catch (e) {
+    void e;
+  }
+  return [...DEFAULT_NOTIFICATIONS];
+}
+
+export function saveStoredNotifications(notifs: StoredNotification[]) {
+  try {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      window.localStorage.setItem(NOTIFICATIONS_STORAGE_KEY, JSON.stringify(notifs));
+    }
+  } catch (e) {
+    void e;
+  }
+}
+
+export function addNotification(
+  title: string,
+  message: string,
+  severity: 'info' | 'warning' | 'critical' = 'info',
+  type = 'general'
+): StoredNotification {
+  const notifs = getStoredNotifications();
+  const newNotif: StoredNotification = {
+    id: `notif-${Date.now()}`,
+    type,
+    title,
+    message,
+    severity,
+    createdAt: new Date().toISOString(),
+    isRead: false,
+  };
+  const updated = [newNotif, ...notifs];
+  saveStoredNotifications(updated);
+  return newNotif;
 }
 
 export async function handleSupabaseAdapter(config: AxiosRequestConfig): Promise<AxiosResponse> {
@@ -566,44 +947,37 @@ export async function handleSupabaseAdapter(config: AxiosRequestConfig): Promise
         }
       }
 
-      try {
-        const { data: remoteRooms } = await supabaseFetch<any[]>('rooms?select=*&order=number.asc');
-        if (remoteRooms && Array.isArray(remoteRooms) && remoteRooms.length > 0) {
-          const merged = [...stored];
-          for (const rem of remoteRooms) {
-            const idx = merged.findIndex((m) => m.id === rem.id || m.number === rem.number);
-            const mappedRoom: StoredRoom = {
-              id: rem.id,
-              propertyId: rem.property_id || PROPERTY_ID,
-              roomTypeId: rem.room_type_id || DEFAULT_ROOM_TYPES[0].id,
-              roomTypeName: DEFAULT_ROOM_TYPES.find((t) => t.id === rem.room_type_id)?.name || 'Deluxe King Room',
-              number: rem.number,
-              floor: rem.floor || '1',
-              status: rem.status || 'vacant_clean',
-              hkOccupancy: rem.hk_occupancy || 'vacant',
-              isActive: rem.is_active !== false,
-              amenities: rem.amenities || ['wifi', 'tv', 'ac'],
-            };
-            if (idx >= 0) {
-              merged[idx] = { ...merged[idx], ...mappedRoom };
-            } else {
-              merged.push(mappedRoom);
+      // Sync from Supabase asynchronously in background without blocking immediate response
+      supabaseFetch<any[]>('rooms?select=*&order=number.asc')
+        .then(({ data: remoteRooms }) => {
+          if (remoteRooms && Array.isArray(remoteRooms) && remoteRooms.length > 0) {
+            const current = getStoredRooms();
+            const merged = [...current];
+            for (const rem of remoteRooms) {
+              const idx = merged.findIndex((m) => m.id === rem.id || m.number === rem.number);
+              const mappedRoom: StoredRoom = {
+                id: rem.id,
+                propertyId: rem.property_id || PROPERTY_ID,
+                roomTypeId: rem.room_type_id || DEFAULT_ROOM_TYPES[0].id,
+                roomTypeName: DEFAULT_ROOM_TYPES.find((t) => t.id === rem.room_type_id)?.name || 'Deluxe King Room',
+                number: rem.number,
+                floor: rem.floor || '1',
+                status: rem.status || 'vacant_clean',
+                hkOccupancy: rem.hk_occupancy || 'vacant',
+                isActive: rem.is_active !== false,
+                amenities: rem.amenities || ['wifi', 'tv', 'ac'],
+              };
+              if (idx >= 0) {
+                merged[idx] = { ...merged[idx], ...mappedRoom };
+              } else {
+                merged.push(mappedRoom);
+              }
             }
+            saveStoredRooms(merged);
           }
-          saveStoredRooms(merged);
-          let filteredMerged = merged;
-          if (statusFilter) {
-            if (statusFilter === 'available' || statusFilter === 'guest_ready') {
-              filteredMerged = merged.filter((r) => r.status === 'guest_ready' || r.status === 'vacant_clean' || r.status === 'clean' || r.status === 'available');
-            } else {
-              filteredMerged = merged.filter((r) => r.status.toLowerCase() === statusFilter);
-            }
-          }
-          return ok(filteredMerged);
-        }
-      } catch (err) {
-        void err;
-      }
+        })
+        .catch(() => {});
+
       return ok(result);
     }
 
@@ -940,11 +1314,74 @@ export async function handleSupabaseAdapter(config: AxiosRequestConfig): Promise
       const body = typeof config.data === 'string' ? JSON.parse(config.data || '{}') : (config.data || {});
       const confCode = `CONF-WALKIN-${Date.now().toString(36).toUpperCase()}`;
 
+      // Synchronize directly into StoredStays and StoredRooms
+      const rooms = getStoredRooms();
+      const matchedRoom = rooms.find((r) => r.id === body.roomId || r.number === body.roomNumber);
+      const guestName = body.guest?.firstName ? `${body.guest.firstName} ${body.guest.lastName || ''}`.trim() : (body.guestName || 'Guest');
+      const nights = body.stay?.nights || body.nights || 1;
+      const rate = body.stay?.nightlyRate || body.pricePerNight || 3500;
+      const advance = body.stay?.advancePaid ?? body.advancePaid ?? rate;
+      const total = body.stay?.grandTotal ?? body.totalAmount ?? (nights * rate);
+      const balance = Math.max(0, total - advance);
+
+      const newStay: StoredStay = {
+        id: `stay-${Date.now()}`,
+        propertyId: PROPERTY_ID,
+        guestName,
+        mobile: body.guest?.phone || body.mobile || '',
+        email: body.guest?.email || body.email || '',
+        address: body.guest?.address || body.address || '',
+        city: 'Karimnagar',
+        state: 'Telangana',
+        idProofType: body.guest?.idProofType || 'Aadhaar Card',
+        idProofNumber: body.guest?.idProofNumber || '',
+        adults: body.adults || 2,
+        children: body.children || 0,
+        roomId: matchedRoom?.id || body.roomId || 'r0000101-0000-4000-a000-000000000001',
+        roomNumber: matchedRoom?.number || body.roomNumber || '101',
+        roomTypeName: matchedRoom?.roomTypeName || 'Deluxe King Room',
+        checkInTime: new Date().toISOString(),
+        expectedCheckoutTime: new Date(Date.now() + nights * 24 * 3600 * 1000).toISOString(),
+        nights,
+        pricePerNight: rate,
+        extraCharges: 0,
+        discount: 0,
+        totalAmount: total,
+        advancePaid: advance,
+        previousPayments: 0,
+        balance,
+        paymentMethod: body.stay?.paymentMethod || 'UPI',
+        paymentStatus: balance === 0 ? 'paid' : 'partially_paid',
+        stayStatus: 'in_house',
+        billNumber: `INV-SPARK-${new Date().getFullYear()}-${matchedRoom?.number || '101'}`,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+
+      const stays = getStoredStays();
+      saveStoredStays([newStay, ...stays]);
+
+      if (matchedRoom) {
+        const roomIdx = rooms.findIndex((r) => r.id === matchedRoom.id);
+        if (roomIdx >= 0) {
+          rooms[roomIdx].status = 'occupied';
+          rooms[roomIdx].guestName = guestName;
+          saveStoredRooms(rooms);
+        }
+      }
+
+      addNotification(
+        `Guest Checked In: Room ${newStay.roomNumber}`,
+        `${guestName} checked in to Room ${newStay.roomNumber}. Advance paid: ₹${advance.toLocaleString('en-IN')}.`,
+        'info',
+        'check_in'
+      );
+
       if (body.roomId) {
-        await supabaseFetch(`rooms?id=eq.${body.roomId}`, {
+        supabaseFetch(`rooms?id=eq.${body.roomId}`, {
           method: 'PATCH',
           body: JSON.stringify({ status: 'occupied' }),
-        });
+        }).catch(() => {});
       }
 
       return ok({
@@ -1015,12 +1452,258 @@ export async function handleSupabaseAdapter(config: AxiosRequestConfig): Promise
     return ok(folios || []);
   }
 
+  // 17b. Stays & In-House Guest Register
+  if (url.includes('/stays') || url.includes('/in-house-guests')) {
+    const stays = getStoredStays();
+    const rooms = getStoredRooms();
+
+    // GET stays
+    if (method === 'GET') {
+      const statusParam = (config.params?.status || '').toLowerCase();
+      const searchParam = (config.params?.search || '').toLowerCase();
+
+      let filtered = stays;
+      if (statusParam) {
+        filtered = filtered.filter((s) => s.stayStatus === statusParam);
+      }
+      if (searchParam) {
+        filtered = filtered.filter(
+          (s) =>
+            s.guestName.toLowerCase().includes(searchParam) ||
+            s.mobile.includes(searchParam) ||
+            s.roomNumber.toLowerCase().includes(searchParam) ||
+            (s.billNumber && s.billNumber.toLowerCase().includes(searchParam))
+        );
+      }
+      return ok(filtered);
+    }
+
+    // POST /stays/check-in or POST /stays: Register & Check In Walk-in Guest
+    if (method === 'POST' && (url.includes('/check-in') || url.match(/\/stays(\?|$)/))) {
+      const body = typeof config.data === 'string' ? JSON.parse(config.data || '{}') : (config.data || {});
+      const roomNum = body.roomNumber || body.room_number;
+      const matchedRoom = rooms.find((r) => r.number === roomNum || r.id === body.roomId);
+
+      // Verify room is not already occupied
+      if (matchedRoom && matchedRoom.status === 'occupied') {
+        return {
+          data: { message: `Room ${matchedRoom.number} is currently occupied! Please select an available room.` },
+          status: 400,
+          statusText: 'Bad Request',
+          headers: { 'content-type': 'application/json' },
+          config: config as any,
+        };
+      }
+
+      const nights = Number(body.nights) || 1;
+      const pricePerNight = Number(body.pricePerNight) || 3500;
+      const extraCharges = Number(body.extraCharges) || 0;
+      const discount = Number(body.discount) || 0;
+      const totalAmount = nights * pricePerNight + extraCharges - discount;
+      const advancePaid = Number(body.advancePaid) || 0;
+      const balance = Math.max(0, totalAmount - advancePaid);
+      const paymentStatus = balance === 0 ? 'paid' : advancePaid > 0 ? 'partially_paid' : 'unpaid';
+
+      const newStay: StoredStay = {
+        id: `stay-${Date.now()}`,
+        propertyId: PROPERTY_ID,
+        guestName: body.guestName || 'Guest',
+        mobile: body.mobile || '',
+        email: body.email || '',
+        address: body.address || '',
+        city: body.city || 'Karimnagar',
+        state: body.state || 'Telangana',
+        idProofType: body.idProofType || 'Aadhaar Card',
+        idProofNumber: body.idProofNumber || '',
+        idProofFrontUrl: body.idProofFrontUrl || body.idProofFront || '',
+        idProofBackUrl: body.idProofBackUrl || body.idProofBack || '',
+        adults: Number(body.adults) || 1,
+        children: Number(body.children) || 0,
+        roomId: matchedRoom?.id || body.roomId || 'r0000101-0000-4000-a000-000000000001',
+        roomNumber: matchedRoom?.number || roomNum || '101',
+        roomTypeName: matchedRoom?.roomTypeName || body.roomTypeName || 'Deluxe King Room',
+        checkInTime: body.checkInTime || new Date().toISOString(),
+        expectedCheckoutTime: body.expectedCheckoutTime || new Date(Date.now() + nights * 24 * 3600 * 1000).toISOString(),
+        nights,
+        pricePerNight,
+        extraCharges,
+        discount,
+        totalAmount,
+        advancePaid,
+        previousPayments: 0,
+        balance,
+        paymentMethod: body.paymentMethod || 'Cash',
+        paymentStatus,
+        stayStatus: 'in_house',
+        billNumber: `INV-SPARK-${new Date().getFullYear()}-${matchedRoom?.number || '101'}-${Math.floor(100 + Math.random() * 900)}`,
+        notes: body.notes || '',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+
+      // 1. Save stay
+      const updatedStays = [newStay, ...stays];
+      saveStoredStays(updatedStays);
+
+      // 2. Mark Room as OCCUPIED & assign guestName
+      if (matchedRoom) {
+        const roomIdx = rooms.findIndex((r) => r.id === matchedRoom.id);
+        if (roomIdx >= 0) {
+          rooms[roomIdx].status = 'occupied';
+          rooms[roomIdx].guestName = newStay.guestName;
+          saveStoredRooms(rooms);
+
+          // Sync to Supabase
+          supabaseFetch(`rooms?id=eq.${matchedRoom.id}`, {
+            method: 'PATCH',
+            body: JSON.stringify({ status: 'occupied' }),
+          }).catch(() => {});
+        }
+      }
+
+      // 3. Trigger Instant Admin Notification
+      addNotification(
+        `Guest Checked In: Room ${newStay.roomNumber}`,
+        `${newStay.guestName} checked into Room ${newStay.roomNumber}. Advance received: ₹${newStay.advancePaid.toLocaleString('en-IN')} via ${newStay.paymentMethod}. Balance: ₹${newStay.balance.toLocaleString('en-IN')}.`,
+        'info',
+        'check_in'
+      );
+
+      // Async sync to Supabase reservations table
+      supabaseFetch('reservations', {
+        method: 'POST',
+        body: JSON.stringify({
+          property_id: PROPERTY_ID,
+          hotel_id: PROPERTY_ID,
+          primary_guest_name: newStay.guestName,
+          phone: newStay.mobile,
+          email: newStay.email,
+          room_id: newStay.roomId,
+          arrival_date: newStay.checkInTime.slice(0, 10),
+          departure_date: newStay.expectedCheckoutTime.slice(0, 10),
+          adults: newStay.adults,
+          children: newStay.children,
+          status: 'checked_in',
+          source: 'walk_in',
+          notes: newStay.notes,
+        }),
+      }).catch(() => {});
+
+      return ok({ success: true, stay: newStay });
+    }
+
+    // POST /stays/:id/checkout: Complete Guest Checkout & Bill Generation
+    if (method === 'POST' && url.includes('/checkout')) {
+      const stayIdMatch = url.match(/\/stays\/([^/?]+)\/checkout/);
+      const stayId = stayIdMatch ? stayIdMatch[1] : '';
+      const body = typeof config.data === 'string' ? JSON.parse(config.data || '{}') : (config.data || {});
+      const finalPayment = Number(body.finalPayment) || 0;
+      const paymentMethod = body.paymentMethod || 'Cash';
+
+      const stayIdx = stays.findIndex((s) => s.id === stayId);
+      if (stayIdx >= 0) {
+        const stay = stays[stayIdx];
+        const prev = stay.previousPayments || 0;
+        const newPrev = prev + finalPayment;
+        const newBalance = Math.max(0, stay.totalAmount - stay.advancePaid - newPrev);
+
+        stays[stayIdx] = {
+          ...stay,
+          actualCheckoutTime: new Date().toISOString(),
+          previousPayments: newPrev,
+          balance: newBalance,
+          paymentStatus: newBalance === 0 ? 'paid' : 'partially_paid',
+          stayStatus: 'checked_out',
+          updatedAt: new Date().toISOString(),
+        };
+        saveStoredStays(stays);
+
+        // Mark Room as VACANT DIRTY and clear guest
+        const roomIdx = rooms.findIndex((r) => r.id === stay.roomId || r.number === stay.roomNumber);
+        if (roomIdx >= 0) {
+          rooms[roomIdx].status = 'vacant_dirty';
+          rooms[roomIdx].guestName = undefined;
+          saveStoredRooms(rooms);
+
+          supabaseFetch(`rooms?id=eq.${rooms[roomIdx].id}`, {
+            method: 'PATCH',
+            body: JSON.stringify({ status: 'vacant_dirty' }),
+          }).catch(() => {});
+        }
+
+        // Trigger Admin Notification
+        addNotification(
+          `Guest Checked Out: Room ${stay.roomNumber}`,
+          `${stay.guestName} checked out of Room ${stay.roomNumber}. Final payment: ₹${finalPayment.toLocaleString('en-IN')} via ${paymentMethod}. Room is now marked DIRTY for housekeeping.`,
+          'info',
+          'check_out'
+        );
+
+        return ok({ success: true, stay: stays[stayIdx] });
+      }
+      return ok({ success: false, message: 'Stay record not found' });
+    }
+
+    // POST /stays/:id/payment: Collect Additional / Interim Payment
+    if (method === 'POST' && url.includes('/payment')) {
+      const stayIdMatch = url.match(/\/stays\/([^/?]+)\/payment/);
+      const stayId = stayIdMatch ? stayIdMatch[1] : '';
+      const body = typeof config.data === 'string' ? JSON.parse(config.data || '{}') : (config.data || {});
+      const amount = Number(body.amount) || 0;
+      const paymentMethod = body.paymentMethod || 'Cash';
+
+      const stayIdx = stays.findIndex((s) => s.id === stayId);
+      if (stayIdx >= 0) {
+        const stay = stays[stayIdx];
+        const newPrev = (stay.previousPayments || 0) + amount;
+        const newBalance = Math.max(0, stay.totalAmount - stay.advancePaid - newPrev);
+
+        stays[stayIdx] = {
+          ...stay,
+          previousPayments: newPrev,
+          balance: newBalance,
+          paymentStatus: newBalance === 0 ? 'paid' : 'partially_paid',
+          updatedAt: new Date().toISOString(),
+        };
+        saveStoredStays(stays);
+
+        addNotification(
+          `Payment Received: Room ${stay.roomNumber}`,
+          `₹${amount.toLocaleString('en-IN')} received via ${paymentMethod} for ${stay.guestName}. Remaining balance: ₹${newBalance.toLocaleString('en-IN')}.`,
+          'info',
+          'payment'
+        );
+
+        return ok({ success: true, stay: stays[stayIdx] });
+      }
+      return ok({ success: false, message: 'Stay record not found' });
+    }
+  }
+
   // 18. Staff Notifications
   if (url.includes('/staff-notifications')) {
+    const notifs = getStoredNotifications();
     if (url.includes('/unread-count')) {
-      return ok({ count: 0 });
+      const unread = notifs.filter((n) => !n.isRead).length;
+      return ok({ count: unread });
     }
-    return ok([]);
+
+    if (method === 'PATCH') {
+      if (url.includes('/read-all')) {
+        const updated = notifs.map((n) => ({ ...n, isRead: true }));
+        saveStoredNotifications(updated);
+        return ok({ success: true, unread: 0 });
+      }
+      const match = url.match(/\/staff-notifications\/([^/?]+)\/read/);
+      if (match) {
+        const id = match[1];
+        const updated = notifs.map((n) => (n.id === id ? { ...n, isRead: true } : n));
+        saveStoredNotifications(updated);
+        return ok({ success: true, id });
+      }
+    }
+
+    return ok(notifs);
   }
 
   // 19. Organizations
@@ -1069,34 +1752,41 @@ export async function handleSupabaseAdapter(config: AxiosRequestConfig): Promise
 
   // 23. Reports & Dashboard KPIs
   if (url.includes('/reports/financial-summary')) {
-    const { data: reqs } = await supabaseFetch<any[]>('booking_requests?select=submitted_total,status');
-    let totalRevenue = 28500;
-    if (reqs && Array.isArray(reqs)) {
-      const sum = reqs.reduce((acc, r) => acc + (Number(r.submitted_total) || 0), 0);
-      if (sum > 0) totalRevenue = sum;
-    }
+    const stays = getStoredStays();
+    const rooms = getStoredRooms();
+    const totalCollected = stays.reduce((sum, s) => sum + (s.advancePaid || 0) + (s.previousPayments || 0), 0);
+    const pendingBalance = stays.filter((s) => s.stayStatus === 'in_house').reduce((sum, s) => sum + (s.balance || 0), 0);
+    const occupied = rooms.filter((r) => r.status === 'occupied').length;
+    const occRate = rooms.length > 0 ? Math.round((occupied / rooms.length) * 100) : 40;
+
     return ok({
       kpis: {
-        totalRevenue,
-        monthlyRevenue: totalRevenue * 3,
-        pendingPayments: 7000,
+        totalRevenue: totalCollected,
+        monthlyRevenue: totalCollected * 2.5,
+        pendingPayments: pendingBalance,
         adr: 3500,
-        revpar: 2450,
-        occupancyRate: 70,
+        revpar: Math.round(totalCollected / (rooms.length || 1)),
+        occupancyRate: occRate,
       },
     });
   }
 
   if (url.includes('/reports/occupancy')) {
     const rooms = getStoredRooms();
+    const stays = getStoredStays();
     const total = rooms.length;
     const occupied = rooms.filter((r) => r.status === 'occupied').length;
     const available = rooms.filter((r) => r.status === 'vacant_clean' || r.status === 'clean' || r.status === 'available').length;
+    const dirty = rooms.filter((r) => r.status === 'vacant_dirty').length;
     const occRate = total > 0 ? Math.round((occupied / total) * 100) : 0;
+    const inHouseCount = stays.filter((s) => s.stayStatus === 'in_house').length;
+
     return ok({
       occupancyRate: occRate,
       occupiedRooms: occupied,
       availableRooms: available,
+      dirtyRooms: dirty,
+      currentlyStaying: inHouseCount,
       totalRooms: total,
       arrivals: 2,
       departures: 1,

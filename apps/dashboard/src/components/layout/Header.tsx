@@ -12,6 +12,7 @@ import CommandPalette, { useCommandPaletteShortcut } from '../search/CommandPale
 import NotificationBell from '../notifications/NotificationBell';
 import HelpPanel from '../help/HelpPanel';
 import WalkInCheckInModal from '../front-desk/WalkInCheckInModal';
+import AddGuestModal from '../front-desk/AddGuestModal';
 
 interface HeaderProps {
   onMenuClick: () => void;
@@ -246,7 +247,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
 
       <CommandPalette open={searchOpen} onClose={() => setSearchOpen(false)} />
       <HelpPanel open={helpOpen} onClose={() => setHelpOpen(false)} />
-      <WalkInCheckInModal open={walkInOpen} onClose={() => setWalkInOpen(false)} />
+      <AddGuestModal isOpen={walkInOpen} onClose={() => setWalkInOpen(false)} />
     </>
   );
 }

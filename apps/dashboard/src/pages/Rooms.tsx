@@ -5,6 +5,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { DoorOpen, LayoutGrid, List, Plus, X, Image as ImageIcon, AlertTriangle, Pencil, Tags, IndianRupee, Check, Sparkles } from 'lucide-react';
 import { api } from '../lib/api';
+import { getStoredRooms } from '../lib/supabaseAdapter';
 import { moneyString, requirePropertyId } from '../lib/api-helpers';
 import { useProperty } from '../context/PropertyContext';
 import { useAuth } from '../context/AuthContext';
@@ -369,7 +370,8 @@ function RoomList() {
 
   const rooms: Room[] = useMemo(() => {
     const raw = roomsData?.data ?? roomsData;
-    return Array.isArray(raw) ? raw : [];
+    if (Array.isArray(raw) && raw.length > 0) return raw;
+    return getStoredRooms();
   }, [roomsData]);
 
   const summary: StatusCount[] = useMemo(() => {

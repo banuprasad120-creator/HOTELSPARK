@@ -1,304 +1,239 @@
 import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import {
-  LogOut,
-  Receipt,
-  Printer,
-  FileText,
-  DollarSign,
-  AlertCircle,
-  Sparkles,
-  QrCode,
-  Building2,
-  Banknote,
-  CreditCard,
-  CheckCircle2,
-  Plus,
-} from 'lucide-react';
+import { X, LogOut, IndianRupee, Sparkles, CheckCircle2, AlertCircle, CreditCard } from 'lucide-react';
 import { api } from '../../lib/api';
 import { useProperty } from '../../context/PropertyContext';
-import { formatMoney } from '../../lib/money';
-import Modal from '../ui/Modal';
+import { useToast } from '../ui/Toast';
+import type { StoredStay } from '../../lib/supabaseAdapter';
 
-interface CheckOutModalProps {
-  open: boolean;
-  reservation: any;
+interface CheckoutModalProps {
+  stay: StoredStay | null;
+  isOpen: boolean;
   onClose: () => void;
-  onSuccess?: () => void;
+  onCheckoutSuccess: (updatedStay: StoredStay) => void;
 }
 
-export default function CheckOutModal({ open, reservation, onClose, onSuccess }: CheckOutModalProps) {
-  const { propertyId, currencyCode } = useProperty();
+export default function CheckoutModal({ stay, isOpen, onClose, onCheckoutSuccess }: CheckoutModalProps) {
+  const { propertyId } = useProperty();
   const queryClient = useQueryClient();
+  const { toast } = useToast();
 
-  const [additionalCharges, setAdditionalCharges] = useState<number>(0);
-  const [additionalChargeDesc, setAdditionalChargeDesc] = useState('');
-  const [discount, setDiscount] = useState<number>(0);
-  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'upi' | 'card' | 'bank_transfer'>('upi');
-  const [checkoutComplete, setCheckoutComplete] = useState<any | null>(null);
-  const [errorMsg, setErrorMsg] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState<'Cash' | 'UPI' | 'Card' | 'Bank Transfer'>('Cash');
+  const [finalPayment, setFinalPayment] = useState<string>(() => (stay ? String(Math.max(0, stay.balance || 0)) : '0'));
+  const [discountAdjustment, setDiscountAdjustment] = useState<number>(0);
+  const [extraChargesAdjustment, setExtraChargesAdjustment] = useState<number>(0);
 
-  if (!reservation) return null;
+  if (!isOpen || !stay) return null;
 
-  const roomSubtotal = Number(reservation.totalAmount || 3500);
-  const advancePaid = Number(reservation.advancePaid || 3500);
-  const taxes = Math.round((roomSubtotal + additionalCharges - discount) * 0.12);
-  const finalTotal = Math.max(0, roomSubtotal + additionalCharges - discount + taxes);
-  const remainingBalance = Math.max(0, finalTotal - advancePaid);
+  const currentBalance = Math.max(0, (stay.balance || 0) + extraChargesAdjustment - discountAdjustment);
+  const roomCharges = (stay.nights || 1) * (stay.pricePerNight || 0);
 
-  const checkOutMutation = useMutation({
-    mutationFn: async () => {
-      setErrorMsg('');
-      const res = await api.post(
-        `/v1/reservations/${reservation.id}/checkout`,
-        {
+  const checkoutMutation = useMutation({
+    mutationFn: () => {
+      const payAmt = Number(finalPayment) || 0;
+      return api
+        .post(`/v1/stays/${stay.id}/checkout`, {
+          finalPayment: payAmt,
+          paymentMethod,
           propertyId,
-          reservationId: reservation.id,
-          roomId: reservation.roomId || reservation.assignedRoomId,
-          roomNumber: reservation.assignedRoomNumber || reservation.roomNumber || '101',
-          guestName: reservation.guestName,
-          settlement: {
-            roomCharges: roomSubtotal,
-            additionalCharges,
-            discount,
-            taxes,
-            finalTotal,
-            advancePaid,
-            settledAmount: remainingBalance,
-            paymentMethod,
-            settledAt: new Date().toISOString(),
-          },
-        },
-        { skipErrorToast: true },
-      );
-      return res.data;
+        })
+        .then((r) => r.data?.stay || r.data);
     },
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['reservations'] });
+    onSuccess: (updatedStay: StoredStay) => {
+      toast('success', `Guest ${stay.guestName} successfully checked out from Room ${stay.roomNumber}! Room is marked DIRTY for housekeeping.`);
+      queryClient.invalidateQueries({ queryKey: ['stays'] });
       queryClient.invalidateQueries({ queryKey: ['rooms'] });
-      queryClient.invalidateQueries({ queryKey: ['housekeeping'] });
-      queryClient.invalidateQueries({ queryKey: ['reports'] });
-
-      setCheckoutComplete({
-        invoiceNumber: `INV-SPARK-${Date.now().toString(36).toUpperCase()}`,
-        guestName: reservation.guestName,
-        roomNumber: reservation.assignedRoomNumber || reservation.roomNumber || '101',
-        finalTotal,
-        settledAmount: remainingBalance,
-        paymentMethod,
-      });
-
-      if (onSuccess) onSuccess();
+      queryClient.invalidateQueries({ queryKey: ['rooms', 'status-summary'] });
+      queryClient.invalidateQueries({ queryKey: ['staff-notifications'] });
+      queryClient.invalidateQueries({ queryKey: ['staff-notifications-unread'] });
+      onCheckoutSuccess(updatedStay || { ...stay, stayStatus: 'checked_out', balance: 0 });
     },
     onError: (err: any) => {
-      setErrorMsg(err.message || 'Checkout failed.');
+      toast('error', err?.response?.data?.message || 'Failed to complete checkout. Please try again.');
     },
   });
 
   return (
-    <Modal
-      open={open}
-      onClose={onClose}
-      title="🏨 Spark Hotel · Guest Check-Out & Final Settlement"
-      wide
-    >
-      {checkoutComplete ? (
-        <div className="space-y-6 py-2 text-center">
-          <div className="rounded-2xl border border-emerald-300 bg-linear-to-b from-emerald-50 to-teal-50 p-6 shadow-xs">
-            <div className="mx-auto w-12 h-12 bg-emerald-100 text-emerald-700 rounded-full flex items-center justify-center mb-3">
-              <CheckCircle2 size={26} />
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 overflow-y-auto">
+      <div className="relative w-full max-w-lg bg-white rounded-2xl shadow-2xl overflow-hidden my-8 border border-gray-100">
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 bg-telivity-navy text-white">
+          <div className="flex items-center gap-2.5">
+            <div className="p-2 rounded-lg bg-rose-500/20 text-rose-300">
+              <LogOut size={18} />
             </div>
-            <span className="inline-block px-3 py-1 bg-emerald-100 text-emerald-800 rounded-full text-xs font-bold uppercase tracking-wider mb-2">
-              Guest Checked Out · Folio Settled
-            </span>
-            <h2 className="text-2xl font-black text-gray-900 tracking-tight">
-              Room {checkoutComplete.roomNumber} Marked DIRTY
-            </h2>
-            <p className="text-xs text-teal-800 font-semibold mt-1">
-              ✨ Cleaning task generated for Housekeeping Team!
-            </p>
-
-            <div className="mt-4 p-4 rounded-xl bg-white border border-emerald-200 text-left grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
-              <div>
-                <span className="text-gray-400 block font-medium">Invoice Number</span>
-                <span className="font-bold text-gray-900 text-sm">{checkoutComplete.invoiceNumber}</span>
-              </div>
-              <div>
-                <span className="text-gray-400 block font-medium">Guest Name</span>
-                <span className="font-bold text-gray-900 text-sm">{checkoutComplete.guestName}</span>
-              </div>
-              <div>
-                <span className="text-gray-400 block font-medium">Total Bill</span>
-                <span className="font-bold text-gray-900 text-sm">{formatMoney(checkoutComplete.finalTotal, currencyCode)}</span>
-              </div>
-              <div>
-                <span className="text-gray-400 block font-medium">Settled Upon Departure</span>
-                <span className="font-bold text-emerald-700 text-sm">{formatMoney(checkoutComplete.settledAmount, currencyCode)}</span>
-              </div>
-            </div>
-
-            <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
-              <button
-                type="button"
-                onClick={() => window.print()}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-gray-900 hover:bg-black text-white text-xs font-semibold rounded-lg transition"
-              >
-                <Printer size={15} />
-                <span>Print Final Tax Invoice</span>
-              </button>
-              <button
-                type="button"
-                onClick={onClose}
-                className="inline-flex items-center gap-1.5 px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold rounded-lg transition"
-              >
-                <span>Close</span>
-              </button>
+            <div>
+              <h2 className="font-bold text-base">Guest Check-Out & Settlement</h2>
+              <p className="text-xs text-white/70">Room {stay.roomNumber} — {stay.guestName}</p>
             </div>
           </div>
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-white/10 text-white/70 hover:text-white transition">
+            <X size={18} />
+          </button>
         </div>
-      ) : (
-        <div className="space-y-5">
-          {errorMsg && (
-            <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-red-700 text-xs font-medium">
-              {errorMsg}
-            </div>
-          )}
 
-          {/* STAY SUMMARY */}
-          <div className="rounded-xl border border-gray-200 bg-gray-50/50 p-4 grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
-            <div>
-              <span className="text-gray-400 block font-medium">Guest Name</span>
-              <span className="font-bold text-gray-900 text-sm">{reservation.guestName}</span>
+        {/* Content */}
+        <div className="p-6 space-y-5">
+          {/* Stay Info Card */}
+          <div className="bg-telivity-teal/5 border border-telivity-teal/20 rounded-xl p-4 text-xs space-y-1.5">
+            <div className="flex justify-between items-center">
+              <span className="text-telivity-mid-grey">Guest Name:</span>
+              <span className="font-bold text-telivity-navy text-sm">{stay.guestName}</span>
             </div>
-            <div>
-              <span className="text-gray-400 block font-medium">Room Assigned</span>
-              <span className="font-bold text-teal-700 text-sm">Room {reservation.assignedRoomNumber || '101'}</span>
+            <div className="flex justify-between items-center">
+              <span className="text-telivity-mid-grey">Mobile Number:</span>
+              <span className="font-medium text-telivity-slate">{stay.mobile}</span>
             </div>
-            <div>
-              <span className="text-gray-400 block font-medium">Stay Period</span>
-              <span className="font-bold text-gray-800 text-xs">{reservation.arrivalDate} → {reservation.departureDate}</span>
+            <div className="flex justify-between items-center">
+              <span className="text-telivity-mid-grey">Room Category:</span>
+              <span className="font-medium text-telivity-slate">Room {stay.roomNumber} ({stay.roomTypeName})</span>
             </div>
-            <div>
-              <span className="text-gray-400 block font-medium">Advance Paid</span>
-              <span className="font-bold text-emerald-700 text-sm">{formatMoney(advancePaid, currencyCode)}</span>
+            <div className="flex justify-between items-center">
+              <span className="text-telivity-mid-grey">Check-In Date:</span>
+              <span className="font-medium text-telivity-slate">
+                {new Date(stay.checkInTime).toLocaleDateString('en-IN', { dateStyle: 'medium' })} ({stay.nights} Nights)
+              </span>
             </div>
           </div>
 
-          {/* ADDITIONAL CHARGES & DISCOUNTS */}
-          <div className="rounded-xl border border-gray-200 bg-white p-4 space-y-3">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-telivity-navy">
-              Additional Charges & Discounts
-            </h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">
-                  Additional Services (Minibar, Room Service, Laundry)
-                </label>
-                <input
-                  type="number"
-                  placeholder="0.00"
-                  value={additionalCharges || ''}
-                  onChange={(e) => setAdditionalCharges(Number(e.target.value))}
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm font-semibold"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">
-                  Manager Discount / Promotional Rebate
-                </label>
-                <input
-                  type="number"
-                  placeholder="0.00"
-                  value={discount || ''}
-                  onChange={(e) => setDiscount(Number(e.target.value))}
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm font-semibold text-emerald-700"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* FINAL SETTLEMENT BREAKDOWN */}
-          <div className="rounded-xl border border-teal-200 bg-teal-50/40 p-4 space-y-3">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-teal-900">
-              Final Checkout Settlement Breakdown
-            </h3>
-            <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 bg-white p-3 rounded-xl border border-teal-100 text-xs">
-              <div>
-                <span className="text-gray-400 block">Room Charges</span>
-                <span className="font-bold text-gray-900 text-sm">{formatMoney(roomSubtotal, currencyCode)}</span>
-              </div>
-              <div>
-                <span className="text-gray-400 block">Extras</span>
-                <span className="font-bold text-gray-900 text-sm">+{formatMoney(additionalCharges, currencyCode)}</span>
-              </div>
-              <div>
-                <span className="text-gray-400 block">GST Taxes (12%)</span>
-                <span className="font-bold text-gray-900 text-sm">+{formatMoney(taxes, currencyCode)}</span>
-              </div>
-              <div>
-                <span className="text-gray-400 block">Advance Credit</span>
-                <span className="font-bold text-emerald-700 text-sm">-{formatMoney(advancePaid, currencyCode)}</span>
-              </div>
-              <div>
-                <span className="text-orange-600 font-bold block">Remaining Due</span>
-                <span className="font-black text-orange-600 text-base">{formatMoney(remainingBalance, currencyCode)}</span>
-              </div>
+          {/* Charges Breakdown */}
+          <div className="border border-gray-200 rounded-xl p-4 text-xs space-y-2">
+            <h3 className="font-bold uppercase tracking-wider text-telivity-slate text-[11px] mb-2">Folio Charges Calculation</h3>
+            
+            <div className="flex justify-between text-telivity-slate">
+              <span>Room Tariff ({stay.nights} Nights × ₹{stay.pricePerNight?.toLocaleString('en-IN')}):</span>
+              <span className="font-semibold text-telivity-navy">₹{roomCharges.toLocaleString('en-IN')}</span>
             </div>
 
-            {remainingBalance > 0 && (
-              <div className="pt-2">
-                <label className="block text-xs font-bold text-gray-700 mb-1">
-                  Payment Method for Departure Settlement:
-                </label>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                  {[
-                    { id: 'upi', label: 'UPI QR (GPay/PhonePe)', icon: QrCode },
-                    { id: 'cash', label: 'Cash at Desk', icon: Banknote },
-                    { id: 'card', label: 'Credit / Debit Card', icon: CreditCard },
-                    { id: 'bank_transfer', label: 'Bank Transfer', icon: Building2 },
-                  ].map((m) => (
-                    <button
-                      key={m.id}
-                      type="button"
-                      onClick={() => setPaymentMethod(m.id as any)}
-                      className={`flex items-center gap-2 p-2.5 rounded-lg border text-xs font-semibold transition ${
-                        paymentMethod === m.id
-                          ? 'border-teal-600 bg-teal-100/70 text-teal-900 ring-1 ring-teal-600'
-                          : 'border-gray-200 bg-white hover:bg-gray-50'
-                      }`}
-                    >
-                      <m.icon size={15} />
-                      <span>{m.label}</span>
-                    </button>
-                  ))}
-                </div>
+            {stay.extraCharges > 0 && (
+              <div className="flex justify-between text-telivity-slate">
+                <span>Additional Charges:</span>
+                <span className="font-semibold text-telivity-navy">₹{stay.extraCharges.toLocaleString('en-IN')}</span>
               </div>
             )}
+
+            {stay.discount > 0 && (
+              <div className="flex justify-between text-emerald-700">
+                <span>Discount Applied:</span>
+                <span className="font-semibold">-₹{stay.discount.toLocaleString('en-IN')}</span>
+              </div>
+            )}
+
+            <div className="flex justify-between font-bold text-sm text-telivity-navy pt-2 border-t border-gray-100">
+              <span>Total Bill Amount:</span>
+              <span>₹{stay.totalAmount?.toLocaleString('en-IN')}</span>
+            </div>
+
+            <div className="flex justify-between text-emerald-700 font-medium pt-1">
+              <span>Advance Paid ({stay.paymentMethod}):</span>
+              <span>-₹{stay.advancePaid?.toLocaleString('en-IN')}</span>
+            </div>
+
+            {stay.previousPayments > 0 && (
+              <div className="flex justify-between text-emerald-700 font-medium">
+                <span>Previous Interim Payments:</span>
+                <span>-₹{stay.previousPayments?.toLocaleString('en-IN')}</span>
+              </div>
+            )}
+
+            <div className="flex justify-between items-center pt-2 border-t-2 border-gray-200 font-bold text-sm">
+              <span className="text-rose-700">Current Outstanding Balance:</span>
+              <span className="text-rose-700 text-base">₹{currentBalance.toLocaleString('en-IN')}</span>
+            </div>
           </div>
 
-          {/* ACTIONS */}
-          <div className="flex items-center justify-end gap-3 pt-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2.5 rounded-xl border border-gray-300 text-gray-700 text-sm font-medium hover:bg-gray-100 transition"
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              onClick={() => checkOutMutation.mutate()}
-              disabled={checkOutMutation.isPending}
-              className="px-6 py-2.5 rounded-xl bg-orange-600 hover:bg-orange-700 text-white text-sm font-bold shadow-md hover:shadow-lg transition flex items-center gap-2"
-            >
-              <LogOut size={16} />
-              <span>
-                {checkOutMutation.isPending ? 'Processing Check-Out…' : 'Complete Checkout & Mark Room Dirty'}
-              </span>
-            </button>
+          {/* Final Payment Input */}
+          <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 space-y-3">
+            <label className="block text-xs font-bold text-telivity-navy uppercase tracking-wider">
+              Collect Final Payment at Check-Out
+            </label>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-[11px] text-telivity-mid-grey mb-1">Final Amount (₹)</label>
+                <div className="relative">
+                  <span className="absolute left-3 top-2.5 text-gray-500 font-semibold text-xs">₹</span>
+                  <input
+                    type="number"
+                    value={finalPayment}
+                    onChange={(e) => setFinalPayment(e.target.value)}
+                    className="w-full pl-7 pr-3 py-2 bg-white border border-gray-300 rounded-lg text-sm font-bold text-telivity-navy focus:outline-none focus:border-telivity-teal"
+                    placeholder="0"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[11px] text-telivity-mid-grey mb-1">Payment Method</label>
+                <select
+                  value={paymentMethod}
+                  onChange={(e) => setPaymentMethod(e.target.value as any)}
+                  className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-xs font-semibold text-telivity-navy focus:outline-none focus:border-telivity-teal"
+                >
+                  <option value="Cash">Cash (Counter)</option>
+                  <option value="UPI">UPI (GPay / PhonePe / QR)</option>
+                  <option value="Card">Credit / Debit Card</option>
+                  <option value="Bank Transfer">Bank Transfer / IMPS</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="flex gap-2 pt-1">
+              <button
+                type="button"
+                onClick={() => setFinalPayment(String(currentBalance))}
+                className="px-2.5 py-1 text-[11px] bg-white border border-gray-300 hover:border-telivity-teal rounded-md font-medium text-telivity-slate transition"
+              >
+                Pay Full Balance (₹{currentBalance.toLocaleString('en-IN')})
+              </button>
+              <button
+                type="button"
+                onClick={() => setFinalPayment('0')}
+                className="px-2.5 py-1 text-[11px] bg-white border border-gray-300 hover:border-telivity-teal rounded-md font-medium text-telivity-slate transition"
+              >
+                Zero Balance / Pre-settled
+              </button>
+            </div>
+          </div>
+
+          {/* Housekeeping Action Notice */}
+          <div className="flex items-start gap-2.5 p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-xs">
+            <AlertCircle size={16} className="mt-0.5 shrink-0 text-amber-600" />
+            <div>
+              <p className="font-semibold">Automatic Room & Housekeeping Transition</p>
+              <p className="text-[11px] text-amber-700 mt-0.5">
+                Upon confirmation, Room {stay.roomNumber} will automatically be changed to <span className="font-bold">VACANT DIRTY</span> and an automatic cleaning alert will be assigned to Housekeeping.
+              </p>
+            </div>
           </div>
         </div>
-      )}
-    </Modal>
+
+        {/* Footer Actions */}
+        <div className="flex items-center justify-end gap-3 px-6 py-4 bg-gray-50 border-t border-gray-100">
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-4 py-2 rounded-xl border border-gray-300 text-xs font-semibold text-telivity-slate hover:bg-gray-100 transition"
+          >
+            Cancel
+          </button>
+
+          <button
+            type="button"
+            onClick={() => checkoutMutation.mutate()}
+            disabled={checkoutMutation.isPending}
+            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-telivity-teal hover:bg-telivity-light-teal text-white text-xs font-bold shadow-md transition disabled:opacity-50"
+          >
+            {checkoutMutation.isPending ? (
+              'Processing Checkout...'
+            ) : (
+              <>
+                <CheckCircle2 size={16} /> Confirm Checkout & Generate Bill
+              </>
+            )}
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }

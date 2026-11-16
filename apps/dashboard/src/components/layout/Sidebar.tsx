@@ -56,25 +56,24 @@ const NAV_SECTIONS: NavSection[] = [
   {
     items: [
       { to: '/', icon: LayoutDashboard, labelKey: 'nav.dashboard', permission: 'dashboard.view' },
+      { to: '/current-guests', icon: Users, labelKey: 'In-House Guests', permission: 'frontdesk.access' },
       { to: '/front-desk', icon: ConciergeBell, labelKey: 'nav.frontDesk', permission: 'frontdesk.access' },
-      { to: '/booking-requests', icon: ClipboardList, labelKey: 'nav.bookingRequests', permission: 'reservations.read' },
-      { to: '/reservations', icon: CalendarDays, labelKey: 'nav.reservations', permission: 'reservations.read' },
-      { to: '/guests', icon: Users, labelKey: 'nav.guests', permission: 'guests.read' },
-      { to: '/staff', icon: Briefcase, labelKey: 'Departments & Staff', permission: 'admin.users.manage' },
       { to: '/rooms', icon: DoorOpen, labelKey: 'nav.rooms', permission: 'rooms.read' },
       { to: '/rooms/types', icon: Tags, labelKey: 'Room Categories & Pricing', permission: 'rooms.read' },
+      { to: '/guest-history', icon: History, labelKey: 'Guest History', permission: 'guests.read' },
       { to: '/housekeeping', icon: Sparkles, labelKey: 'nav.housekeeping', permission: 'housekeeping.read' },
       { to: '/folios', icon: Receipt, labelKey: 'nav.foliosBilling', permission: 'folios.read' },
+      { to: '/staff', icon: Briefcase, labelKey: 'Departments & Staff', permission: 'admin.users.manage' },
     ],
   },
   {
     sectionKey: 'nav.directBookingManagement',
     items: [
       { to: '/direct-bookings', icon: Inbox, labelKey: 'nav.directBookingRequests', permission: 'reservations.read' },
+      { to: '/booking-requests', icon: ClipboardList, labelKey: 'nav.bookingRequests', permission: 'reservations.read' },
       { to: '/direct-bookings/pending', icon: Clock, labelKey: 'nav.directBookingPending', permission: 'reservations.read' },
       { to: '/direct-bookings/approved', icon: CheckCircle2, labelKey: 'nav.directBookingApproved', permission: 'reservations.read' },
       { to: '/direct-bookings/rejected', icon: XCircle, labelKey: 'nav.directBookingRejected', permission: 'reservations.read' },
-      { to: '/direct-bookings/history', icon: History, labelKey: 'nav.directBookingHistory', permission: 'reservations.read' },
     ],
   },
   {
