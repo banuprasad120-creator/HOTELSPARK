@@ -66,13 +66,14 @@ const STATUS_CARD_COLORS: Record<string, string> = {
 };
 
 const VALID_TRANSITIONS: Record<string, string[]> = {
-  vacant_dirty: ['clean'],
-  clean: ['inspected', 'out_of_order', 'out_of_service'],
-  inspected: ['guest_ready', 'out_of_order'],
-  guest_ready: ['occupied', 'out_of_order', 'out_of_service'],
-  occupied: ['vacant_dirty'],
-  out_of_order: ['vacant_dirty'],
-  out_of_service: ['vacant_dirty'],
+  vacant_clean: ['occupied', 'guest_ready', 'out_of_order', 'vacant_dirty'],
+  vacant_dirty: ['clean', 'out_of_order'],
+  clean: ['vacant_clean', 'inspected', 'guest_ready', 'out_of_order'],
+  inspected: ['guest_ready', 'vacant_clean', 'out_of_order'],
+  guest_ready: ['occupied', 'vacant_clean', 'out_of_order', 'out_of_service'],
+  occupied: ['vacant_dirty', 'out_of_order'],
+  out_of_order: ['vacant_clean', 'clean', 'vacant_dirty'],
+  out_of_service: ['vacant_clean', 'clean', 'vacant_dirty'],
 };
 
 // ---- Room Detail Slide-Over ----
@@ -120,6 +121,19 @@ function RoomDetailPanel({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['rooms'] });
       toast('success', t('rooms.featuresUpdated'));
+    },
+  });
+
+  const deleteRoomMutation = useMutation({
+    mutationFn: () => api.delete(`/v1/rooms/${room.id}`, { params: { propertyId } }),
+    onSuccess: () => {
+      toast('success', `Room ${room.number} deleted successfully.`);
+      queryClient.invalidateQueries({ queryKey: ['rooms'] });
+      queryClient.invalidateQueries({ queryKey: ['rooms', 'status-summary'] });
+      onClose();
+    },
+    onError: (err: any) => {
+      toast('error', err?.response?.data?.message || `Failed to delete room ${room.number}.`);
     },
   });
 
@@ -237,6 +251,46 @@ function RoomDetailPanel({
               </div>
             )}
           </div>
+
+          {/* Quick Actions: Block Room / Delete Room */}
+          <div className="pt-4 border-t border-gray-100 flex flex-col gap-2">
+            <div className="flex gap-2">
+              {room.status !== 'out_of_order' ? (
+                <button
+                  type="button"
+                  onClick={() => onTransition('out_of_order')}
+                  disabled={transitioning || room.status === 'occupied'}
+                  className="flex-1 border border-amber-300 bg-amber-50 text-amber-800 rounded-lg px-3 py-2 text-xs font-semibold hover:bg-amber-100 disabled:opacity-50 transition"
+                >
+                  Block Room (Maintenance)
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => onTransition('vacant_clean')}
+                  disabled={transitioning}
+                  className="flex-1 border border-teal-300 bg-teal-50 text-teal-800 rounded-lg px-3 py-2 text-xs font-semibold hover:bg-teal-100 disabled:opacity-50 transition"
+                >
+                  Unblock (Make Available)
+                </button>
+              )}
+            </div>
+
+            {hasRole('admin', 'general_manager') && room.status !== 'occupied' && (
+              <button
+                type="button"
+                onClick={() => {
+                  if (window.confirm(`Are you sure you want to permanently delete Room ${room.number}?`)) {
+                    deleteRoomMutation.mutate();
+                  }
+                }}
+                disabled={deleteRoomMutation.isPending}
+                className="w-full text-center border border-red-200 bg-red-50 text-red-700 rounded-lg px-3 py-2 text-xs font-semibold hover:bg-red-100 disabled:opacity-50 transition"
+              >
+                {deleteRoomMutation.isPending ? 'Deleting...' : `Delete Room ${room.number}`}
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -261,6 +315,7 @@ function RoomList() {
   const { propertyId } = useProperty();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { toast } = useToast();
   const today = format(new Date(), 'yyyy-MM-dd');
   const [view, setView] = useState<'rack' | 'list'>('rack');
   const [detailRoom, setDetailRoom] = useState<Room | null>(null);
@@ -359,18 +414,35 @@ function RoomList() {
     mutationFn: ({ roomId, newStatus }: { roomId: string; newStatus: string }) =>
       api.patch(`/v1/rooms/${roomId}/status`, { status: newStatus }, { params: { propertyId } }),
     onSuccess: () => {
+      toast('success', 'Room status updated successfully.');
       queryClient.invalidateQueries({ queryKey: ['rooms'] });
+      queryClient.invalidateQueries({ queryKey: ['rooms', 'status-summary'] });
       setDetailRoom(null);
+    },
+    onError: (err: any) => {
+      toast('error', err?.response?.data?.message || 'Failed to update room status.');
     },
   });
 
   const createMutation = useMutation({
-    mutationFn: () =>
-      api.post('/v1/rooms', { propertyId, number: newRoomNumber, roomTypeId: newRoomType, floor: newFloor }),
+    mutationFn: () => {
+      const selectedType = newRoomType || types[0]?.id;
+      return api.post('/v1/rooms', {
+        propertyId,
+        number: newRoomNumber.trim(),
+        roomTypeId: selectedType,
+        floor: newFloor || '1',
+      });
+    },
     onSuccess: () => {
+      toast('success', `Room ${newRoomNumber} added successfully to Hotel Spark!`);
       queryClient.invalidateQueries({ queryKey: ['rooms'] });
+      queryClient.invalidateQueries({ queryKey: ['rooms', 'status-summary'] });
       setCreateOpen(false);
       setNewRoomNumber('');
+    },
+    onError: (err: any) => {
+      toast('error', err?.response?.data?.message || 'Failed to create room. Please try again.');
     },
   });
 
@@ -411,7 +483,15 @@ function RoomList() {
             <button onClick={() => setView('rack')} className={`p-2 ${view === 'rack' ? 'bg-telivity-teal text-white' : 'hover:bg-telivity-light-grey'}`}><LayoutGrid size={16} /></button>
             <button onClick={() => setView('list')} className={`p-2 ${view === 'list' ? 'bg-telivity-teal text-white' : 'hover:bg-telivity-light-grey'}`}><List size={16} /></button>
           </div>
-          <button onClick={() => setCreateOpen(true)} className="flex items-center gap-2 bg-telivity-teal text-white rounded-lg px-4 py-2 text-sm font-semibold hover:bg-telivity-light-teal transition-colors">
+          <button
+            onClick={() => {
+              if (!newRoomType && types.length > 0) {
+                setNewRoomType(types[0].id);
+              }
+              setCreateOpen(true);
+            }}
+            className="flex items-center gap-2 bg-telivity-teal text-white rounded-lg px-4 py-2 text-sm font-semibold hover:bg-telivity-light-teal transition-colors"
+          >
             <Plus size={16} /> {t('rooms.addRoom')}
           </button>
         </div>
@@ -469,7 +549,7 @@ function RoomList() {
                       className={`border-2 rounded-xl p-3 cursor-pointer transition-all hover:shadow-md ${STATUS_CARD_COLORS[room.status] ?? 'border-gray-200'}`}
                     >
                       <p className="text-sm font-semibold text-telivity-navy">{room.number}</p>
-                      <p className="text-[10px] text-telivity-mid-grey truncate">{room.roomTypeName ?? ''}</p>
+                      <p className="text-[10px] text-telivity-mid-grey truncate">{room.roomTypeName || types.find((t) => t.id === room.roomTypeId)?.name || 'Deluxe King Room'}</p>
                       <StatusBadge status={room.status} label={t(`dashboard.roomStatuses.${room.status}`, { defaultValue: room.status })} className="mt-1.5 text-[9px] px-1.5 py-0" />
                       {diary ? (
                         <>
@@ -512,7 +592,7 @@ function RoomList() {
                 return (
                   <tr key={r.id} onClick={() => setDetailRoom(r)} className={`border-b border-gray-50 cursor-pointer hover:bg-telivity-light-grey/50 ${i % 2 === 1 ? 'bg-gray-50/50' : ''}`}>
                     <td className="px-4 py-3 text-sm font-medium text-telivity-navy">{r.number}</td>
-                    <td className="px-4 py-3 text-sm text-telivity-slate">{r.roomTypeName ?? '—'}</td>
+                    <td className="px-4 py-3 text-sm text-telivity-slate">{r.roomTypeName || types.find((t) => t.id === r.roomTypeId)?.name || 'Deluxe King Room'}</td>
                     <td className="px-4 py-3 text-sm text-telivity-slate">{r.floor ?? '—'}</td>
                     <td className="px-4 py-3"><StatusBadge status={r.status} label={t(`dashboard.roomStatuses.${r.status}`, { defaultValue: r.status })} /></td>
                     <td className="px-4 py-3 text-sm text-telivity-slate">{diary?.guestName ?? r.guestName ?? '—'}</td>
@@ -549,8 +629,14 @@ function RoomList() {
             <input
               type="text"
               value={newRoomNumber}
-              onChange={(e) => setNewRoomNumber(e.target.value)}
-              placeholder="e.g. 101, 201"
+              onChange={(e) => {
+                const val = e.target.value;
+                setNewRoomNumber(val);
+                if (val.length >= 3 && /^\d+$/.test(val)) {
+                  setNewFloor(val[0]);
+                }
+              }}
+              placeholder="e.g. 105, 204, 305"
               className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none ${isDuplicateNumber ? 'border-red-500 bg-red-50 text-red-900 font-bold' : 'border-gray-200 focus:border-telivity-teal'
                 }`}
             />
@@ -586,7 +672,7 @@ function RoomList() {
           </div>
           <button
             onClick={() => createMutation.mutate()}
-            disabled={!newRoomNumber || !newRoomType || isDuplicateNumber || createMutation.isPending}
+            disabled={!newRoomNumber.trim() || isDuplicateNumber || createMutation.isPending}
             className="w-full bg-telivity-teal hover:bg-telivity-light-teal text-white rounded-lg px-4 py-2.5 text-sm font-bold shadow-xs disabled:opacity-50 transition"
           >
             {createMutation.isPending ? t('common.creating') : t('rooms.createRoom')}

@@ -71,6 +71,186 @@ function setStoredRate(key: string, price: number) {
 
 const ratePlanPriceCache: Record<string, number> = getStoredRateCache();
 
+export interface StoredRoom {
+  id: string;
+  propertyId: string;
+  roomTypeId: string;
+  roomTypeName?: string;
+  number: string;
+  floor: string;
+  status: string;
+  hkOccupancy?: string;
+  isActive: boolean;
+  guestName?: string;
+  isAccessible?: boolean;
+  amenities: string[];
+}
+
+export const DEFAULT_ROOM_TYPES = [
+  { id: 'b0000001-0000-4000-a000-000000000001', name: 'Deluxe King Room', code: 'DLX', description: 'Spacious king-size bed room with ensuite bath', max_occupancy: 2, default_occupancy: 2, bed_type: 'king', amenities: ['wifi', 'tv', 'ac', 'safe'], basePrice: 3500 },
+  { id: 'b0000002-0000-4000-a000-000000000001', name: 'Executive Spark Suite', code: 'SUT', description: 'Luxurious suite with separate living room', max_occupancy: 4, default_occupancy: 2, bed_type: 'king', amenities: ['wifi', 'tv', 'ac', 'bathtub', 'minibar'], basePrice: 6500 },
+  { id: 'b0000003-0000-4000-a000-000000000001', name: 'Standard Queen Room', code: 'STD', description: 'Cozy queen-size bed room', max_occupancy: 2, default_occupancy: 2, bed_type: 'queen', amenities: ['wifi', 'tv', 'ac'], basePrice: 2500 },
+];
+
+export const DEFAULT_ROOMS: StoredRoom[] = [
+  // Floor 1 — Deluxe King Rooms (DLX - ₹3,500/night)
+  {
+    id: 'r0000101-0000-4000-a000-000000000001',
+    propertyId: PROPERTY_ID,
+    number: '101',
+    floor: '1',
+    roomTypeId: 'b0000001-0000-4000-a000-000000000001',
+    roomTypeName: 'Deluxe King Room',
+    status: 'occupied',
+    guestName: 'Rahul Verma',
+    hkOccupancy: 'occupied',
+    isActive: true,
+    amenities: ['wifi', 'tv', 'ac', 'safe', 'balcony'],
+  },
+  {
+    id: 'r0000102-0000-4000-a000-000000000001',
+    propertyId: PROPERTY_ID,
+    number: '102',
+    floor: '1',
+    roomTypeId: 'b0000001-0000-4000-a000-000000000001',
+    roomTypeName: 'Deluxe King Room',
+    status: 'occupied',
+    guestName: 'Priya Sharma',
+    hkOccupancy: 'occupied',
+    isActive: true,
+    amenities: ['wifi', 'tv', 'ac', 'safe'],
+  },
+  {
+    id: 'r0000103-0000-4000-a000-000000000001',
+    propertyId: PROPERTY_ID,
+    number: '103',
+    floor: '1',
+    roomTypeId: 'b0000001-0000-4000-a000-000000000001',
+    roomTypeName: 'Deluxe King Room',
+    status: 'vacant_clean',
+    hkOccupancy: 'vacant',
+    isActive: true,
+    amenities: ['wifi', 'tv', 'ac', 'safe'],
+  },
+  {
+    id: 'r0000104-0000-4000-a000-000000000001',
+    propertyId: PROPERTY_ID,
+    number: '104',
+    floor: '1',
+    roomTypeId: 'b0000001-0000-4000-a000-000000000001',
+    roomTypeName: 'Deluxe King Room',
+    status: 'vacant_dirty',
+    hkOccupancy: 'vacant',
+    isActive: true,
+    amenities: ['wifi', 'tv', 'ac', 'safe'],
+  },
+  // Floor 2 — Executive Spark Suites (SUT - ₹6,500/night)
+  {
+    id: 'r0000201-0000-4000-a000-000000000001',
+    propertyId: PROPERTY_ID,
+    number: '201',
+    floor: '2',
+    roomTypeId: 'b0000002-0000-4000-a000-000000000001',
+    roomTypeName: 'Executive Spark Suite',
+    status: 'occupied',
+    guestName: 'Vikram Malhotra',
+    hkOccupancy: 'occupied',
+    isActive: true,
+    amenities: ['wifi', 'tv', 'ac', 'bathtub', 'minibar', 'balcony'],
+  },
+  {
+    id: 'r0000202-0000-4000-a000-000000000001',
+    propertyId: PROPERTY_ID,
+    number: '202',
+    floor: '2',
+    roomTypeId: 'b0000002-0000-4000-a000-000000000001',
+    roomTypeName: 'Executive Spark Suite',
+    status: 'vacant_clean',
+    hkOccupancy: 'vacant',
+    isActive: true,
+    amenities: ['wifi', 'tv', 'ac', 'bathtub', 'minibar'],
+  },
+  {
+    id: 'r0000203-0000-4000-a000-000000000001',
+    propertyId: PROPERTY_ID,
+    number: '203',
+    floor: '2',
+    roomTypeId: 'b0000002-0000-4000-a000-000000000001',
+    roomTypeName: 'Executive Spark Suite',
+    status: 'out_of_order',
+    hkOccupancy: 'vacant',
+    isActive: true,
+    amenities: ['wifi', 'tv', 'ac', 'bathtub'],
+  },
+  // Floor 3 — Standard Queen Rooms (STD - ₹2,500/night)
+  {
+    id: 'r0000301-0000-4000-a000-000000000001',
+    propertyId: PROPERTY_ID,
+    number: '301',
+    floor: '3',
+    roomTypeId: 'b0000003-0000-4000-a000-000000000001',
+    roomTypeName: 'Standard Queen Room',
+    status: 'occupied',
+    guestName: 'Anita Rao',
+    hkOccupancy: 'occupied',
+    isActive: true,
+    amenities: ['wifi', 'tv', 'ac'],
+  },
+  {
+    id: 'r0000302-0000-4000-a000-000000000001',
+    propertyId: PROPERTY_ID,
+    number: '302',
+    floor: '3',
+    roomTypeId: 'b0000003-0000-4000-a000-000000000001',
+    roomTypeName: 'Standard Queen Room',
+    status: 'vacant_clean',
+    hkOccupancy: 'vacant',
+    isActive: true,
+    amenities: ['wifi', 'tv', 'ac'],
+  },
+  {
+    id: 'r0000303-0000-4000-a000-000000000001',
+    propertyId: PROPERTY_ID,
+    number: '303',
+    floor: '3',
+    roomTypeId: 'b0000003-0000-4000-a000-000000000001',
+    roomTypeName: 'Standard Queen Room',
+    status: 'vacant_clean',
+    hkOccupancy: 'vacant',
+    isActive: true,
+    amenities: ['wifi', 'tv', 'ac'],
+  },
+];
+
+const ROOMS_STORAGE_KEY = 'hotel_spark_rooms_list';
+
+export function getStoredRooms(): StoredRoom[] {
+  try {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      const saved = window.localStorage.getItem(ROOMS_STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed;
+        }
+      }
+    }
+  } catch (e) {
+    void e;
+  }
+  return [...DEFAULT_ROOMS];
+}
+
+export function saveStoredRooms(rooms: StoredRoom[]) {
+  try {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      window.localStorage.setItem(ROOMS_STORAGE_KEY, JSON.stringify(rooms));
+    }
+  } catch (e) {
+    void e;
+  }
+}
+
 export async function handleSupabaseAdapter(config: AxiosRequestConfig): Promise<AxiosResponse> {
   const rawUrl = config.url || '';
   const url = rawUrl.replace(/^\/api/, '');
@@ -94,14 +274,18 @@ export async function handleSupabaseAdapter(config: AxiosRequestConfig): Promise
 
   // 2. Direct Bookings available rooms
   if (url.includes('/direct-bookings') && url.includes('/available-rooms')) {
-    const { data: rooms } = await supabaseFetch<any[]>('rooms?select=*&order=number.asc');
-    const list = (rooms || []).map((r) => ({
-      id: r.id,
-      number: r.number,
-      floor: r.floor || '1',
-      status: r.status || 'vacant_clean',
-      hkOccupancy: r.hk_occupancy || 'vacant',
-    }));
+    const rooms = getStoredRooms();
+    const list = rooms
+      .filter((r) => r.status === 'vacant_clean' || r.status === 'clean' || r.status === 'available')
+      .map((r) => ({
+        id: r.id,
+        number: r.number,
+        floor: r.floor || '1',
+        status: r.status,
+        roomTypeId: r.roomTypeId,
+        roomTypeName: r.roomTypeName || 'Deluxe King Room',
+        hkOccupancy: r.hkOccupancy || 'vacant',
+      }));
     return ok(list);
   }
 
@@ -338,21 +522,13 @@ export async function handleSupabaseAdapter(config: AxiosRequestConfig): Promise
 
   // 7. Rooms status summary
   if (url.includes('/rooms/status-summary')) {
-    const { data: rooms } = await supabaseFetch<any[]>('rooms?select=status');
-    if (rooms && Array.isArray(rooms) && rooms.length > 0) {
-      const counts: Record<string, number> = {};
-      for (const r of rooms) {
-        const s = r.status || 'vacant_clean';
-        counts[s] = (counts[s] || 0) + 1;
-      }
-      return ok(Object.entries(counts).map(([status, count]) => ({ status, count })));
+    const rooms = getStoredRooms();
+    const counts: Record<string, number> = {};
+    for (const r of rooms) {
+      const s = r.status || 'vacant_clean';
+      counts[s] = (counts[s] || 0) + 1;
     }
-    return ok([
-      { status: 'vacant_clean', count: 4 },
-      { status: 'occupied', count: 4 },
-      { status: 'vacant_dirty', count: 1 },
-      { status: 'out_of_order', count: 1 },
-    ]);
+    return ok(Object.entries(counts).map(([status, count]) => ({ status, count })));
   }
 
   // 8. Rooms discrepancies
@@ -360,41 +536,189 @@ export async function handleSupabaseAdapter(config: AxiosRequestConfig): Promise
     return ok([]);
   }
 
+  // 8b. Rooms by status (e.g. /rooms/by-status?status=guest_ready)
+  if (url.includes('/rooms/by-status')) {
+    const rooms = getStoredRooms();
+    const urlObj = new URL(url, 'http://localhost');
+    const reqStatus = (urlObj.searchParams.get('status') || '').toLowerCase();
+    const filtered = reqStatus
+      ? rooms.filter((r) => {
+          if (reqStatus === 'guest_ready' || reqStatus === 'available') {
+            return r.status === 'guest_ready' || r.status === 'vacant_clean' || r.status === 'clean' || r.status === 'available';
+          }
+          return r.status.toLowerCase() === reqStatus;
+        })
+      : rooms;
+    return ok(filtered);
+  }
+
   // 9. Rooms list and mutations
-  if (url.match(/\/rooms(\?|$)/) || (url.includes('/rooms') && !url.includes('/types') && !url.includes('/status-summary'))) {
+  if (url.match(/\/rooms(\?|$)/) || (url.includes('/rooms') && !url.includes('/types') && !url.includes('/status-summary') && !url.includes('/discrepancies') && !url.includes('/by-status'))) {
     if (method === 'GET') {
-      const { data: rooms } = await supabaseFetch<any[]>('rooms?select=*&order=number.asc');
-      const mapped = (rooms || []).map((r) => ({
-        id: r.id,
-        propertyId: r.property_id || PROPERTY_ID,
-        roomTypeId: r.room_type_id,
-        number: r.number,
-        floor: r.floor || '1',
-        status: r.status || 'vacant_clean',
-        hkOccupancy: r.hk_occupancy || 'vacant',
-        isActive: r.is_active,
-        amenities: r.amenities || [],
-      }));
-      return ok(mapped);
+      const stored = getStoredRooms();
+      const statusFilter = (config.params?.status || '').toLowerCase();
+      let result = stored;
+      if (statusFilter) {
+        if (statusFilter === 'available' || statusFilter === 'guest_ready') {
+          result = stored.filter((r) => r.status === 'guest_ready' || r.status === 'vacant_clean' || r.status === 'clean' || r.status === 'available');
+        } else {
+          result = stored.filter((r) => r.status.toLowerCase() === statusFilter);
+        }
+      }
+
+      try {
+        const { data: remoteRooms } = await supabaseFetch<any[]>('rooms?select=*&order=number.asc');
+        if (remoteRooms && Array.isArray(remoteRooms) && remoteRooms.length > 0) {
+          const merged = [...stored];
+          for (const rem of remoteRooms) {
+            const idx = merged.findIndex((m) => m.id === rem.id || m.number === rem.number);
+            const mappedRoom: StoredRoom = {
+              id: rem.id,
+              propertyId: rem.property_id || PROPERTY_ID,
+              roomTypeId: rem.room_type_id || DEFAULT_ROOM_TYPES[0].id,
+              roomTypeName: DEFAULT_ROOM_TYPES.find((t) => t.id === rem.room_type_id)?.name || 'Deluxe King Room',
+              number: rem.number,
+              floor: rem.floor || '1',
+              status: rem.status || 'vacant_clean',
+              hkOccupancy: rem.hk_occupancy || 'vacant',
+              isActive: rem.is_active !== false,
+              amenities: rem.amenities || ['wifi', 'tv', 'ac'],
+            };
+            if (idx >= 0) {
+              merged[idx] = { ...merged[idx], ...mappedRoom };
+            } else {
+              merged.push(mappedRoom);
+            }
+          }
+          saveStoredRooms(merged);
+          let filteredMerged = merged;
+          if (statusFilter) {
+            if (statusFilter === 'available' || statusFilter === 'guest_ready') {
+              filteredMerged = merged.filter((r) => r.status === 'guest_ready' || r.status === 'vacant_clean' || r.status === 'clean' || r.status === 'available');
+            } else {
+              filteredMerged = merged.filter((r) => r.status.toLowerCase() === statusFilter);
+            }
+          }
+          return ok(filteredMerged);
+        }
+      } catch (err) {
+        void err;
+      }
+      return ok(result);
     }
+
     if (method === 'PATCH' || method === 'PUT') {
       const body = typeof config.data === 'string' ? JSON.parse(config.data || '{}') : (config.data || {});
       const idMatch = url.match(/\/rooms\/([^/?]+)/);
-      if (idMatch) {
-        await supabaseFetch(`rooms?id=eq.${idMatch[1]}`, {
-          method: 'PATCH',
-          body: JSON.stringify(body),
-        });
+      const roomId = idMatch ? idMatch[1] : '';
+      const rooms = getStoredRooms();
+      const idx = rooms.findIndex((r) => r.id === roomId || r.number === roomId);
+
+      if (idx >= 0) {
+        if (body.status) rooms[idx].status = body.status;
+        if (body.floor) rooms[idx].floor = String(body.floor);
+        if (body.roomTypeId || body.room_type_id) {
+          const rtId = body.roomTypeId || body.room_type_id;
+          rooms[idx].roomTypeId = rtId;
+          const matchedType = DEFAULT_ROOM_TYPES.find((t) => t.id === rtId);
+          if (matchedType) rooms[idx].roomTypeName = matchedType.name;
+        }
+        if (body.amenities) rooms[idx].amenities = body.amenities;
+        if (body.guestName !== undefined) rooms[idx].guestName = body.guestName;
+        saveStoredRooms(rooms);
       }
-      return ok({ success: true, ...body });
+
+      if (roomId) {
+        try {
+          const supabasePayload: Record<string, any> = {};
+          if (body.status) supabasePayload.status = body.status;
+          if (body.floor) supabasePayload.floor = body.floor;
+          if (body.roomTypeId || body.room_type_id) supabasePayload.room_type_id = body.roomTypeId || body.room_type_id;
+          if (body.amenities) supabasePayload.amenities = body.amenities;
+          if (Object.keys(supabasePayload).length > 0) {
+            await supabaseFetch(`rooms?id=eq.${roomId}`, {
+              method: 'PATCH',
+              body: JSON.stringify(supabasePayload),
+            });
+          }
+        } catch (err) {
+          void err;
+        }
+      }
+
+      return ok({ success: true, ...(idx >= 0 ? rooms[idx] : body) });
     }
+
     if (method === 'POST') {
       const body = typeof config.data === 'string' ? JSON.parse(config.data || '{}') : (config.data || {});
-      await supabaseFetch('rooms', {
-        method: 'POST',
-        body: JSON.stringify({ property_id: PROPERTY_ID, hotel_id: PROPERTY_ID, ...body }),
-      });
-      return ok({ success: true, id: `room-${Date.now()}`, ...body });
+      const rooms = getStoredRooms();
+      const roomNumber = String(body.number || '').trim();
+      const roomTypeId = body.roomTypeId || body.room_type_id || DEFAULT_ROOM_TYPES[0].id;
+      const floor = String(body.floor || (roomNumber.length >= 3 ? roomNumber[0] : '1'));
+      const status = body.status || 'vacant_clean';
+      const amenities = Array.isArray(body.amenities) && body.amenities.length > 0 ? body.amenities : ['wifi', 'tv', 'ac'];
+      const matchedType = DEFAULT_ROOM_TYPES.find((t) => t.id === roomTypeId);
+      const roomTypeName = matchedType ? matchedType.name : (body.roomTypeName || 'Deluxe King Room');
+
+      const newId = body.id || `r${Date.now().toString().slice(-7)}-0000-4000-a000-000000000001`;
+
+      const newRoom: StoredRoom = {
+        id: newId,
+        propertyId: PROPERTY_ID,
+        roomTypeId,
+        roomTypeName,
+        number: roomNumber,
+        floor,
+        status,
+        hkOccupancy: 'vacant',
+        isActive: true,
+        amenities,
+      };
+
+      const existingIdx = rooms.findIndex((r) => r.number.toLowerCase() === roomNumber.toLowerCase());
+      if (existingIdx >= 0) {
+        rooms[existingIdx] = { ...rooms[existingIdx], ...newRoom };
+      } else {
+        rooms.push(newRoom);
+      }
+      saveStoredRooms(rooms);
+
+      try {
+        await supabaseFetch('rooms', {
+          method: 'POST',
+          body: JSON.stringify({
+            id: newId,
+            property_id: PROPERTY_ID,
+            hotel_id: PROPERTY_ID,
+            room_type_id: roomTypeId,
+            number: roomNumber,
+            floor,
+            status,
+            amenities,
+            is_active: true,
+          }),
+        });
+      } catch (err) {
+        void err;
+      }
+
+      return ok(newRoom);
+    }
+
+    if (method === 'DELETE') {
+      const idMatch = url.match(/\/rooms\/([^/?]+)/);
+      const roomId = idMatch ? idMatch[1] : '';
+      if (roomId) {
+        const rooms = getStoredRooms();
+        const filtered = rooms.filter((r) => r.id !== roomId && r.number !== roomId);
+        saveStoredRooms(filtered);
+        try {
+          await supabaseFetch(`rooms?id=eq.${roomId}`, { method: 'DELETE' });
+        } catch (err) {
+          void err;
+        }
+      }
+      return ok({ success: true, message: 'Room deleted' });
     }
   }
 
@@ -524,7 +848,11 @@ export async function handleSupabaseAdapter(config: AxiosRequestConfig): Promise
         supabaseFetch<any[]>('rooms?select=id,number,room_type_id'),
       ]);
 
-      const roomsMap = new Map((roomsResult.data || []).map((rm: any) => [rm.id, rm.number]));
+      const storedRooms = getStoredRooms();
+      const roomsMap = new Map([
+        ...storedRooms.map((rm) => [rm.id, rm.number] as [string, string]),
+        ...((roomsResult.data || []).map((rm: any) => [rm.id, rm.number] as [string, string])),
+      ]);
       const list: any[] = [];
 
       // 1. Merge booking requests from website
@@ -760,10 +1088,10 @@ export async function handleSupabaseAdapter(config: AxiosRequestConfig): Promise
   }
 
   if (url.includes('/reports/occupancy')) {
-    const { data: rooms } = await supabaseFetch<any[]>('rooms?select=status');
-    const total = rooms && Array.isArray(rooms) && rooms.length > 0 ? rooms.length : 10;
-    const occupied = rooms && Array.isArray(rooms) ? rooms.filter((r) => r.status === 'occupied').length : 4;
-    const available = rooms && Array.isArray(rooms) ? rooms.filter((r) => r.status === 'vacant_clean' || r.status === 'clean' || r.status === 'available').length : 4;
+    const rooms = getStoredRooms();
+    const total = rooms.length;
+    const occupied = rooms.filter((r) => r.status === 'occupied').length;
+    const available = rooms.filter((r) => r.status === 'vacant_clean' || r.status === 'clean' || r.status === 'available').length;
     const occRate = total > 0 ? Math.round((occupied / total) * 100) : 0;
     return ok({
       occupancyRate: occRate,
