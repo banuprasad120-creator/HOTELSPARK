@@ -13,6 +13,7 @@ import NotificationBell from '../notifications/NotificationBell';
 import HelpPanel from '../help/HelpPanel';
 import WalkInCheckInModal from '../front-desk/WalkInCheckInModal';
 import AddGuestModal from '../front-desk/AddGuestModal';
+import DepartmentSwitcher from './DepartmentSwitcher';
 
 interface HeaderProps {
   onMenuClick: () => void;
@@ -66,6 +67,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
             <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-teal-50 text-teal-700 border border-teal-200">
               PMS
             </span>
+            <DepartmentSwitcher variant="header" />
           </div>
 
           <button

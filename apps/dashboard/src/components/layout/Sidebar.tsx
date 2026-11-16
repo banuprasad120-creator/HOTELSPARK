@@ -37,7 +37,9 @@ import {
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../context/AuthContext';
 import { useProperty } from '../../context/PropertyContext';
+import { useDepartment, DEPARTMENTS_INFO } from '../../context/DepartmentContext';
 import { isBookingRequestsUiEnabled } from '../../lib/bookingRequestsFeature';
+import DepartmentSwitcher from './DepartmentSwitcher';
 
 type NavItem = {
   to: string;
@@ -52,10 +54,18 @@ type NavSection = {
   items: NavItem[];
 };
 
+const DEPT_ALLOWED_ROUTES: Record<string, string[]> = {
+  front_office: ['/', '/departments', '/current-guests', '/front-desk', '/reservations', '/guests', '/guest-history', '/direct-bookings'],
+  housekeeping: ['/', '/departments', '/rooms', '/rooms/types', '/housekeeping', '/staff'],
+  manager: ['/', '/departments', '/staff', '/current-guests', '/front-desk', '/housekeeping', '/reports', '/settings'],
+  accounts: ['/', '/departments', '/folios', '/guest-history', '/reports'],
+};
+
 const NAV_SECTIONS: NavSection[] = [
   {
     items: [
       { to: '/', icon: LayoutDashboard, labelKey: 'Dashboard', permission: 'dashboard.view' },
+      { to: '/departments', icon: Building2, labelKey: 'Department Panels' },
       { to: '/current-guests', icon: Users, labelKey: 'In-House Guests', permission: 'frontdesk.access' },
       { to: '/front-desk', icon: ConciergeBell, labelKey: 'Front Desk', permission: 'frontdesk.access' },
       { to: '/reservations', icon: CalendarDays, labelKey: 'Booking Management', permission: 'reservations.read' },
@@ -102,6 +112,7 @@ export default function Sidebar({ mobileOpen, onClose }: SidebarProps) {
   const { hasRole, hasPermission } = useAuth();
   const { t } = useTranslation();
   const { propertyId, isPortfolioMode, properties } = useProperty();
+  const { activeDepartment, setActiveDepartment } = useDepartment();
 
   const activeProperty = isPortfolioMode
     ? null
@@ -113,9 +124,13 @@ export default function Sidebar({ mobileOpen, onClose }: SidebarProps) {
   const brandLogo = !isPortfolioMode ? activeProperty?.staffLogoUrl : null;
   const tagline = 'Admin Console & PMS';
 
+  const allowedRoutes = DEPT_ALLOWED_ROUTES[activeDepartment];
+
   const visibleSections = NAV_SECTIONS.map((section) => ({
     ...section,
-    items: section.items.filter((item) => isItemVisible(item, hasPermission, hasRole)),
+    items: section.items
+      .filter((item) => isItemVisible(item, hasPermission, hasRole))
+      .filter((item) => !allowedRoutes || allowedRoutes.includes(item.to)),
   })).filter((section) => section.items.length > 0);
 
   return (
@@ -166,6 +181,24 @@ export default function Sidebar({ mobileOpen, onClose }: SidebarProps) {
             <X size={18} />
           </button>
         </div>
+
+        {/* Department Switcher */}
+        <DepartmentSwitcher variant="sidebar" />
+
+        {activeDepartment !== 'all' && (
+          <div className="px-4 py-1.5 bg-white/5 border-b border-white/5 flex items-center justify-between text-[11px]">
+            <span className="text-teal-300 font-semibold truncate">
+              Filtered to {DEPARTMENTS_INFO[activeDepartment]?.shortName}
+            </span>
+            <button
+              type="button"
+              onClick={() => setActiveDepartment('all')}
+              className="text-white/60 hover:text-white underline text-[10px]"
+            >
+              Show All
+            </button>
+          </div>
+        )}
 
         <nav className="flex-1 overflow-y-auto py-3" role="navigation" aria-label={t('nav.mainNavigation')}>
           {visibleSections.map((section, sectionIdx) => (

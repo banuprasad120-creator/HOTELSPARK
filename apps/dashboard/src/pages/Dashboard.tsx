@@ -23,6 +23,8 @@ import {
   Brush,
   IndianRupee,
   History,
+  ConciergeBell,
+  Receipt,
 } from 'lucide-react';
 import WalkInCheckInModal from '../components/front-desk/WalkInCheckInModal';
 import AddGuestModal from '../components/front-desk/AddGuestModal';
@@ -32,6 +34,7 @@ import { api } from '../lib/api';
 import { formatOccupancyPercent } from '../lib/api-helpers';
 import { getDateLocale } from '../lib/date-locale';
 import { useProperty } from '../context/PropertyContext';
+import { useDepartment } from '../context/DepartmentContext';
 import { getSocket } from '../lib/socket';
 import KpiCard from '../components/ui/KpiCard';
 import { formatMoney } from '../lib/money';
@@ -58,6 +61,7 @@ interface ActivityEvent {
 export default function Dashboard() {
   const { t, i18n } = useTranslation();
   const { propertyId, setPropertyId, isPortfolioMode, properties, currencyCode } = useProperty();
+  const { setActiveDepartment } = useDepartment();
   const navigate = useNavigate();
   const now = new Date();
   const dateLocale = getDateLocale(i18n.resolvedLanguage);
@@ -240,6 +244,72 @@ export default function Dashboard() {
               )}
             </button>
           </div>
+        </div>
+      </div>
+
+      {/* Department Quick Switcher Bar */}
+      <div className="bg-white rounded-2xl p-4 border border-gray-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-3">
+        <div className="flex items-center gap-2.5">
+          <div className="p-2 rounded-xl bg-telivity-teal/10 text-telivity-teal">
+            <Building2 size={20} />
+          </div>
+          <div>
+            <span className="text-xs font-bold text-telivity-navy">Department Operation Consoles</span>
+            <p className="text-[11px] text-telivity-mid-grey">Direct access to individual department panels or unified view in one screen</p>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              setActiveDepartment('front_office');
+              navigate('/departments');
+            }}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-teal-50 text-teal-800 hover:bg-teal-100 border border-teal-200 transition"
+          >
+            <ConciergeBell size={13} /> Front Desk Panel
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setActiveDepartment('housekeeping');
+              navigate('/departments');
+            }}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-amber-50 text-amber-800 hover:bg-amber-100 border border-amber-200 transition"
+          >
+            <Sparkles size={13} /> Housekeeping Panel
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setActiveDepartment('manager');
+              navigate('/departments');
+            }}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-purple-50 text-purple-800 hover:bg-purple-100 border border-purple-200 transition"
+          >
+            <Briefcase size={13} /> Manager 3-Shifts
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setActiveDepartment('accounts');
+              navigate('/departments');
+            }}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border border-emerald-200 transition"
+          >
+            <Receipt size={13} /> Accounts Panel
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setActiveDepartment('all');
+              navigate('/departments');
+            }}
+            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold bg-telivity-navy text-white hover:bg-slate-800 shadow-xs transition"
+          >
+            <Building2 size={13} /> All In 1 Panel →
+          </button>
         </div>
       </div>
 
