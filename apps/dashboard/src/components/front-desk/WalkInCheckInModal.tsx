@@ -18,6 +18,7 @@ import {
   Building2,
   Banknote,
   X,
+  Upload,
 } from 'lucide-react';
 import { api } from '../../lib/api';
 import { useProperty } from '../../context/PropertyContext';
@@ -69,8 +70,22 @@ export default function WalkInCheckInModal({ open, onClose, onSuccess }: WalkInC
   const [address, setAddress] = useState('');
   const [idProofType, setIdProofType] = useState('Aadhaar Card');
   const [idProofNumber, setIdProofNumber] = useState('');
+  const [idProofFrontUrl, setIdProofFrontUrl] = useState('');
+  const [idProofBackUrl, setIdProofBackUrl] = useState('');
   const [adults, setAdults] = useState(2);
   const [children, setChildren] = useState(0);
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>, side: 'front' | 'back') => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const result = reader.result as string;
+      if (side === 'front') setIdProofFrontUrl(result);
+      if (side === 'back') setIdProofBackUrl(result);
+    };
+    reader.readAsDataURL(file);
+  };
 
   // Stay State
   const nowStr = new Date().toISOString().split('T')[0];
@@ -193,6 +208,8 @@ export default function WalkInCheckInModal({ open, onClose, onSuccess }: WalkInC
           address: address.trim(),
           idProofType,
           idProofNumber: idProofNumber.trim(),
+          idProofFrontUrl: idProofFrontUrl || undefined,
+          idProofBackUrl: idProofBackUrl || undefined,
         },
         adults,
         children,
@@ -245,6 +262,8 @@ export default function WalkInCheckInModal({ open, onClose, onSuccess }: WalkInC
     setEmail('');
     setAddress('');
     setIdProofNumber('');
+    setIdProofFrontUrl('');
+    setIdProofBackUrl('');
     setConfirmedBooking(null);
     setErrorMsg('');
   };
@@ -413,6 +432,76 @@ export default function WalkInCheckInModal({ open, onClose, onSuccess }: WalkInC
                   onChange={(e) => setIdProofNumber(e.target.value)}
                   className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
                 />
+              </div>
+            </div>
+
+            {/* Front & Back Aadhaar / ID Upload Cards */}
+            <div className="pt-2 border-t border-gray-200 space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="block text-xs font-semibold text-telivity-navy">
+                  Upload {idProofType} (Front & Back)
+                </label>
+                {(idProofFrontUrl || idProofBackUrl) && (
+                  <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md">
+                    <CheckCircle2 size={12} /> Photo Attached
+                  </span>
+                )}
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {/* Front Side */}
+                <div className="border border-dashed border-gray-300 hover:border-telivity-teal rounded-xl p-3 bg-white text-center relative group">
+                  {idProofFrontUrl ? (
+                    <div className="relative">
+                      <img src={idProofFrontUrl} alt="ID Front" className="h-24 w-full object-cover rounded-lg border border-gray-200" />
+                      <button
+                        type="button"
+                        onClick={() => setIdProofFrontUrl('')}
+                        className="absolute top-1 right-1 p-1 bg-red-600 hover:bg-red-700 text-white rounded-full shadow-md"
+                        title="Remove image"
+                      >
+                        <X size={12} />
+                      </button>
+                      <p className="text-[10px] font-bold text-emerald-700 mt-1 flex items-center justify-center gap-1">
+                        <CheckCircle2 size={11} /> Front Side Loaded
+                      </p>
+                    </div>
+                  ) : (
+                    <label className="flex flex-col items-center justify-center h-24 cursor-pointer group-hover:bg-teal-50/20 rounded-lg">
+                      <Upload size={20} className="text-telivity-teal mb-1" />
+                      <span className="text-xs font-bold text-telivity-navy">Upload Front Side</span>
+                      <span className="text-[10px] text-gray-400">Photo & Aadhaar Details</span>
+                      <input type="file" accept="image/*,application/pdf" onChange={(e) => handleFileUpload(e, 'front')} className="hidden" />
+                    </label>
+                  )}
+                </div>
+
+                {/* Back Side */}
+                <div className="border border-dashed border-gray-300 hover:border-telivity-teal rounded-xl p-3 bg-white text-center relative group">
+                  {idProofBackUrl ? (
+                    <div className="relative">
+                      <img src={idProofBackUrl} alt="ID Back" className="h-24 w-full object-cover rounded-lg border border-gray-200" />
+                      <button
+                        type="button"
+                        onClick={() => setIdProofBackUrl('')}
+                        className="absolute top-1 right-1 p-1 bg-red-600 hover:bg-red-700 text-white rounded-full shadow-md"
+                        title="Remove image"
+                      >
+                        <X size={12} />
+                      </button>
+                      <p className="text-[10px] font-bold text-emerald-700 mt-1 flex items-center justify-center gap-1">
+                        <CheckCircle2 size={11} /> Back Side Loaded
+                      </p>
+                    </div>
+                  ) : (
+                    <label className="flex flex-col items-center justify-center h-24 cursor-pointer group-hover:bg-teal-50/20 rounded-lg">
+                      <Upload size={20} className="text-telivity-teal mb-1" />
+                      <span className="text-xs font-bold text-telivity-navy">Upload Back Side</span>
+                      <span className="text-[10px] text-gray-400">Address & QR Code</span>
+                      <input type="file" accept="image/*,application/pdf" onChange={(e) => handleFileUpload(e, 'back')} className="hidden" />
+                    </label>
+                  )}
+                </div>
               </div>
             </div>
 

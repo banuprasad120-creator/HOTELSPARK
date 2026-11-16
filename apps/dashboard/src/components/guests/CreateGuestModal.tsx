@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, ChangeEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { ShieldAlert } from 'lucide-react';
+import { ShieldAlert, Upload, X, CheckCircle2, FileText, Check } from 'lucide-react';
 import { validateCpf, calculateAge } from '@telivityhaip/shared';
 import { api } from '../../lib/api';
 import type { ParsedIdDocument } from '../../lib/id-document-swipe';
@@ -34,7 +34,7 @@ export default function CreateGuestModal({
   });
   const property = propertyData?.data ?? propertyData;
 
-  const defaultCountry = property?.countryCode ?? 'US';
+  const defaultCountry = property?.countryCode ?? 'IN';
   const isBR = defaultCountry.toUpperCase() === 'BR';
   const minorGuardianRequired =
     property?.guestRegistrationConfig?.minorGuardianIdentificationRequired ??
@@ -48,7 +48,7 @@ export default function CreateGuestModal({
   const [dateOfBirth, setDateOfBirth] = useState('');
   const [gender, setGender] = useState('');
   const [profession, setProfession] = useState('');
-  const [nationality, setNationality] = useState(defaultCountry);
+  const [nationality, setNationality] = useState('IN');
 
   // Minor & Guardian State
   const [guardianName, setGuardianName] = useState('');
@@ -58,26 +58,41 @@ export default function CreateGuestModal({
   const [hasMinorAuthorization, setHasMinorAuthorization] = useState(false);
 
   const [taxId, setTaxId] = useState('');
-  const [idType, setIdType] = useState(isBR ? 'cpf' : 'passport');
+  const [idType, setIdType] = useState('aadhaar');
   const [idNumber, setIdNumber] = useState('');
+  const [idProofFrontUrl, setIdProofFrontUrl] = useState('');
+  const [idProofBackUrl, setIdProofBackUrl] = useState('');
   const [idIssuer, setIdIssuer] = useState('');
   const [idIssuerState, setIdIssuerState] = useState('');
-  const [idCountry, setIdCountry] = useState(defaultCountry);
+  const [idCountry, setIdCountry] = useState('IN');
   const [idExpiry, setIdExpiry] = useState('');
 
   const [addressLine1, setAddressLine1] = useState('');
   const [addressLine2, setAddressLine2] = useState('');
   const [neighborhood, setNeighborhood] = useState('');
-  const [city, setCity] = useState('');
-  const [stateProvince, setStateProvince] = useState('');
-  const [postalCode, setPostalCode] = useState('');
-  const [countryCode, setCountryCode] = useState(defaultCountry);
+  const [city, setCity] = useState('Karimnagar');
+  const [stateProvince, setStateProvince] = useState('Telangana');
+  const [postalCode, setPostalCode] = useState('505001');
+  const [countryCode, setCountryCode] = useState('IN');
 
   const [vipLevel, setVipLevel] = useState('none');
   const [loyaltyNumber, setLoyaltyNumber] = useState('');
   const [companyName, setCompanyName] = useState('');
   const [notes, setNotes] = useState('');
   const [gdprConsentMarketing, setGdprConsentMarketing] = useState(false);
+
+  // Handle local file upload for ID proof (converting to base64 for instant preview & secure storage)
+  const handleFileUpload = (e: ChangeEvent<HTMLInputElement>, side: 'front' | 'back') => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const result = reader.result as string;
+      if (side === 'front') setIdProofFrontUrl(result);
+      if (side === 'back') setIdProofBackUrl(result);
+    };
+    reader.readAsDataURL(file);
+  };
 
   // Synchronize initial search term when modal opens
   useEffect(() => {
@@ -92,10 +107,13 @@ export default function CreateGuestModal({
           setLastName(parts.slice(1).join(' '));
         }
       }
-      setNationality(defaultCountry);
-      setIdCountry(defaultCountry);
-      setCountryCode(defaultCountry);
-      setIdType(isBR ? 'cpf' : 'passport');
+      setNationality(defaultCountry || 'IN');
+      setIdCountry(defaultCountry || 'IN');
+      setCountryCode(defaultCountry || 'IN');
+      setIdType(isBR ? 'cpf' : 'aadhaar');
+      setCity('Karimnagar');
+      setStateProvince('Telangana');
+      setPostalCode('505001');
     }
   }, [open, initialSearchTerm, defaultCountry, isBR]);
 
@@ -110,26 +128,28 @@ export default function CreateGuestModal({
     setDateOfBirth('');
     setGender('');
     setProfession('');
-    setNationality(defaultCountry);
+    setNationality('IN');
     setGuardianName('');
     setGuardianTaxId('');
     setGuardianPhone('');
     setGuardianRelationship('parent');
     setHasMinorAuthorization(false);
     setTaxId('');
-    setIdType(isBR ? 'cpf' : 'passport');
+    setIdType(isBR ? 'cpf' : 'aadhaar');
     setIdNumber('');
+    setIdProofFrontUrl('');
+    setIdProofBackUrl('');
     setIdIssuer('');
     setIdIssuerState('');
-    setIdCountry(defaultCountry);
+    setIdCountry('IN');
     setIdExpiry('');
     setAddressLine1('');
     setAddressLine2('');
     setNeighborhood('');
-    setCity('');
-    setStateProvince('');
-    setPostalCode('');
-    setCountryCode(defaultCountry);
+    setCity('Karimnagar');
+    setStateProvince('Telangana');
+    setPostalCode('505001');
+    setCountryCode('IN');
     setVipLevel('none');
     setLoyaltyNumber('');
     setCompanyName('');
@@ -150,21 +170,38 @@ export default function CreateGuestModal({
         nationality: nationality || undefined,
         taxId: taxId || undefined,
         idType: idType || undefined,
-        idNumber: idNumber || undefined,
+        idNumber: idNumber || taxId || undefined,
+        idProofType:
+          idType === 'aadhaar'
+            ? 'Aadhaar Card'
+            : idType === 'passport'
+              ? 'Passport'
+              : idType === 'drivers_license'
+                ? 'Driving License'
+                : idType === 'voter_id'
+                  ? 'Voter ID'
+                  : idType === 'pan_card'
+                    ? 'PAN Card'
+                    : idType,
+        idProofNumber: idNumber || taxId || undefined,
+        idProofFrontUrl: idProofFrontUrl || undefined,
+        idProofBackUrl: idProofBackUrl || undefined,
         idCountry: idCountry || undefined,
         idExpiry: idExpiry || undefined,
         addressLine1: addressLine1 || undefined,
         addressLine2: addressLine2 || undefined,
-        city: city || undefined,
-        stateProvince: stateProvince || undefined,
-        postalCode: postalCode || undefined,
-        countryCode: countryCode || undefined,
+        city: city || 'Karimnagar',
+        stateProvince: stateProvince || 'Telangana',
+        postalCode: postalCode || '505001',
+        countryCode: countryCode || 'IN',
         vipLevel: vipLevel !== 'none' ? vipLevel : undefined,
         companyName: companyName || undefined,
         loyaltyNumber: loyaltyNumber || undefined,
         notes: notes || undefined,
         gdprConsentMarketing,
         registrationData: {
+          idProofFrontUrl: idProofFrontUrl || undefined,
+          idProofBackUrl: idProofBackUrl || undefined,
           ...(idIssuer || idIssuerState || neighborhood
             ? { idIssuer, idIssuerState, neighborhood }
             : {}),
@@ -483,7 +520,7 @@ export default function CreateGuestModal({
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-telivity-mid-grey mb-1">
+              <label className="block text-xs font-semibold text-telivity-slate mb-1">
                 {t('guests.labels.idType')} *
               </label>
               <select
@@ -495,19 +532,22 @@ export default function CreateGuestModal({
                     setTaxId(idNumber);
                   }
                 }}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-telivity-teal bg-white"
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-telivity-teal bg-white font-medium"
               >
+                <option value="aadhaar">Aadhaar Card (UIDAI)</option>
+                <option value="passport">{t('frontDesk.passport')}</option>
+                <option value="drivers_license">
+                  {t('frontDesk.driversLicense')}
+                </option>
+                <option value="voter_id">Voter ID (Election Commission)</option>
+                <option value="pan_card">PAN Card (Income Tax)</option>
+                <option value="national_id">{t('frontDesk.nationalId')}</option>
                 {isBR && (
                   <option value="cpf">{t('guests.idTypeOptions.cpf')}</option>
                 )}
                 {isBR && (
                   <option value="rg">{t('guests.idTypeOptions.rg')}</option>
                 )}
-                <option value="passport">{t('frontDesk.passport')}</option>
-                <option value="drivers_license">
-                  {t('frontDesk.driversLicense')}
-                </option>
-                <option value="national_id">{t('frontDesk.nationalId')}</option>
                 {!isBR && (
                   <option value="tax_id">{t('guests.labels.taxId')}</option>
                 )}
@@ -515,16 +555,22 @@ export default function CreateGuestModal({
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-telivity-mid-grey mb-1">
-                {idType === 'cpf'
-                  ? 'CPF'
-                  : idType === 'rg'
-                    ? 'RG'
-                    : idType === 'passport'
-                      ? t('frontDesk.passport')
-                      : idType === 'drivers_license'
-                        ? t('frontDesk.driversLicense')
-                        : t('guests.labels.taxId')}{' '}
+              <label className="block text-xs font-semibold text-telivity-slate mb-1">
+                {idType === 'aadhaar'
+                  ? 'Aadhaar Card Number (12 digits)'
+                  : idType === 'cpf'
+                    ? 'CPF'
+                    : idType === 'rg'
+                      ? 'RG'
+                      : idType === 'passport'
+                        ? t('frontDesk.passport')
+                        : idType === 'drivers_license'
+                          ? t('frontDesk.driversLicense')
+                          : idType === 'voter_id'
+                            ? 'Voter ID (EPIC)'
+                            : idType === 'pan_card'
+                              ? 'PAN Card'
+                              : t('guests.labels.taxId')}{' '}
                 *
               </label>
               <input
@@ -540,15 +586,23 @@ export default function CreateGuestModal({
                   }
                 }}
                 placeholder={
-                  idType === 'cpf'
-                    ? '000.000.000-00'
-                    : idType === 'rg'
-                      ? '00.000.000-0'
-                      : idType === 'passport'
-                        ? 'A12345678'
-                        : t('guests.placeholders.taxId')
+                  idType === 'aadhaar'
+                    ? 'e.g. 1234 5678 9012'
+                    : idType === 'cpf'
+                      ? '000.000.000-00'
+                      : idType === 'rg'
+                        ? '00.000.000-0'
+                        : idType === 'passport'
+                          ? 'A12345678'
+                          : idType === 'drivers_license'
+                            ? 'e.g. TS02 20220001234'
+                            : idType === 'voter_id'
+                              ? 'e.g. ABC1234567'
+                              : idType === 'pan_card'
+                                ? 'ABCDE1234F'
+                                : t('guests.placeholders.taxId')
                 }
-                className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-telivity-teal bg-white ${idType === 'cpf' && taxId && !isCpfValid
+                className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-telivity-teal bg-white font-medium ${idType === 'cpf' && taxId && !isCpfValid
                   ? 'border-amber-300'
                   : 'border-gray-200'
                   }`}
@@ -615,7 +669,7 @@ export default function CreateGuestModal({
                 value={idCountry}
                 onChange={(e) => setIdCountry(e.target.value.toUpperCase())}
                 placeholder={defaultCountry}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm uppercase focus:outline-none focus:border-telivity-teal bg-white"
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm uppercase focus:outline-none focus:border-telivity-teal bg-white font-medium"
               />
             </div>
             <div>
@@ -626,9 +680,102 @@ export default function CreateGuestModal({
                 type="date"
                 value={idExpiry}
                 onChange={(e) => setIdExpiry(e.target.value)}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-telivity-teal bg-white"
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-telivity-teal bg-white font-medium"
               />
             </div>
+          </div>
+
+          {/* AADHAAR CARD / ID PROOF UPLOAD (FRONT & BACK) */}
+          <div className="pt-3 border-t border-telivity-teal/15 space-y-2.5">
+            <div className="flex items-center justify-between">
+              <label className="block text-xs font-bold text-telivity-navy">
+                {idType === 'aadhaar' ? 'Aadhaar Card Upload (Front & Back)' : 'ID Document Upload (Front & Back)'}
+              </label>
+              {(idProofFrontUrl || idProofBackUrl) && (
+                <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md">
+                  <CheckCircle2 size={13} />
+                  {idProofFrontUrl && idProofBackUrl ? 'Both Sides Attached' : '1 Side Attached'}
+                </span>
+              )}
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {/* Front Side Upload */}
+              <div className="border-2 border-dashed border-teal-200 hover:border-telivity-teal rounded-xl p-3 bg-white transition text-center relative group">
+                {idProofFrontUrl ? (
+                  <div className="relative">
+                    <img
+                      src={idProofFrontUrl}
+                      alt="ID Proof Front"
+                      className="h-28 w-full object-cover rounded-lg border border-gray-200"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setIdProofFrontUrl('')}
+                      className="absolute top-1.5 right-1.5 p-1 bg-red-600 hover:bg-red-700 text-white rounded-full shadow-md transition"
+                      title="Remove front image"
+                    >
+                      <X size={12} />
+                    </button>
+                    <p className="text-[11px] font-bold text-emerald-800 mt-1 flex items-center justify-center gap-1">
+                      <CheckCircle2 size={12} className="text-emerald-600" /> Front Side Uploaded
+                    </p>
+                  </div>
+                ) : (
+                  <label className="flex flex-col items-center justify-center h-28 cursor-pointer group-hover:bg-teal-50/30 rounded-lg transition">
+                    <Upload size={22} className="text-telivity-teal mb-1 group-hover:scale-110 transition" />
+                    <span className="text-xs font-bold text-telivity-navy">Upload Front Side</span>
+                    <span className="text-[10px] text-telivity-mid-grey mt-0.5">Photo & Aadhaar Details</span>
+                    <input
+                      type="file"
+                      accept="image/*,application/pdf"
+                      onChange={(e) => handleFileUpload(e, 'front')}
+                      className="hidden"
+                    />
+                  </label>
+                )}
+              </div>
+
+              {/* Back Side Upload */}
+              <div className="border-2 border-dashed border-teal-200 hover:border-telivity-teal rounded-xl p-3 bg-white transition text-center relative group">
+                {idProofBackUrl ? (
+                  <div className="relative">
+                    <img
+                      src={idProofBackUrl}
+                      alt="ID Proof Back"
+                      className="h-28 w-full object-cover rounded-lg border border-gray-200"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setIdProofBackUrl('')}
+                      className="absolute top-1.5 right-1.5 p-1 bg-red-600 hover:bg-red-700 text-white rounded-full shadow-md transition"
+                      title="Remove back image"
+                    >
+                      <X size={12} />
+                    </button>
+                    <p className="text-[11px] font-bold text-emerald-800 mt-1 flex items-center justify-center gap-1">
+                      <CheckCircle2 size={12} className="text-emerald-600" /> Back Side Uploaded
+                    </p>
+                  </div>
+                ) : (
+                  <label className="flex flex-col items-center justify-center h-28 cursor-pointer group-hover:bg-teal-50/30 rounded-lg transition">
+                    <Upload size={22} className="text-telivity-teal mb-1 group-hover:scale-110 transition" />
+                    <span className="text-xs font-bold text-telivity-navy">Upload Back Side</span>
+                    <span className="text-[10px] text-telivity-mid-grey mt-0.5">Address & QR Code</span>
+                    <input
+                      type="file"
+                      accept="image/*,application/pdf"
+                      onChange={(e) => handleFileUpload(e, 'back')}
+                      className="hidden"
+                    />
+                  </label>
+                )}
+              </div>
+            </div>
+
+            <p className="text-[10px] text-telivity-mid-grey italic">
+              * Upload clear photo or scan of Aadhaar card front & back. ID proofs are encrypted and restricted to hotel front desk staff for guest verification.
+            </p>
           </div>
         </div>
 
