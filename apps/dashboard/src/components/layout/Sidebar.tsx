@@ -120,6 +120,9 @@ export default function Sidebar({ mobileOpen, onClose }: SidebarProps) {
   const { activeDepartment, setActiveDepartment } = useDepartment();
   const location = useLocation();
 
+  const isLocal = typeof window !== 'undefined' && window.location.hostname === 'localhost';
+  const websiteUrl = isLocal ? 'http://localhost:5174/' : '/';
+
   const consoleBadge = location.pathname.includes('/admin-panel')
     ? 'ADMIN CONSOLE'
     : location.pathname.includes('/manager-panel')
@@ -246,7 +249,7 @@ export default function Sidebar({ mobileOpen, onClose }: SidebarProps) {
 
         <div className="px-6 py-3 border-t border-white/10">
           <a
-            href="http://localhost:5174/booking/?key=pk_live_HAIPDEMO0000000000000000"
+            href={websiteUrl}
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center gap-2.5 px-3 py-2 rounded-lg bg-teal-500/10 text-teal-300 hover:bg-teal-500/20 text-xs font-semibold transition-colors border border-teal-500/30"

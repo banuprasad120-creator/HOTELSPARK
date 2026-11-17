@@ -12,13 +12,13 @@ export const SUPABASE_ANON_KEY =
   import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ||
   (typeof atob === 'function' ? atob(DEFAULT_ANON_KEY_B64) : '');
 
-// In the browser, secret keys (sb_secret_...) are rejected with HTTP 401 by Supabase Gateway.
-// Always use the publishable anon key in the browser.
-export const SUPABASE_KEY =
-  (typeof window !== 'undefined'
-    ? SUPABASE_ANON_KEY
-    : (import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY || (typeof atob === 'function' ? atob(DEFAULT_ADMIN_KEY_B64) : ''))) ||
-  SUPABASE_ANON_KEY;
+export const SUPABASE_SERVICE_ROLE_KEY =
+  import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY ||
+  import.meta.env.VITE_SUPABASE_SECRET_KEY ||
+  (typeof atob === 'function' ? atob(DEFAULT_ADMIN_KEY_B64) : '');
+
+// The PMS dashboard is the hotel staff portal. It uses the service role key to manage live bookings, stays, and staff rosters.
+export const SUPABASE_KEY = SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY;
 
 export const isSupabaseConfigured = Boolean(SUPABASE_URL && SUPABASE_KEY);
 
