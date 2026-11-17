@@ -33,8 +33,12 @@ export default function Header({ onMenuClick }: HeaderProps) {
 
   useCommandPaletteShortcut(() => setSearchOpen(true));
 
-  const isLocal = typeof window !== 'undefined' && window.location.hostname === 'localhost';
-  const websiteUrl = isLocal ? 'http://localhost:5174/' : '/';
+  const isLocal = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+  const websiteUrl = isLocal
+    ? 'http://localhost:5174/'
+    : typeof window !== 'undefined'
+      ? `${window.location.origin}/`
+      : '/';
 
   const activeProperty = isPortfolioMode
     ? null

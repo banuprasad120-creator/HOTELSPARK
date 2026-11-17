@@ -330,5 +330,29 @@ describe('SiteMinderAdapter', () => {
       expect(result.errors[0]!.message).toMatch(/not supported by SiteMinder/i);
       expect(mockFetch).not.toHaveBeenCalled();
     });
+
+    it('resolves base URL from MOCK_SITEMINDER_URL service binding when configured', async () => {
+      mockFetch.mockResolvedValue({
+        ok: true,
+        text: async () => successXml('OTA_HotelAvailNotifRS'),
+      });
+
+      const boundAdapter = new SiteMinderAdapter({
+        get: (key: string, def?: string) => {
+          if (key === 'MOCK_SITEMINDER_URL') return 'http://mock-siteminder.internal';
+          return def;
+        },
+      } as any);
+
+      await boundAdapter.pushAvailability({
+        propertyId: 'p1',
+        channelConnectionId: 'cc1',
+        items: [{ channelRoomCode: 'DLXK', date: '2026-04-15', available: 5 }],
+      });
+
+      const call = mockFetch.mock.calls.find((c) => String(c[0]).includes('mock-siteminder.internal'));
+      expect(call).toBeDefined();
+      expect(String(call![0])).toBe('http://mock-siteminder.internal/pmsxchange');
+    });
   });
 });

@@ -26,7 +26,8 @@ if (isStandalonePms) {
     config.adapter = async (cfg) => {
       try {
         return await handleSupabaseAdapter(cfg);
-      } catch {
+      } catch (adapterErr) {
+        console.error('handleSupabaseAdapter error:', adapterErr);
         return {
           data: [],
           status: 200,

@@ -178,4 +178,29 @@ describe('DerbySoftAdapter', () => {
     expect(result.success).toBe(true);
     expect(String(mockFetch.mock.calls[1]![0])).toContain('/resStatus');
   });
+
+  it('resolves URLs from MOCK_DERBYSOFT_URL service binding when configured', async () => {
+    mockTokenThen(jsonResponse({ header: {} }));
+
+    const boundAdapter = new DerbySoftAdapter({
+      get: (key: string, def?: string) => {
+        if (key === 'MOCK_DERBYSOFT_URL') return 'http://mock-derbysoft.internal';
+        return def;
+      },
+    } as any);
+
+    await boundAdapter.confirmReservation({
+      channelConnectionId: 'c1',
+      externalConfirmation: 'DR1',
+      pmsConfirmationNumber: 'HAIP-1',
+    });
+
+    const tokenCall = mockFetch.mock.calls.find((c) => String(c[0]).includes('mock-derbysoft.internal') && String(c[0]).includes('/account/token'));
+    const statusCall = mockFetch.mock.calls.find((c) => String(c[0]).includes('mock-derbysoft.internal') && String(c[0]).includes('/resStatus'));
+
+    expect(tokenCall).toBeDefined();
+    expect(String(tokenCall![0])).toBe('http://mock-derbysoft.internal/pcapigateway/account/token');
+    expect(statusCall).toBeDefined();
+    expect(String(statusCall![0])).toBe('http://mock-derbysoft.internal/pcapigateway/tunnel/haip_test/resStatus');
+  });
 });

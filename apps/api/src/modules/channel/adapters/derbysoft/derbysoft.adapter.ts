@@ -32,21 +32,35 @@ export class DerbySoftAdapter implements ChannelAdapter {
   constructor(private readonly configService: ConfigService) {}
 
   private resolveConfig(connectionConfig?: Record<string, unknown>): DerbySoftConfig {
+    const boundMockUrl =
+      this.configService.get<string>('MOCK_DERBYSOFT_URL') ||
+      process.env['MOCK_DERBYSOFT_URL'];
+    const mockBase = boundMockUrl?.replace(/\/$/, '');
+    const defaultTunnel = mockBase
+      ? `${mockBase}/pcapigateway/tunnel/{accountId}`
+      : DEFAULT_DERBYSOFT_CONFIG.tunnelBaseUrl!;
+    const defaultProfile = mockBase
+      ? `${mockBase}/pcapigateway/profile/{accountId}`
+      : DEFAULT_DERBYSOFT_CONFIG.profileBaseUrl!;
+    const defaultToken = mockBase
+      ? `${mockBase}/pcapigateway/account/token`
+      : DEFAULT_DERBYSOFT_CONFIG.tokenUrl!;
+
     const env = {
       hotelId: this.configService.get<string>('DERBYSOFT_HOTEL_ID', 'MOCK_DS_HOTEL'),
       accountId: this.configService.get<string>('DERBYSOFT_ACCOUNT_ID', 'haip_test'),
       clientSecret: this.configService.get<string>('DERBYSOFT_CLIENT_SECRET', 'test_password'),
       tunnelBaseUrl: this.configService.get<string>(
         'DERBYSOFT_TUNNEL_BASE_URL',
-        DEFAULT_DERBYSOFT_CONFIG.tunnelBaseUrl!,
+        defaultTunnel,
       ),
       profileBaseUrl: this.configService.get<string>(
         'DERBYSOFT_PROFILE_BASE_URL',
-        DEFAULT_DERBYSOFT_CONFIG.profileBaseUrl!,
+        defaultProfile,
       ),
       tokenUrl: this.configService.get<string>(
         'DERBYSOFT_TOKEN_URL',
-        DEFAULT_DERBYSOFT_CONFIG.tokenUrl!,
+        defaultToken,
       ),
     };
 

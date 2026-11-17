@@ -378,6 +378,13 @@ export class BookingComAdapter implements ChannelAdapter {
     const username = config['username'];
     const password = config['password'];
     const baseUrl = config['baseUrl'];
+    const boundMockUrl =
+      this.configService.get<string>('MOCK_BOOKINGCOM_URL') ||
+      process.env['MOCK_BOOKINGCOM_URL'];
+    const resolvedMockBase = boundMockUrl
+      ? new URL('/ota', boundMockUrl).toString()
+      : DEFAULT_BOOKING_COM_CONFIG.baseUrl!;
+
     return {
       hotelId: hotelId != null && hotelId !== ''
         ? String(hotelId)
@@ -390,7 +397,7 @@ export class BookingComAdapter implements ChannelAdapter {
         : this.configService.get<string>('BOOKING_COM_PASSWORD', 'test_password'),
       baseUrl: baseUrl != null && baseUrl !== ''
         ? String(baseUrl)
-        : this.configService.get<string>('BOOKING_COM_BASE_URL', DEFAULT_BOOKING_COM_CONFIG.baseUrl!),
+        : this.configService.get<string>('BOOKING_COM_BASE_URL', resolvedMockBase),
       timeoutMs: DEFAULT_BOOKING_COM_CONFIG.timeoutMs,
       maxRetries: DEFAULT_BOOKING_COM_CONFIG.maxRetries,
     };

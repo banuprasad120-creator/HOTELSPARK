@@ -332,6 +332,13 @@ export class SiteMinderAdapter implements ChannelAdapter {
     const username = config['username'];
     const password = config['password'];
     const baseUrl = config['baseUrl'];
+    const boundMockUrl =
+      this.configService.get<string>('MOCK_SITEMINDER_URL') ||
+      process.env['MOCK_SITEMINDER_URL'];
+    const resolvedMockBase = boundMockUrl
+      ? new URL('/pmsxchange', boundMockUrl).toString()
+      : DEFAULT_SITEMINDER_CONFIG.baseUrl!;
+
     return {
       hotelCode: hotelCode != null && hotelCode !== ''
         ? String(hotelCode)
@@ -344,7 +351,7 @@ export class SiteMinderAdapter implements ChannelAdapter {
         : this.configService.get<string>('SITEMINDER_PASSWORD', 'test_password'),
       baseUrl: baseUrl != null && baseUrl !== ''
         ? String(baseUrl)
-        : this.configService.get<string>('SITEMINDER_BASE_URL', DEFAULT_SITEMINDER_CONFIG.baseUrl!),
+        : this.configService.get<string>('SITEMINDER_BASE_URL', resolvedMockBase),
       timeoutMs: DEFAULT_SITEMINDER_CONFIG.timeoutMs,
       maxRetries: DEFAULT_SITEMINDER_CONFIG.maxRetries,
     };

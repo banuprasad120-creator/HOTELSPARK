@@ -375,5 +375,29 @@ describe('BookingComAdapter', () => {
       });
       expect(result.errors.some((e) => e.item.startsWith('photo:'))).toBe(true);
     });
+
+    it('resolves base URL from MOCK_BOOKINGCOM_URL service binding when configured', async () => {
+      mockFetch.mockResolvedValue({
+        ok: true,
+        text: async () => successXml('OTA_HotelAvailNotifRS'),
+      });
+
+      const boundAdapter = new BookingComAdapter({
+        get: (key: string, def?: string) => {
+          if (key === 'MOCK_BOOKINGCOM_URL') return 'http://mock-bookingcom.internal';
+          return def;
+        },
+      } as any);
+
+      await boundAdapter.pushAvailability({
+        propertyId: 'p1',
+        channelConnectionId: 'cc1',
+        items: [{ channelRoomCode: 'DLXK', date: '2026-04-15', available: 5, totalInventory: 10 }],
+      });
+
+      const call = mockFetch.mock.calls.find((c) => String(c[0]).includes('mock-bookingcom.internal'));
+      expect(call).toBeDefined();
+      expect(String(call![0])).toContain('http://mock-bookingcom.internal/ota/OTA_HotelAvailNotif');
+    });
   });
 });

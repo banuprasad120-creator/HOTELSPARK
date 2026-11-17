@@ -1,0 +1,91 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "services": {
+    "api": {
+      "root": "apps/api",
+      "framework": "nestjs",
+      "bindings": [
+        {
+          "type": "service",
+          "service": "mock-bookingcom",
+          "format": "url",
+          "env": "MOCK_BOOKINGCOM_URL"
+        },
+        {
+          "type": "service",
+          "service": "mock-derbysoft",
+          "format": "url",
+          "env": "MOCK_DERBYSOFT_URL"
+        },
+        {
+          "type": "service",
+          "service": "mock-siteminder",
+          "format": "url",
+          "env": "MOCK_SITEMINDER_URL"
+        }
+      ]
+    },
+    "booking": {
+      "root": "apps/booking",
+      "framework": "vite"
+    },
+    "dashboard": {
+      "root": "apps/dashboard",
+      "framework": "vite"
+    },
+    "mock-bookingcom": {
+      "root": "tools/mock-bookingcom",
+      "runtime": "node"
+    },
+    "mock-derbysoft": {
+      "root": "tools/mock-derbysoft",
+      "runtime": "node"
+    },
+    "mock-siteminder": {
+      "root": "tools/mock-siteminder",
+      "runtime": "node"
+    },
+    "repo-control": {
+      "root": "tools/repo-control",
+      "framework": "vite"
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": {
+        "service": "api"
+      }
+    },
+    {
+      "source": "/booking/(.*)",
+      "destination": {
+        "service": "booking"
+      }
+    },
+    {
+      "source": "/booking",
+      "destination": {
+        "service": "booking"
+      }
+    },
+    {
+      "source": "/admin/(.*)",
+      "destination": {
+        "service": "dashboard"
+      }
+    },
+    {
+      "source": "/admin",
+      "destination": {
+        "service": "dashboard"
+      }
+    },
+    {
+      "source": "/(.*)",
+      "destination": {
+        "service": "dashboard"
+      }
+    }
+  ]
+}
