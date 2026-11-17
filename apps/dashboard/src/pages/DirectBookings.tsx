@@ -126,8 +126,8 @@ export default function DirectBookings() {
       const res = await api.get('/v1/direct-bookings', { params });
       return res.data;
     },
-    enabled: Boolean(propertyId) && activeTab !== 'history',
-    refetchInterval: 10000, // Background poll every 10s for new bookings
+    enabled: Boolean(propertyId),
+    refetchInterval: 5000, // Background poll every 5s for new bookings
   });
 
   // Fetch Available Rooms when Approve Modal opens
@@ -210,8 +210,20 @@ export default function DirectBookings() {
     },
   });
 
-  const counts = bookingsData?.counts || { total: 0, pending: 0, accepted: 0, denied: 0 };
-  const items: DirectBookingItem[] = bookingsData?.data || [];
+  const counts = useMemo(() => {
+    if (bookingsData?.counts) return bookingsData.counts;
+    const list = Array.isArray(bookingsData) ? bookingsData : (bookingsData?.data || []);
+    return {
+      total: list.length,
+      pending: list.filter((i: any) => i.status === 'pending' || i.status === 'pending_approval').length,
+      accepted: list.filter((i: any) => i.status === 'accepted').length,
+      denied: list.filter((i: any) => i.status === 'denied').length,
+    };
+  }, [bookingsData]);
+
+  const items: DirectBookingItem[] = Array.isArray(bookingsData?.data)
+    ? bookingsData.data
+    : (Array.isArray(bookingsData) ? bookingsData : []);
 
   const handleTabChange = (tab: TabKey) => {
     if (tab === 'all') navigate('/direct-bookings');
@@ -444,50 +456,58 @@ export default function DirectBookings() {
             </div>
           </div>
 
-          {isLoadingHistory ? (
-            <div className="p-8 text-center text-sm text-gray-500">Loading audit log…</div>
-          ) : !historyData?.data || historyData.data.length === 0 ? (
-            <div className="p-8 text-center text-sm text-gray-500">No audit records found.</div>
-          ) : (
-            <div className="divide-y divide-gray-100">
-              {historyData.data.map((log: AuditLogItem) => {
-                const isApprove = log.action === 'approve';
-                return (
-                  <div key={log.id} className="p-4 flex items-start gap-4 hover:bg-gray-50/60 transition">
-                    <div
-                      className={`p-2 rounded-xl flex-shrink-0 ${isApprove ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'
-                        }`}
-                    >
-                      {isApprove ? <CheckCircle2 className="w-5 h-5" /> : <XCircle className="w-5 h-5" />}
-                    </div>
+          {(() => {
+            const historyList: AuditLogItem[] = Array.isArray(historyData?.data)
+              ? historyData.data
+              : (Array.isArray(historyData) ? historyData : []);
 
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between gap-2">
-                        <span
-                          className={`text-xs font-bold uppercase tracking-wide px-2 py-0.5 rounded ${isApprove ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'
-                            }`}
-                        >
-                          {log.action}
-                        </span>
-                        <span className="text-xs text-gray-400">
-                          {new Date(log.occurredAt).toLocaleString('en-IN', {
-                            dateStyle: 'medium',
-                            timeStyle: 'short',
-                          })}
-                        </span>
+            if (isLoadingHistory) {
+              return <div className="p-8 text-center text-sm text-gray-500">Loading audit log…</div>;
+            }
+            if (historyList.length === 0) {
+              return <div className="p-8 text-center text-sm text-gray-500">No audit records found.</div>;
+            }
+            return (
+              <div className="divide-y divide-gray-100">
+                {historyList.map((log: AuditLogItem) => {
+                  const isApprove = log.action === 'approve';
+                  return (
+                    <div key={log.id} className="p-4 flex items-start gap-4 hover:bg-gray-50/60 transition">
+                      <div
+                        className={`p-2 rounded-xl flex-shrink-0 ${isApprove ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'
+                          }`}
+                      >
+                        {isApprove ? <CheckCircle2 className="w-5 h-5" /> : <XCircle className="w-5 h-5" />}
                       </div>
-                      <p className="mt-1 text-sm font-medium text-gray-900">{log.description}</p>
-                      {log.newValue && (
-                        <div className="mt-2 text-xs font-mono bg-gray-50 p-2 rounded-md border border-gray-100 text-gray-600">
-                          {JSON.stringify(log.newValue)}
+
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-2">
+                          <span
+                            className={`text-xs font-bold uppercase tracking-wide px-2 py-0.5 rounded ${isApprove ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'
+                              }`}
+                          >
+                            {log.action}
+                          </span>
+                          <span className="text-xs text-gray-400">
+                            {new Date(log.occurredAt).toLocaleString('en-IN', {
+                              dateStyle: 'medium',
+                              timeStyle: 'short',
+                            })}
+                          </span>
                         </div>
-                      )}
+                        <p className="mt-1 text-sm font-medium text-gray-900">{log.description}</p>
+                        {log.newValue && (
+                          <div className="mt-2 text-xs font-mono bg-gray-50 p-2 rounded-md border border-gray-100 text-gray-600">
+                            {JSON.stringify(log.newValue)}
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
+                  );
+                })}
+              </div>
+            );
+          })()}
         </div>
       ) : (
         /* BOOKINGS LIST VIEW */

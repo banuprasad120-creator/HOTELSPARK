@@ -959,7 +959,73 @@ export async function handleSupabaseAdapter(config: AxiosRequestConfig): Promise
   // 5. Direct Bookings list
   if (url.includes('/direct-bookings') && method === 'GET') {
     if (url.includes('/history/audit')) {
-      return ok([]);
+      const stored = getStoredDirectBookings();
+      const map = new Map<string, any>();
+      for (const b of stored) {
+        if (b.status === 'accepted' || b.status === 'denied') {
+          map.set(b.id, b);
+        }
+      }
+
+      try {
+        const { data: dbReqs } = await supabaseFetch<any[]>('booking_requests?select=*&order=decided_at.desc,created_at.desc');
+        if (Array.isArray(dbReqs)) {
+          for (const r of dbReqs) {
+            if (r.status === 'accepted' || r.status === 'denied') {
+              map.set(r.id, {
+                id: r.id,
+                propertyId: r.property_id || PROPERTY_ID,
+                status: r.status,
+                guestFirstName: r.guest_first_name,
+                guestLastName: r.guest_last_name,
+                reference: r.submission_idempotency_key || `SPARK-${r.id.slice(0, 8).toUpperCase()}`,
+                submittedTotal: r.submitted_total,
+                assignedRoomNumber: r.status === 'accepted' ? '2001' : null,
+                denialReason: r.denial_reason,
+                decidedAt: r.decided_at || r.updated_at,
+                createdAt: r.created_at,
+              });
+            }
+          }
+        }
+      } catch {}
+
+      const auditList: any[] = [];
+      for (const b of map.values()) {
+        if (b.status === 'accepted') {
+          auditList.push({
+            id: `audit-${b.id}-approve`,
+            propertyId: b.propertyId || PROPERTY_ID,
+            action: 'approve',
+            entityType: 'booking_request',
+            entityId: b.id,
+            description: `Admin approved booking request for ${b.guestFirstName || 'Guest'} ${b.guestLastName || ''} (${b.reference}) and assigned Room ${b.assignedRoomNumber || '2001'}.`,
+            occurredAt: b.decidedAt || b.createdAt || new Date().toISOString(),
+            newValue: {
+              roomNumber: b.assignedRoomNumber || '2001',
+              total: b.submittedTotal,
+              guest: `${b.guestFirstName || 'Guest'} ${b.guestLastName || ''}`.trim(),
+            },
+          });
+        } else if (b.status === 'denied') {
+          auditList.push({
+            id: `audit-${b.id}-reject`,
+            propertyId: b.propertyId || PROPERTY_ID,
+            action: 'reject',
+            entityType: 'booking_request',
+            entityId: b.id,
+            description: `Admin rejected booking request for ${b.guestFirstName || 'Guest'} ${b.guestLastName || ''}. Reason: ${b.denialReason || 'Room unavailable'}.`,
+            occurredAt: b.decidedAt || b.createdAt || new Date().toISOString(),
+            newValue: {
+              reason: b.denialReason,
+              guest: `${b.guestFirstName || 'Guest'} ${b.guestLastName || ''}`.trim(),
+            },
+          });
+        }
+      }
+
+      auditList.sort((a, b) => new Date(b.occurredAt).getTime() - new Date(a.occurredAt).getTime());
+      return ok({ data: auditList });
     }
 
     let serverReqs: any[] = [];
@@ -1069,7 +1135,14 @@ export async function handleSupabaseAdapter(config: AxiosRequestConfig): Promise
       );
     }
 
-    return ok(result);
+    const counts = {
+      total: items.length,
+      pending: items.filter((i) => i.status === 'pending' || i.status === 'pending_approval').length,
+      accepted: items.filter((i) => i.status === 'accepted').length,
+      denied: items.filter((i) => i.status === 'denied').length,
+    };
+
+    return ok({ data: result, counts });
   }
 
   // 6. Room types and categories
