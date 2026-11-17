@@ -17,8 +17,8 @@ export const SUPABASE_SERVICE_ROLE_KEY =
   import.meta.env.VITE_SUPABASE_SECRET_KEY ||
   (typeof atob === 'function' ? atob(DEFAULT_ADMIN_KEY_B64) : '');
 
-// The PMS dashboard is the hotel staff portal. It uses the service role key to manage live bookings, stays, and staff rosters.
-export const SUPABASE_KEY = SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY;
+// Always use the publishable anon key in the browser to comply with Supabase API Gateway security.
+export const SUPABASE_KEY = SUPABASE_ANON_KEY;
 
 export const isSupabaseConfigured = Boolean(SUPABASE_URL && SUPABASE_KEY);
 

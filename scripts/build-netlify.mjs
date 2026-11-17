@@ -65,6 +65,8 @@ try {
 
   // 5. Create Netlify _redirects file
   const redirectsContent = `# Hotel Spark Netlify Redirects
+/api/direct-bookings    /.netlify/functions/direct-bookings    200
+/api/direct-bookings/*  /.netlify/functions/direct-bookings/:splat  200
 /admin      /admin/index.html   200
 /admin/*    /admin/index.html   200
 /booking    /booking/index.html 200

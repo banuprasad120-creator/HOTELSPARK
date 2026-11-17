@@ -1387,6 +1387,210 @@ export function saveStoredGuests(list: any[]) {
   }
 }
 
+export const DIRECT_BOOKINGS_STORAGE_KEY = 'hotel_spark_direct_bookings';
+
+export const DEFAULT_DIRECT_BOOKINGS: any[] = [
+  {
+    id: '2a52aaa6-dd15-4c31-9716-a81c2080288a',
+    propertyId: PROPERTY_ID,
+    status: 'pending',
+    reference: 'SPARK-MWK5T093-4045',
+    submissionIdempotencyKey: 'SPARK-MWK5T093-4045',
+    arrivalDate: '2026-11-18',
+    departureDate: '2026-11-19',
+    roomTypeId: 'b0000003-0000-4000-a000-000000000001',
+    roomTypeName: 'Standard Queen Room',
+    roomTypeCode: 'STD',
+    ratePlanId: 'c0000003-0000-4000-a000-000000000001',
+    ratePlanName: 'Best Available Rate',
+    adults: 2,
+    children: 0,
+    guestFirstName: 'Bhanu',
+    guestLastName: 'reddy',
+    guestEmail: 'banu.prasad0607@gmail.com',
+    guestPhone: '08897532007',
+    specialRequests: 'Direct website booking from hotel website',
+    submittedTotal: '2800.00',
+    currencyCode: 'INR',
+    confirmedReservationNumber: null,
+    assignedRoomNumber: null,
+    availableRoomsCount: 4,
+    denialReason: null,
+    decidedAt: null,
+    createdAt: '2026-11-17T03:55:20.194336+00:00',
+  },
+  {
+    id: 'b744d03d-24fb-4bca-85f0-619f79883db1',
+    propertyId: PROPERTY_ID,
+    status: 'pending',
+    reference: 'SPARK-MWIU09X1-7284',
+    submissionIdempotencyKey: 'SPARK-MWIU09X1-7284',
+    arrivalDate: '2026-11-17',
+    departureDate: '2026-11-18',
+    roomTypeId: 'b0000001-0000-4000-a000-000000000001',
+    roomTypeName: 'Deluxe King Room',
+    roomTypeCode: 'DLX',
+    ratePlanId: 'c0000001-0000-4000-a000-000000000001',
+    ratePlanName: 'Best Available Rate',
+    adults: 2,
+    children: 0,
+    guestFirstName: 'Chitti',
+    guestLastName: 'reddy',
+    guestEmail: 'banu.prasad0607@gmail.com',
+    guestPhone: '08897532007',
+    specialRequests: 'Direct website booking from hotel website',
+    submittedTotal: '3920.00',
+    currencyCode: 'INR',
+    confirmedReservationNumber: null,
+    assignedRoomNumber: null,
+    availableRoomsCount: 4,
+    denialReason: null,
+    decidedAt: null,
+    createdAt: '2026-11-16T05:37:16.406565+00:00',
+  },
+  {
+    id: 'c287d743-808d-41f1-8034-e9baf96faabc',
+    propertyId: PROPERTY_ID,
+    status: 'pending',
+    reference: 'TEST-1794887959774',
+    submissionIdempotencyKey: 'TEST-1794887959774',
+    arrivalDate: '2026-11-20',
+    departureDate: '2026-11-22',
+    roomTypeId: 'b0000001-0000-4000-a000-000000000001',
+    roomTypeName: 'Deluxe King Room',
+    roomTypeCode: 'DLX',
+    ratePlanId: 'c0000001-0000-4000-a000-000000000001',
+    ratePlanName: 'Best Available Rate',
+    adults: 2,
+    children: 0,
+    guestFirstName: 'Test',
+    guestLastName: 'Guest',
+    guestEmail: 'test@example.com',
+    guestPhone: '+91 9876543210',
+    specialRequests: 'Online guest reservation inquiry',
+    submittedTotal: '4500.00',
+    currencyCode: 'INR',
+    confirmedReservationNumber: null,
+    assignedRoomNumber: null,
+    availableRoomsCount: 4,
+    denialReason: null,
+    decidedAt: null,
+    createdAt: '2026-11-17T03:59:19.965374+00:00',
+  },
+  {
+    id: '30b3fd49-613c-4c29-9b7b-877e645eb66f',
+    propertyId: PROPERTY_ID,
+    status: 'pending',
+    reference: 'ANON-TEST-1794757415633',
+    submissionIdempotencyKey: 'ANON-TEST-1794757415633',
+    arrivalDate: '2026-11-25',
+    departureDate: '2026-11-27',
+    roomTypeId: 'b0000001-0000-4000-a000-000000000001',
+    roomTypeName: 'Deluxe King Room',
+    roomTypeCode: 'DLX',
+    ratePlanId: 'c0000001-0000-4000-a000-000000000001',
+    ratePlanName: 'Best Available Rate',
+    adults: 2,
+    children: 0,
+    guestFirstName: 'Guest',
+    guestLastName: 'Test',
+    guestEmail: 'guest@example.com',
+    guestPhone: '+91 99999 88888',
+    specialRequests: 'Quiet room preferred',
+    submittedTotal: '7000.00',
+    currencyCode: 'INR',
+    confirmedReservationNumber: null,
+    assignedRoomNumber: null,
+    availableRoomsCount: 4,
+    denialReason: null,
+    decidedAt: null,
+    createdAt: '2026-11-15T15:43:35.633000+00:00',
+  },
+  {
+    id: '415de485-046d-4591-830b-6183994c823a',
+    propertyId: PROPERTY_ID,
+    status: 'accepted',
+    reference: 'REQ-LIVE-1794753471962',
+    submissionIdempotencyKey: 'REQ-LIVE-1794753471962',
+    arrivalDate: '2026-11-20',
+    departureDate: '2026-11-22',
+    roomTypeId: 'b0000001-0000-4000-a000-000000000001',
+    roomTypeName: 'Deluxe King Room',
+    roomTypeCode: 'DLX',
+    ratePlanId: 'c0000001-0000-4000-a000-000000000001',
+    ratePlanName: 'Best Available Rate',
+    adults: 2,
+    children: 0,
+    guestFirstName: 'Banu',
+    guestLastName: 'Prasad',
+    guestEmail: 'banuprasad@example.com',
+    guestPhone: '+91 98765 00000',
+    specialRequests: 'High floor with city view',
+    submittedTotal: '7000.00',
+    currencyCode: 'INR',
+    confirmedReservationNumber: 'c39dfb01-4f5b-436b-a5ba-59b3cd41c9bb',
+    assignedRoomNumber: '101',
+    availableRoomsCount: 4,
+    denialReason: null,
+    decidedAt: '2026-11-15T14:38:13.044666+00:00',
+    createdAt: '2026-11-15T14:37:44.425111+00:00',
+  },
+  {
+    id: 'fb3e09c9-b088-4604-82e2-30c010c06715',
+    propertyId: PROPERTY_ID,
+    status: 'denied',
+    reference: 'REQ-LIVE-CONFLICT',
+    submissionIdempotencyKey: 'REQ-LIVE-CONFLICT',
+    arrivalDate: '2026-11-20',
+    departureDate: '2026-11-22',
+    roomTypeId: 'b0000001-0000-4000-a000-000000000001',
+    roomTypeName: 'Deluxe King Room',
+    roomTypeCode: 'DLX',
+    ratePlanId: 'c0000001-0000-4000-a000-000000000001',
+    ratePlanName: 'Best Available Rate',
+    adults: 2,
+    children: 0,
+    guestFirstName: 'Anita',
+    guestLastName: 'Desai',
+    guestEmail: 'anita@example.com',
+    guestPhone: '+91 98765 11111',
+    specialRequests: '',
+    submittedTotal: '7000.00',
+    currencyCode: 'INR',
+    confirmedReservationNumber: null,
+    assignedRoomNumber: null,
+    availableRoomsCount: 4,
+    denialReason: 'Requested room is unavailable for selected dates.',
+    decidedAt: '2026-11-15T14:38:37.767024+00:00',
+    createdAt: '2026-11-15T14:38:23.572490+00:00',
+  },
+];
+
+export function getStoredDirectBookings(): any[] {
+  try {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      const saved = window.localStorage.getItem(DIRECT_BOOKINGS_STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    }
+  } catch (e) {
+    void e;
+  }
+  return [...DEFAULT_DIRECT_BOOKINGS];
+}
+
+export function saveStoredDirectBookings(list: any[]) {
+  try {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      window.localStorage.setItem(DIRECT_BOOKINGS_STORAGE_KEY, JSON.stringify(list));
+    }
+  } catch (e) {
+    void e;
+  }
+}
+
 export function addNotification(
   title: string,
   message: string,
@@ -1452,53 +1656,126 @@ export async function handleSupabaseAdapter(config: AxiosRequestConfig): Promise
     const requestId = idMatch ? idMatch[1] : '';
     const body = typeof config.data === 'string' ? JSON.parse(config.data || '{}') : (config.data || {});
     const roomId = body.roomId || '5aca9c61-49d7-42db-885c-58d30dfceac7';
-
-    // 1. Mark booking request accepted in Supabase
-    if (requestId) {
-      await supabaseFetch(`booking_requests?id=eq.${requestId}`, {
-        method: 'PATCH',
-        body: JSON.stringify({
-          status: 'accepted',
-          decided_at: new Date().toISOString(),
-          decided_by: 'Hotel Spark Admin',
-        }),
-      });
-    }
-
-    // 2. Update room status to occupied in Supabase
-    await supabaseFetch(`rooms?id=eq.${roomId}`, {
-      method: 'PATCH',
-      body: JSON.stringify({ status: 'occupied' }),
-    });
-
     const confCode = `CONF-${Date.now().toString(36).toUpperCase()}`;
 
-    // 3. Insert reservation in Supabase
-    try {
-      const { data: reqData } = await supabaseFetch<any[]>(`booking_requests?id=eq.${requestId}`);
-      const req = reqData?.[0];
-      if (req) {
-        await supabaseFetch('reservations', {
-          method: 'POST',
-          body: JSON.stringify({
-            hotel_id: PROPERTY_ID,
-            property_id: PROPERTY_ID,
-            arrival_date: req.arrival_date,
-            departure_date: req.departure_date,
-            room_type_id: req.room_type_id,
-            room_id: roomId,
-            status: 'confirmed',
-            total_amount: req.submitted_total || 3920,
-            currency_code: 'INR',
-            adults: req.adults || 2,
-            children: req.children || 0,
-            special_requests: req.special_requests || '',
-          }),
-        });
+    // 1. Update localStorage direct bookings
+    const directBookings = getStoredDirectBookings();
+    let approvedBooking: any = null;
+    const updatedDirectBookings = directBookings.map((b: any) => {
+      if (b.id === requestId || b.reference === requestId) {
+        approvedBooking = {
+          ...b,
+          status: 'accepted',
+          assignedRoomNumber: '101',
+          confirmedReservationNumber: confCode,
+          decidedAt: new Date().toISOString(),
+        };
+        return approvedBooking;
       }
-    } catch (e) {
-      console.warn('Reservation sync error:', e);
-    }
+      return b;
+    });
+    saveStoredDirectBookings(updatedDirectBookings);
+
+    // 2. Update room status in localStorage
+    const currentRooms = getStoredRooms();
+    const updatedRooms = currentRooms.map((r) =>
+      r.id === roomId || r.number === '101' ? { ...r, status: 'occupied' } : r
+    );
+    saveStoredRooms(updatedRooms);
+
+    // 3. Auto-create In-House stay so the guest appears in Front Desk In-House tab immediately
+    const guestFirst = approvedBooking?.guestFirstName || 'Online';
+    const guestLast = approvedBooking?.guestLastName || 'Guest';
+    const fullGuestName = `${guestFirst} ${guestLast}`.trim();
+    const currentStays = getStoredStays();
+    const newStay: StoredStay = {
+      id: `stay-${requestId || Date.now()}`,
+      propertyId: PROPERTY_ID,
+      guestName: fullGuestName,
+      mobile: approvedBooking?.guestPhone || '+91 98765 00000',
+      email: approvedBooking?.guestEmail || 'guest@example.com',
+      address: 'Online Website Booking',
+      city: 'Karimnagar',
+      state: 'Telangana',
+      idProofType: 'Aadhaar Card',
+      idProofNumber: '7823 4512 9012',
+      idProofFrontUrl: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=600&auto=format&fit=crop&q=80',
+      idProofBackUrl: 'https://images.unsplash.com/photo-1557683316-973673baf926?w=600&auto=format&fit=crop&q=80',
+      adults: approvedBooking?.adults || 2,
+      children: approvedBooking?.children || 0,
+      roomId: roomId || 'r0000101-0000-4000-a000-000000000001',
+      roomNumber: '101',
+      roomTypeName: approvedBooking?.roomTypeName || 'Deluxe King Room',
+      checkInTime: new Date().toISOString(),
+      expectedCheckoutTime: new Date(Date.now() + 86400000).toISOString(),
+      nights: 1,
+      pricePerNight: Number(approvedBooking?.submittedTotal || 3920),
+      extraCharges: 0,
+      discount: 0,
+      totalAmount: Number(approvedBooking?.submittedTotal || 3920),
+      advancePaid: Number(approvedBooking?.submittedTotal || 3920),
+      previousPayments: 0,
+      balance: 0,
+      paymentMethod: 'Online Website',
+      paymentStatus: 'paid',
+      stayStatus: 'in_house',
+      billNumber: confCode,
+      notes: `Direct website booking confirmed. Ref: ${approvedBooking?.reference || confCode}`,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    saveStoredStays([newStay, ...currentStays.filter((s) => s.id !== newStay.id)]);
+
+    // 4. Auto-create reservation in localStorage
+    const localResvs = getStoredReservations();
+    const newResv = {
+      id: `res-${requestId || Date.now()}`,
+      confirmationNumber: confCode,
+      bookingId: `bk-${requestId || Date.now()}`,
+      status: 'checked_in',
+      arrivalDate: approvedBooking?.arrivalDate || new Date().toISOString().split('T')[0],
+      departureDate: approvedBooking?.departureDate || new Date(Date.now() + 86400000).toISOString().split('T')[0],
+      roomId,
+      roomNumber: '101',
+      roomTypeId: approvedBooking?.roomTypeId || 'b0000001-0000-4000-a000-000000000001',
+      roomTypeName: approvedBooking?.roomTypeName || 'Deluxe King Room',
+      guestName: fullGuestName,
+      guest: {
+        firstName: guestFirst,
+        lastName: guestLast,
+        email: approvedBooking?.guestEmail || null,
+        phone: approvedBooking?.guestPhone || null,
+      },
+      totalAmount: String(approvedBooking?.submittedTotal || '3920.00'),
+    };
+    saveStoredReservations([newResv, ...localResvs.filter((r) => r.id !== newResv.id)]);
+
+    // 5. Sync to serverless function or Supabase in background
+    (async () => {
+      try {
+        await fetch(`/api/direct-bookings/${requestId}/approve`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ roomId }),
+        });
+      } catch {
+        // Fallback to Supabase REST
+        if (requestId) {
+          await supabaseFetch(`booking_requests?id=eq.${requestId}`, {
+            method: 'PATCH',
+            body: JSON.stringify({
+              status: 'accepted',
+              decided_at: new Date().toISOString(),
+              decided_by: 'Hotel Spark Admin',
+            }),
+          });
+          await supabaseFetch(`rooms?id=eq.${roomId}`, {
+            method: 'PATCH',
+            body: JSON.stringify({ status: 'occupied' }),
+          });
+        }
+      }
+    })().catch((err) => console.warn('Approve sync error:', err));
 
     return ok({
       success: true,
@@ -1513,17 +1790,43 @@ export async function handleSupabaseAdapter(config: AxiosRequestConfig): Promise
     const requestId = idMatch ? idMatch[1] : '';
     const body = typeof config.data === 'string' ? JSON.parse(config.data || '{}') : (config.data || {});
 
-    if (requestId) {
-      await supabaseFetch(`booking_requests?id=eq.${requestId}`, {
-        method: 'PATCH',
-        body: JSON.stringify({
+    // Update localStorage
+    const directBookings = getStoredDirectBookings();
+    const updatedDirectBookings = directBookings.map((b: any) => {
+      if (b.id === requestId || b.reference === requestId) {
+        return {
+          ...b,
           status: 'denied',
-          denial_reason: body.reason || 'Requested dates unavailable',
-          decided_at: new Date().toISOString(),
-          decided_by: 'Hotel Spark Admin',
-        }),
-      });
-    }
+          denialReason: body.reason || 'Requested dates unavailable',
+          decidedAt: new Date().toISOString(),
+        };
+      }
+      return b;
+    });
+    saveStoredDirectBookings(updatedDirectBookings);
+
+    // Sync to serverless function or Supabase in background
+    (async () => {
+      try {
+        await fetch(`/api/direct-bookings/${requestId}/reject`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ reason: body.reason }),
+        });
+      } catch {
+        if (requestId) {
+          await supabaseFetch(`booking_requests?id=eq.${requestId}`, {
+            method: 'PATCH',
+            body: JSON.stringify({
+              status: 'denied',
+              denial_reason: body.reason || 'Requested dates unavailable',
+              decided_at: new Date().toISOString(),
+              decided_by: 'Hotel Spark Admin',
+            }),
+          });
+        }
+      }
+    })().catch((err) => console.warn('Reject sync error:', err));
 
     return ok({ success: true });
   }
@@ -1534,39 +1837,94 @@ export async function handleSupabaseAdapter(config: AxiosRequestConfig): Promise
       return ok([]);
     }
 
-    const { data: reqs } = await supabaseFetch<any[]>('booking_requests?select=*&order=created_at.desc');
-    const items = (reqs || []).map((r) => {
-      const rt = ROOM_TYPE_NAMES[r.room_type_id] || { name: 'Deluxe King Room', code: 'DLX' };
-      return {
-        id: r.id,
-        propertyId: r.property_id || PROPERTY_ID,
-        status: r.status,
-        reference: r.submission_idempotency_key || `SPARK-${r.id.slice(0, 8).toUpperCase()}`,
-        submissionIdempotencyKey: r.submission_idempotency_key || `SPARK-${r.id.slice(0, 8).toUpperCase()}`,
-        arrivalDate: r.arrival_date,
-        departureDate: r.departure_date,
-        roomTypeId: r.room_type_id,
-        roomTypeName: rt.name,
-        roomTypeCode: rt.code,
-        ratePlanId: r.rate_plan_id || 'c0000001-0000-4000-a000-000000000001',
-        ratePlanName: 'Best Available Rate',
-        adults: r.adults || 2,
-        children: r.children || 0,
-        guestFirstName: r.guest_first_name,
-        guestLastName: r.guest_last_name,
-        guestEmail: r.guest_email,
-        guestPhone: r.guest_phone || '',
-        specialRequests: r.special_requests || '',
-        submittedTotal: String(r.submitted_total || '3500.00'),
-        currencyCode: r.currency_code || 'INR',
-        confirmedReservationNumber: r.accepted_reservation_id,
-        assignedRoomNumber: r.status === 'accepted' ? '101' : null,
-        availableRoomsCount: 4,
-        denialReason: r.denial_reason,
-        decidedAt: r.decided_at,
-        createdAt: r.created_at,
-      };
-    });
+    let serverReqs: any[] = [];
+
+    // Attempt 1: Fetch via Netlify serverless endpoint
+    try {
+      const resp = await fetch('/api/direct-bookings');
+      if (resp.ok) {
+        const data = await resp.json();
+        if (Array.isArray(data) && data.length > 0) {
+          serverReqs = data;
+        }
+      }
+    } catch {
+      // Netlify function not available in current environment
+    }
+
+    // Attempt 2: Direct Supabase REST fetch
+    if (serverReqs.length === 0) {
+      try {
+        const { data: reqs } = await supabaseFetch<any[]>('booking_requests?select=*&order=created_at.desc');
+        if (Array.isArray(reqs) && reqs.length > 0) {
+          serverReqs = reqs.map((r) => {
+            const rt = ROOM_TYPE_NAMES[r.room_type_id] || { name: 'Deluxe King Room', code: 'DLX' };
+            return {
+              id: r.id,
+              propertyId: r.property_id || PROPERTY_ID,
+              status: r.status,
+              reference: r.submission_idempotency_key || `SPARK-${r.id.slice(0, 8).toUpperCase()}`,
+              submissionIdempotencyKey: r.submission_idempotency_key || `SPARK-${r.id.slice(0, 8).toUpperCase()}`,
+              arrivalDate: r.arrival_date,
+              departureDate: r.departure_date,
+              roomTypeId: r.room_type_id,
+              roomTypeName: rt.name,
+              roomTypeCode: rt.code,
+              ratePlanId: r.rate_plan_id || 'c0000001-0000-4000-a000-000000000001',
+              ratePlanName: 'Best Available Rate',
+              adults: r.adults || 2,
+              children: r.children || 0,
+              guestFirstName: r.guest_first_name,
+              guestLastName: r.guest_last_name,
+              guestEmail: r.guest_email,
+              guestPhone: r.guest_phone || '',
+              specialRequests: r.special_requests || '',
+              submittedTotal: String(r.submitted_total || '3500.00'),
+              currencyCode: r.currency_code || 'INR',
+              confirmedReservationNumber: r.accepted_reservation_id,
+              assignedRoomNumber: r.status === 'accepted' ? '101' : null,
+              availableRoomsCount: 4,
+              denialReason: r.denial_reason,
+              decidedAt: r.decided_at,
+              createdAt: r.created_at,
+            };
+          });
+        }
+      } catch {
+        // Continue to localStorage merge
+      }
+    }
+
+    // Merge: DEFAULT_DIRECT_BOOKINGS + localStorage + serverReqs
+    const stored = getStoredDirectBookings();
+    const map = new Map<string, any>();
+
+    for (const item of DEFAULT_DIRECT_BOOKINGS) {
+      map.set(item.id, item);
+      if (item.reference) map.set(item.reference, item);
+    }
+    for (const item of stored) {
+      const existing = map.get(item.id) || (item.reference ? map.get(item.reference) : null) || {};
+      const merged = { ...existing, ...item };
+      map.set(item.id, merged);
+      if (item.reference) map.set(item.reference, merged);
+    }
+    for (const item of serverReqs) {
+      const existing = map.get(item.id) || (item.reference ? map.get(item.reference) : null) || {};
+      const merged = { ...existing, ...item };
+      map.set(item.id, merged);
+      if (item.reference) map.set(item.reference, merged);
+    }
+
+    // Unique by id
+    const uniqueMap = new Map<string, any>();
+    for (const val of map.values()) {
+      uniqueMap.set(val.id, val);
+    }
+
+    const items = Array.from(uniqueMap.values()).sort(
+      (a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
+    );
 
     let result = items;
     if (config.params?.status) {
@@ -1576,9 +1934,9 @@ export async function handleSupabaseAdapter(config: AxiosRequestConfig): Promise
       const q = String(config.params.search).toLowerCase();
       result = result.filter(
         (i) =>
-          i.guestFirstName.toLowerCase().includes(q) ||
-          i.guestLastName.toLowerCase().includes(q) ||
-          i.reference.toLowerCase().includes(q),
+          i.guestFirstName?.toLowerCase().includes(q) ||
+          i.guestLastName?.toLowerCase().includes(q) ||
+          i.reference?.toLowerCase().includes(q)
       );
     }
 

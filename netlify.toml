@@ -1,6 +1,7 @@
 [build]
   command = "node scripts/build-netlify.mjs"
   publish = "dist_netlify"
+  functions = "netlify/functions"
 
 [build.environment]
   NODE_ENV = "development"
@@ -17,8 +18,28 @@
   SUPABASE_JWKS_URL = "https://erzzqhzjtdhzrwpzbflr.supabase.co/auth/v1/.well-known/jwks.json"
 
 [[redirects]]
+  from = "/api/direct-bookings"
+  to = "/.netlify/functions/direct-bookings"
+  status = 200
+
+[[redirects]]
+  from = "/api/direct-bookings/*"
+  to = "/.netlify/functions/direct-bookings/:splat"
+  status = 200
+
+[[redirects]]
+  from = "/admin"
+  to = "/admin/index.html"
+  status = 200
+
+[[redirects]]
   from = "/admin/*"
   to = "/admin/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/booking"
+  to = "/booking/index.html"
   status = 200
 
 [[redirects]]
