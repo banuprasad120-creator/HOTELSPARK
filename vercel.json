@@ -58,18 +58,6 @@
       }
     },
     {
-      "source": "/booking/(.*)",
-      "destination": {
-        "service": "booking"
-      }
-    },
-    {
-      "source": "/booking",
-      "destination": {
-        "service": "booking"
-      }
-    },
-    {
       "source": "/admin/(.*)",
       "destination": {
         "service": "dashboard"
@@ -82,9 +70,21 @@
       }
     },
     {
+      "source": "/booking/(.*)",
+      "destination": {
+        "service": "booking"
+      }
+    },
+    {
+      "source": "/booking",
+      "destination": {
+        "service": "booking"
+      }
+    },
+    {
       "source": "/(.*)",
       "destination": {
-        "service": "dashboard"
+        "service": "booking"
       }
     }
   ]
