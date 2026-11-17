@@ -18,6 +18,16 @@
   SUPABASE_JWKS_URL = "https://erzzqhzjtdhzrwpzbflr.supabase.co/auth/v1/.well-known/jwks.json"
 
 [[redirects]]
+  from = "/api/v1/direct-bookings"
+  to = "/.netlify/functions/direct-bookings"
+  status = 200
+
+[[redirects]]
+  from = "/api/v1/direct-bookings/*"
+  to = "/.netlify/functions/direct-bookings/:splat"
+  status = 200
+
+[[redirects]]
   from = "/api/direct-bookings"
   to = "/.netlify/functions/direct-bookings"
   status = 200

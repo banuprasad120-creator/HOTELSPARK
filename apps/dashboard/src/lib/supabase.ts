@@ -18,6 +18,7 @@ export const SUPABASE_SERVICE_ROLE_KEY =
   (typeof atob === 'function' ? atob(DEFAULT_ADMIN_KEY_B64) : '');
 
 // Always use the publishable anon key in the browser to comply with Supabase API Gateway security.
+// Secret service role keys are blocked by Supabase Gateway with 401 when called from a browser.
 export const SUPABASE_KEY = SUPABASE_ANON_KEY;
 
 export const isSupabaseConfigured = Boolean(SUPABASE_URL && SUPABASE_KEY);

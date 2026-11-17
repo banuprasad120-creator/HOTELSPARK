@@ -63,14 +63,19 @@ const DEFAULT_HOTEL_SPARK_CONFIG: BookingConfig = {
     refundable: true,
   },
   sellableRoomTypeIds: [
-    'b0000001-0000-4000-a000-000000000001',
+    'b0000001-0000-4000-a000-000000000001', // Budget
+    'b0000002-0000-4000-a000-000000000002', // Deluxe Room
+    'b0000003-0000-4000-a000-000000000003', // Executive Room
+    'b0000004-0000-4000-a000-000000000004', // Suite
+    // Legacy aliases
     'b0000002-0000-4000-a000-000000000001',
     'b0000003-0000-4000-a000-000000000001',
   ],
   sellableRatePlanIds: [
     'c0000001-0000-4000-a000-000000000001',
-    'c0000002-0000-4000-a000-000000000001',
-    'c0000003-0000-4000-a000-000000000001',
+    'c0000002-0000-4000-a000-000000000002',
+    'c0000003-0000-4000-a000-000000000003',
+    'c0000004-0000-4000-a000-000000000004',
   ],
   bookingMode: 'request',
   paymentMethodCollection: 'optional',
@@ -83,13 +88,23 @@ const ROOM_IMAGES: Record<string, string[]> = {
     'https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=800&q=80',
     'https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=800&q=80',
   ],
-  'b0000002-0000-4000-a000-000000000001': [
+  'b0000002-0000-4000-a000-000000000002': [
+    'https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=800&q=80',
+  ],
+  'b0000003-0000-4000-a000-000000000003': [
+    'https://images.unsplash.com/photo-1566665797739-1674de7a421a?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1595526114035-0d45ed16cfbf?auto=format&fit=crop&w=800&q=80',
+  ],
+  'b0000004-0000-4000-a000-000000000004': [
     'https://images.unsplash.com/photo-1618773928121-c32242e63f39?auto=format&fit=crop&w=800&q=80',
     'https://images.unsplash.com/photo-1578683010236-d716f9a3f461?auto=format&fit=crop&w=800&q=80',
   ],
+  'b0000002-0000-4000-a000-000000000001': [
+    'https://images.unsplash.com/photo-1618773928121-c32242e63f39?auto=format&fit=crop&w=800&q=80',
+  ],
   'b0000003-0000-4000-a000-000000000001': [
     'https://images.unsplash.com/photo-1566665797739-1674de7a421a?auto=format&fit=crop&w=800&q=80',
-    'https://images.unsplash.com/photo-1595526114035-0d45ed16cfbf?auto=format&fit=crop&w=800&q=80',
   ],
 };
 
@@ -179,82 +194,108 @@ async function searchSupabase(body: SearchRequest): Promise<SearchResponse> {
     };
   }
 
-  // Guaranteed fallback catalog
+  // Guaranteed fallback catalog with official Hotel Spark tariffs
   const fallbackRooms: SearchRoomType[] = [
     {
       roomTypeId: 'b0000001-0000-4000-a000-000000000001',
-      roomTypeName: 'Deluxe King Room',
-      name: 'Deluxe King Room',
-      description: 'Spacious air-conditioned room featuring an ultra-comfortable king-size bed, private ensuite bathroom, smart LED TV, and high-speed Wi-Fi.',
-      maxOccupancy: 2,
-      bedType: 'king',
-      amenities: ['AC', 'King Bed', 'Smart TV', 'High-speed Wi-Fi', 'Work Desk', 'Coffee Maker', 'Safe'],
-      available: 4,
+      roomTypeName: 'Budget',
+      name: 'Budget Room',
+      description: 'Comfortable compact room optimized for single traveler convenience with essential amenities. Rooms: 2006, 3006, 4006.',
+      maxOccupancy: 1,
+      bedType: 'single',
+      amenities: ['AC', 'Single Bed', 'Smart TV', 'High-speed Wi-Fi', 'Room Service'],
+      available: 3,
       images: ROOM_IMAGES['b0000001-0000-4000-a000-000000000001'],
       rates: [
         {
           ratePlanId: 'c0000001-0000-4000-a000-000000000001',
-          ratePlanName: 'Deluxe Best Flexible Rate',
+          ratePlanName: 'Best Available Rate',
+          ratePlanCode: 'BAR-BGT',
+          rateType: 'bar',
+          totalAmount: 1599 * nights,
+          currencyCode: 'INR',
+          available: true,
+          cancellationPolicy: {
+            type: 'strict',
+            description: 'Non-refundable room reservations.',
+          },
+        },
+      ],
+    },
+    {
+      roomTypeId: 'b0000002-0000-4000-a000-000000000002',
+      roomTypeName: 'Deluxe Room',
+      name: 'Deluxe Room',
+      description: 'Elegant deluxe room with plush bedding, dedicated workspace, and private ensuite bath. 12 rooms across Floors 2, 3 & 4.',
+      maxOccupancy: 2,
+      bedType: 'double',
+      amenities: ['AC', 'Double Bed', 'Smart TV', 'High-speed Wi-Fi', 'Work Desk', 'Tea Maker', 'Balcony'],
+      available: 12,
+      images: ROOM_IMAGES['b0000002-0000-4000-a000-000000000002'],
+      rates: [
+        {
+          ratePlanId: 'c0000002-0000-4000-a000-000000000002',
+          ratePlanName: 'Best Available Rate',
           ratePlanCode: 'BAR-DLX',
           rateType: 'bar',
-          totalAmount: 3500 * nights,
+          totalAmount: 2099 * nights,
           currencyCode: 'INR',
           available: true,
           cancellationPolicy: {
-            type: 'flexible',
-            description: 'Free cancellation up to 24 hours before check-in.',
+            type: 'strict',
+            description: 'Non-refundable room reservations.',
           },
         },
       ],
     },
     {
-      roomTypeId: 'b0000002-0000-4000-a000-000000000001',
-      roomTypeName: 'Executive Spark Suite',
-      name: 'Executive Spark Suite',
-      description: 'Luxurious suite with separate living room, panoramic city views, premium Italian marble bathroom, bathtub, and complimentary minibar.',
+      roomTypeId: 'b0000003-0000-4000-a000-000000000003',
+      roomTypeName: 'Executive Room',
+      name: 'Executive Room',
+      description: 'Sophisticated executive room featuring panoramic views, ergonomic desk and seating area. 11 rooms across Floors 2, 3 & 4.',
+      maxOccupancy: 3,
+      bedType: 'queen',
+      amenities: ['AC', 'Queen Bed', 'Safe', 'Minibar', 'City View', 'Smart TV', 'High-speed Wi-Fi'],
+      available: 11,
+      images: ROOM_IMAGES['b0000003-0000-4000-a000-000000000003'],
+      rates: [
+        {
+          ratePlanId: 'c0000003-0000-4000-a000-000000000003',
+          ratePlanName: 'Best Available Rate',
+          ratePlanCode: 'BAR-EXE',
+          rateType: 'bar',
+          totalAmount: 2499 * nights,
+          currencyCode: 'INR',
+          available: true,
+          cancellationPolicy: {
+            type: 'strict',
+            description: 'Non-refundable room reservations.',
+          },
+        },
+      ],
+    },
+    {
+      roomTypeId: 'b0000004-0000-4000-a000-000000000004',
+      roomTypeName: 'Suite',
+      name: 'Suite',
+      description: 'Spacious signature suite featuring a master bedroom, living hall, luxury bathtub and pantry. Rooms: 2010, 3010.',
       maxOccupancy: 4,
       bedType: 'king',
-      amenities: ['AC', 'King Bed', 'Living Area', 'Balcony', 'Bathtub', 'Mini-bar', 'Smart TV', 'Wi-Fi'],
-      available: 3,
-      images: ROOM_IMAGES['b0000002-0000-4000-a000-000000000001'],
+      amenities: ['AC', 'King Bed', 'Living Area', 'Bathtub', 'Minibar', 'Smart TV', 'High-speed Wi-Fi', 'Balcony'],
+      available: 2,
+      images: ROOM_IMAGES['b0000004-0000-4000-a000-000000000004'],
       rates: [
         {
-          ratePlanId: 'c0000002-0000-4000-a000-000000000001',
-          ratePlanName: 'Suite Best Flexible Rate',
+          ratePlanId: 'c0000004-0000-4000-a000-000000000004',
+          ratePlanName: 'Best Available Rate',
           ratePlanCode: 'BAR-SUT',
           rateType: 'bar',
-          totalAmount: 6500 * nights,
+          totalAmount: 2799 * nights,
           currencyCode: 'INR',
           available: true,
           cancellationPolicy: {
-            type: 'flexible',
-            description: 'Free cancellation up to 24 hours before check-in.',
-          },
-        },
-      ],
-    },
-    {
-      roomTypeId: 'b0000003-0000-4000-a000-000000000001',
-      roomTypeName: 'Standard Queen Room',
-      name: 'Standard Queen Room',
-      description: 'Cozy, stylish, and peaceful room tailored for business travelers and short city getaways with queen-size bed.',
-      maxOccupancy: 2,
-      bedType: 'queen',
-      amenities: ['AC', 'Queen Bed', 'Ensuite Bath', 'Smart TV', 'High-speed Wi-Fi'],
-      available: 3,
-      images: ROOM_IMAGES['b0000003-0000-4000-a000-000000000001'],
-      rates: [
-        {
-          ratePlanId: 'c0000003-0000-4000-a000-000000000001',
-          ratePlanName: 'Standard Best Flexible Rate',
-          ratePlanCode: 'BAR-STD',
-          rateType: 'bar',
-          totalAmount: 2500 * nights,
-          currencyCode: 'INR',
-          available: true,
-          cancellationPolicy: {
-            type: 'flexible',
-            description: 'Free cancellation up to 24 hours before check-in.',
+            type: 'strict',
+            description: 'Non-refundable room reservations.',
           },
         },
       ],
@@ -282,30 +323,35 @@ async function searchSupabase(body: SearchRequest): Promise<SearchResponse> {
 }
 
 async function quoteSupabase(body: QuoteRequest): Promise<QuoteResponse> {
-  let ratePerNight = 3500;
-  try {
-    const filter = body.ratePlanId
-      ? `id=eq.${body.ratePlanId}`
-      : `room_type_id=eq.${body.roomTypeId}`;
-    const plans = await supabaseFetch<any[]>(`rate_plans?${filter}&select=base_amount,base_rate`);
-    const plan = plans?.[0];
-    if (plan?.base_amount || plan?.base_rate) {
-      ratePerNight = Number(plan.base_amount || plan.base_rate);
-    }
-  } catch {
-    if (body.roomTypeId?.includes('2') || body.ratePlanId?.includes('2')) ratePerNight = 6500;
-    else if (body.roomTypeId?.includes('3') || body.ratePlanId?.includes('3')) ratePerNight = 2500;
-    else ratePerNight = 3500;
-  }
-
   const checkInDate = new Date(body.checkIn);
   const checkOutDate = new Date(body.checkOut);
   const nights = Math.max(
     1,
     Math.round((checkOutDate.getTime() - checkInDate.getTime()) / (1000 * 60 * 60 * 24)),
   );
+  const adults = Number(body.adults) || 2;
+  const isSingle = adults === 1;
 
-  const roomSubtotal = ratePerNight * nights;
+  let ratePerNight = 2099;
+  const rt = body.roomTypeId || '';
+
+  if (rt.endsWith('0001') || rt.includes('bgt') || rt.toLowerCase().includes('budget')) {
+    ratePerNight = 1599;
+  } else if (rt.endsWith('0002') || rt.includes('dlx') || rt.toLowerCase().includes('deluxe')) {
+    ratePerNight = isSingle ? 1799 : 2099;
+  } else if (rt.endsWith('0003') || rt.includes('exe') || rt.toLowerCase().includes('executive')) {
+    ratePerNight = isSingle ? 2199 : 2499;
+  } else if (rt.endsWith('0004') || rt.includes('sut') || rt.toLowerCase().includes('suite')) {
+    ratePerNight = 2799;
+  }
+
+  // Extra persons charge (₹399 per night)
+  let extraCharges = 0;
+  if (adults > 2) {
+    extraCharges = (adults - 2) * 399 * nights;
+  }
+
+  const roomSubtotal = (ratePerNight * nights) + extraCharges;
   const tax = Math.round(roomSubtotal * 0.12);
   const grandTotal = roomSubtotal + tax;
 
@@ -325,11 +371,11 @@ async function quoteSupabase(body: QuoteRequest): Promise<QuoteResponse> {
     roomTotal: roomSubtotal.toFixed(2),
     taxTotal: tax.toFixed(2),
     grandTotal: grandTotal.toFixed(2),
-    depositPolicy: { type: 'none', refundable: true },
+    depositPolicy: { type: 'none', refundable: false },
     depositDue: '0.00',
     cancellationPolicy: {
-      type: 'flexible',
-      description: 'Free cancellation up to 24 hours prior to check-in.',
+      type: 'strict',
+      description: 'Non-refundable room reservations.',
     },
   };
 }
@@ -353,7 +399,13 @@ async function bookSupabase(body: BookRequest): Promise<BookResponse> {
     1,
     Math.round((new Date(body.checkOut).getTime() - new Date(body.checkIn).getTime()) / 86400000),
   );
-  let baseRate = body.roomTypeId.includes('2') ? 6500 : body.roomTypeId.includes('3') ? 2500 : 3500;
+  let baseRate = 2099;
+  const rtId = body.roomTypeId || '';
+  const isSingle = (body.adults || 2) === 1;
+  if (rtId.endsWith('0001') || rtId.includes('bgt')) baseRate = 1599;
+  else if (rtId.endsWith('0002') || rtId.includes('dlx')) baseRate = isSingle ? 1799 : 2099;
+  else if (rtId.endsWith('0003') || rtId.includes('exe')) baseRate = isSingle ? 2199 : 2499;
+  else if (rtId.endsWith('0004') || rtId.includes('sut')) baseRate = 2799;
   try {
     const plans = await supabaseFetch<any[]>(`rate_plans?room_type_id=eq.${body.roomTypeId}&select=base_amount,base_rate`);
     if (plans?.[0]?.base_amount || plans?.[0]?.base_rate) {
@@ -407,12 +459,8 @@ async function bookSupabase(body: BookRequest): Promise<BookResponse> {
     arrivalDate: body.checkIn,
     departureDate: body.checkOut,
     roomTypeId: body.roomTypeId,
-    roomTypeName: body.roomTypeId.includes('2')
-      ? 'Executive Spark Suite'
-      : body.roomTypeId.includes('3')
-      ? 'Standard Queen Room'
-      : 'Deluxe King Room',
-    roomTypeCode: body.roomTypeId.includes('2') ? 'SUT' : body.roomTypeId.includes('3') ? 'STD' : 'DLX',
+    roomTypeName: rtId.endsWith('0001') ? 'Budget' : rtId.endsWith('0003') ? 'Executive Room' : rtId.endsWith('0004') ? 'Suite' : 'Deluxe Room',
+    roomTypeCode: rtId.endsWith('0001') ? 'BGT' : rtId.endsWith('0003') ? 'EXE' : rtId.endsWith('0004') ? 'SUT' : 'DLX',
     ratePlanId: 'c0000001-0000-4000-a000-000000000001',
     ratePlanName: 'Best Available Rate',
     adults: body.adults,
@@ -462,7 +510,12 @@ async function submitRequestSupabase(
   body: SubmitBookingRequest,
 ): Promise<BookingRequestAcknowledgement> {
   const plans = await supabaseFetch<any[]>(`rate_plans?id=eq.${body.ratePlanId}`);
-  const ratePerNight = Number(plans?.[0]?.base_amount || plans?.[0]?.base_rate || 3500);
+  let ratePerNight = 2099;
+  const rtSub = body.roomTypeId || '';
+  if (rtSub.endsWith('0001')) ratePerNight = 1599;
+  else if (rtSub.endsWith('0002')) ratePerNight = (body.adults === 1) ? 1799 : 2099;
+  else if (rtSub.endsWith('0003')) ratePerNight = (body.adults === 1) ? 2199 : 2499;
+  else if (rtSub.endsWith('0004')) ratePerNight = 2799;
   const nights = Math.max(
     1,
     Math.round((new Date(body.checkOut).getTime() - new Date(body.checkIn).getTime()) / 86400000),

@@ -17,9 +17,13 @@ const DEFAULT_PROPERTY = {
 };
 
 const ROOM_TYPE_NAMES: Record<string, { name: string; code: string }> = {
-  'b0000001-0000-4000-a000-000000000001': { name: 'Deluxe King Room', code: 'DLX' },
-  'b0000002-0000-4000-a000-000000000001': { name: 'Executive Spark Suite', code: 'SUT' },
-  'b0000003-0000-4000-a000-000000000001': { name: 'Standard Queen Room', code: 'STD' },
+  'b0000001-0000-4000-a000-000000000001': { name: 'Budget', code: 'BGT' },
+  'b0000002-0000-4000-a000-000000000002': { name: 'Deluxe Room', code: 'DLX' },
+  'b0000003-0000-4000-a000-000000000003': { name: 'Executive Room', code: 'EXE' },
+  'b0000004-0000-4000-a000-000000000004': { name: 'Suite', code: 'SUT' },
+  // Legacy aliases
+  'b0000002-0000-4000-a000-000000000001': { name: 'Suite', code: 'SUT' },
+  'b0000003-0000-4000-a000-000000000001': { name: 'Executive Room', code: 'EXE' },
 };
 
 const DEFAULT_DEPARTMENTS = [
@@ -116,53 +120,53 @@ export const DEFAULT_TARIFF_CONFIG: HotelTariffConfig = {
   totalRooms: 28,
   extraPersonCharge: 399,
   gstPercentage: 12,
-  isTaxInclusive: true,
+  isTaxInclusive: false,
   childrenPolicy: 'Children below 7 years: Free stay without an extra bed.',
-  cancellationPolicy: 'No cancellation policy for room reservations.',
+  cancellationPolicy: 'Non-refundable room reservations.',
   paymentPolicy: 'All major credit/debit cards (Visa, MasterCard, RuPay), UPI & Cash accepted.',
   categories: [
     {
       id: 'b0000001-0000-4000-a000-000000000001',
-      name: 'Budget Room',
+      name: 'Budget',
       code: 'BGT',
-      description: 'Comfortable compact room optimized for single traveler convenience with essential amenities.',
+      description: 'Comfortable compact room for single travelers. Rooms: 2006, 3006, 4006.',
       singleOccupancyPrice: 1599,
       doubleOccupancyPrice: null,
       maxOccupancy: 1,
-      assignedRoomsCount: 6,
+      assignedRoomsCount: 3,
       amenities: ['wifi', 'tv', 'ac', 'room_service'],
     },
     {
       id: 'b0000002-0000-4000-a000-000000000002',
       name: 'Deluxe Room',
       code: 'DLX',
-      description: 'Elegant deluxe room with plush bedding, dedicated workspace, and private ensuite bath.',
+      description: 'Elegant deluxe room with plush bedding and private ensuite bath. 12 rooms across Floors 2, 3 & 4.',
       singleOccupancyPrice: 1799,
       doubleOccupancyPrice: 2099,
       maxOccupancy: 2,
-      assignedRoomsCount: 10,
+      assignedRoomsCount: 12,
       amenities: ['wifi', 'tv', 'ac', 'safe', 'tea_maker', 'balcony'],
     },
     {
       id: 'b0000003-0000-4000-a000-000000000003',
       name: 'Executive Room',
       code: 'EXE',
-      description: 'Sophisticated executive room featuring panoramic views, ergonomic desk and seating area.',
+      description: 'Sophisticated executive room featuring panoramic views and queen-size bed. 11 rooms across Floors 2, 3 & 4.',
       singleOccupancyPrice: 2199,
       doubleOccupancyPrice: 2499,
       maxOccupancy: 3,
-      assignedRoomsCount: 8,
+      assignedRoomsCount: 11,
       amenities: ['wifi', 'tv', 'ac', 'safe', 'minibar', 'city_view'],
     },
     {
       id: 'b0000004-0000-4000-a000-000000000004',
       name: 'Suite',
       code: 'SUT',
-      description: 'Spacious signature suite featuring a master bedroom, living hall, luxury bathtub and pantry.',
+      description: 'Spacious signature suite featuring a master bedroom, living hall and luxury bathtub. Rooms: 2010, 3010.',
       singleOccupancyPrice: null,
       doubleOccupancyPrice: 2799,
       maxOccupancy: 4,
-      assignedRoomsCount: 4,
+      assignedRoomsCount: 2,
       amenities: ['wifi', 'tv', 'ac', 'safe', 'minibar', 'living_area', 'bathtub'],
     },
   ],
@@ -184,360 +188,39 @@ export const DEFAULT_ROOM_TYPES = DEFAULT_TARIFF_CONFIG.categories.map((c) => ({
 }));
 
 export const DEFAULT_ROOMS: StoredRoom[] = [
-  // Floor 1 (14 Rooms: 101 to 114)
-  // Budget Rooms (6 Rooms: 101-106, Single ₹1,599)
-  {
-    id: 'r0000101-0000-4000-a000-000000000001',
-    propertyId: PROPERTY_ID,
-    number: '101',
-    floor: '1',
-    roomTypeId: 'b0000001-0000-4000-a000-000000000001',
-    roomTypeName: 'Budget Room',
-    status: 'vacant_clean',
-    hkOccupancy: 'vacant',
-    isActive: true,
-    amenities: ['wifi', 'tv', 'ac', 'room_service'],
-  },
-  {
-    id: 'r0000102-0000-4000-a000-000000000001',
-    propertyId: PROPERTY_ID,
-    number: '102',
-    floor: '1',
-    roomTypeId: 'b0000001-0000-4000-a000-000000000001',
-    roomTypeName: 'Budget Room',
-    status: 'occupied',
-    guestName: 'Banu Prasad',
-    hkOccupancy: 'occupied',
-    isActive: true,
-    amenities: ['wifi', 'tv', 'ac', 'room_service'],
-  },
-  {
-    id: 'r0000103-0000-4000-a000-000000000001',
-    propertyId: PROPERTY_ID,
-    number: '103',
-    floor: '1',
-    roomTypeId: 'b0000001-0000-4000-a000-000000000001',
-    roomTypeName: 'Budget Room',
-    status: 'vacant_clean',
-    hkOccupancy: 'vacant',
-    isActive: true,
-    amenities: ['wifi', 'tv', 'ac', 'room_service'],
-  },
-  {
-    id: 'r0000104-0000-4000-a000-000000000001',
-    propertyId: PROPERTY_ID,
-    number: '104',
-    floor: '1',
-    roomTypeId: 'b0000001-0000-4000-a000-000000000001',
-    roomTypeName: 'Budget Room',
-    status: 'vacant_dirty',
-    hkOccupancy: 'vacant',
-    isActive: true,
-    amenities: ['wifi', 'tv', 'ac', 'room_service'],
-  },
-  {
-    id: 'r0000105-0000-4000-a000-000000000001',
-    propertyId: PROPERTY_ID,
-    number: '105',
-    floor: '1',
-    roomTypeId: 'b0000001-0000-4000-a000-000000000001',
-    roomTypeName: 'Budget Room',
-    status: 'booked',
-    guestName: 'Kiran Kumar',
-    hkOccupancy: 'vacant',
-    isActive: true,
-    amenities: ['wifi', 'tv', 'ac', 'room_service'],
-  },
-  {
-    id: 'r0000106-0000-4000-a000-000000000001',
-    propertyId: PROPERTY_ID,
-    number: '106',
-    floor: '1',
-    roomTypeId: 'b0000001-0000-4000-a000-000000000001',
-    roomTypeName: 'Budget Room',
-    status: 'vacant_clean',
-    hkOccupancy: 'vacant',
-    isActive: true,
-    amenities: ['wifi', 'tv', 'ac', 'room_service'],
-  },
-  // Deluxe Rooms (Floor 1: Rooms 107-114, 8 Rooms, Single ₹1,799 / Double ₹2,099)
-  {
-    id: 'r0000107-0000-4000-a000-000000000001',
-    propertyId: PROPERTY_ID,
-    number: '107',
-    floor: '1',
-    roomTypeId: 'b0000002-0000-4000-a000-000000000002',
-    roomTypeName: 'Deluxe Room',
-    status: 'occupied',
-    guestName: 'Rahul Verma',
-    hkOccupancy: 'occupied',
-    isActive: true,
-    amenities: ['wifi', 'tv', 'ac', 'safe', 'tea_maker', 'balcony'],
-  },
-  {
-    id: 'r0000108-0000-4000-a000-000000000001',
-    propertyId: PROPERTY_ID,
-    number: '108',
-    floor: '1',
-    roomTypeId: 'b0000002-0000-4000-a000-000000000002',
-    roomTypeName: 'Deluxe Room',
-    status: 'occupied',
-    guestName: 'Priya Sharma',
-    hkOccupancy: 'occupied',
-    isActive: true,
-    amenities: ['wifi', 'tv', 'ac', 'safe', 'tea_maker'],
-  },
-  {
-    id: 'r0000109-0000-4000-a000-000000000001',
-    propertyId: PROPERTY_ID,
-    number: '109',
-    floor: '1',
-    roomTypeId: 'b0000002-0000-4000-a000-000000000002',
-    roomTypeName: 'Deluxe Room',
-    status: 'vacant_clean',
-    hkOccupancy: 'vacant',
-    isActive: true,
-    amenities: ['wifi', 'tv', 'ac', 'safe', 'tea_maker'],
-  },
-  {
-    id: 'r0000110-0000-4000-a000-000000000001',
-    propertyId: PROPERTY_ID,
-    number: '110',
-    floor: '1',
-    roomTypeId: 'b0000002-0000-4000-a000-000000000002',
-    roomTypeName: 'Deluxe Room',
-    status: 'vacant_clean',
-    hkOccupancy: 'vacant',
-    isActive: true,
-    amenities: ['wifi', 'tv', 'ac', 'safe', 'tea_maker'],
-  },
-  {
-    id: 'r0000111-0000-4000-a000-000000000001',
-    propertyId: PROPERTY_ID,
-    number: '111',
-    floor: '1',
-    roomTypeId: 'b0000002-0000-4000-a000-000000000002',
-    roomTypeName: 'Deluxe Room',
-    status: 'vacant_dirty',
-    hkOccupancy: 'vacant',
-    isActive: true,
-    amenities: ['wifi', 'tv', 'ac', 'safe', 'tea_maker'],
-  },
-  {
-    id: 'r0000112-0000-4000-a000-000000000001',
-    propertyId: PROPERTY_ID,
-    number: '112',
-    floor: '1',
-    roomTypeId: 'b0000002-0000-4000-a000-000000000002',
-    roomTypeName: 'Deluxe Room',
-    status: 'booked',
-    guestName: 'Naveen Reddy',
-    hkOccupancy: 'vacant',
-    isActive: true,
-    amenities: ['wifi', 'tv', 'ac', 'safe', 'tea_maker'],
-  },
-  {
-    id: 'r0000113-0000-4000-a000-000000000001',
-    propertyId: PROPERTY_ID,
-    number: '113',
-    floor: '1',
-    roomTypeId: 'b0000002-0000-4000-a000-000000000002',
-    roomTypeName: 'Deluxe Room',
-    status: 'vacant_clean',
-    hkOccupancy: 'vacant',
-    isActive: true,
-    amenities: ['wifi', 'tv', 'ac', 'safe', 'tea_maker'],
-  },
-  {
-    id: 'r0000114-0000-4000-a000-000000000001',
-    propertyId: PROPERTY_ID,
-    number: '114',
-    floor: '1',
-    roomTypeId: 'b0000002-0000-4000-a000-000000000002',
-    roomTypeName: 'Deluxe Room',
-    status: 'vacant_clean',
-    hkOccupancy: 'vacant',
-    isActive: true,
-    amenities: ['wifi', 'tv', 'ac', 'safe', 'tea_maker'],
-  },
+  // 2nd Floor (10 Rooms: 2001-2010)
+  { id: '5aca9c61-49d7-42db-885c-58d30dfceac7', propertyId: PROPERTY_ID, number: '2001', floor: '2', roomTypeId: 'b0000002-0000-4000-a000-000000000002', roomTypeName: 'Deluxe Room', status: 'vacant_clean', hkOccupancy: 'vacant', isActive: true, amenities: ['wifi', 'tv', 'ac', 'safe', 'balcony'] },
+  { id: 'c88c9bd4-63ba-4ecf-8780-46e9c3378d1b', propertyId: PROPERTY_ID, number: '2002', floor: '2', roomTypeId: 'b0000003-0000-4000-a000-000000000003', roomTypeName: 'Executive Room', status: 'vacant_clean', hkOccupancy: 'vacant', isActive: true, amenities: ['wifi', 'tv', 'ac', 'safe', 'minibar'] },
+  { id: '570526d0-8fac-4893-a914-586b57e7531b', propertyId: PROPERTY_ID, number: '2003', floor: '2', roomTypeId: 'b0000002-0000-4000-a000-000000000002', roomTypeName: 'Deluxe Room', status: 'vacant_clean', hkOccupancy: 'vacant', isActive: true, amenities: ['wifi', 'tv', 'ac', 'safe', 'balcony'] },
+  { id: '3f015f1e-6b7c-49b9-aaf3-6cfe51acfbd5', propertyId: PROPERTY_ID, number: '2004', floor: '2', roomTypeId: 'b0000002-0000-4000-a000-000000000002', roomTypeName: 'Deluxe Room', status: 'vacant_clean', hkOccupancy: 'vacant', isActive: true, amenities: ['wifi', 'tv', 'ac', 'safe', 'balcony'] },
+  { id: '7db20997-3628-42dc-9870-69894e0e584f', propertyId: PROPERTY_ID, number: '2005', floor: '2', roomTypeId: 'b0000003-0000-4000-a000-000000000003', roomTypeName: 'Executive Room', status: 'vacant_clean', hkOccupancy: 'vacant', isActive: true, amenities: ['wifi', 'tv', 'ac', 'safe', 'minibar'] },
+  { id: 'd5aa0e23-fc68-441e-a20c-3fac98edd91a', propertyId: PROPERTY_ID, number: '2006', floor: '2', roomTypeId: 'b0000001-0000-4000-a000-000000000001', roomTypeName: 'Budget', status: 'vacant_clean', hkOccupancy: 'vacant', isActive: true, amenities: ['wifi', 'tv', 'ac', 'room_service'] },
+  { id: 'c224f246-7cb5-40d1-976a-27d0e27e846a', propertyId: PROPERTY_ID, number: '2007', floor: '2', roomTypeId: 'b0000002-0000-4000-a000-000000000002', roomTypeName: 'Deluxe Room', status: 'vacant_clean', hkOccupancy: 'vacant', isActive: true, amenities: ['wifi', 'tv', 'ac', 'safe', 'balcony'] },
+  { id: '9b1713d2-17cf-46be-8c3d-03beef797722', propertyId: PROPERTY_ID, number: '2008', floor: '2', roomTypeId: 'b0000003-0000-4000-a000-000000000003', roomTypeName: 'Executive Room', status: 'vacant_clean', hkOccupancy: 'vacant', isActive: true, amenities: ['wifi', 'tv', 'ac', 'safe', 'minibar'] },
+  { id: 'd39a0075-b818-4584-8923-8f7842ad25a5', propertyId: PROPERTY_ID, number: '2009', floor: '2', roomTypeId: 'b0000003-0000-4000-a000-000000000003', roomTypeName: 'Executive Room', status: 'vacant_clean', hkOccupancy: 'vacant', isActive: true, amenities: ['wifi', 'tv', 'ac', 'safe', 'minibar'] },
+  { id: 'cee8da28-abab-466c-b357-1c1d018c97e7', propertyId: PROPERTY_ID, number: '2010', floor: '2', roomTypeId: 'b0000004-0000-4000-a000-000000000004', roomTypeName: 'Suite', status: 'vacant_clean', hkOccupancy: 'vacant', isActive: true, amenities: ['wifi', 'tv', 'ac', 'safe', 'minibar', 'living_area', 'bathtub'] },
 
-  // Floor 2 (14 Rooms: 201 to 214)
-  // Deluxe Rooms (2 more Rooms: 201-202, Total 10 Deluxe)
-  {
-    id: 'r0000201-0000-4000-a000-000000000001',
-    propertyId: PROPERTY_ID,
-    number: '201',
-    floor: '2',
-    roomTypeId: 'b0000002-0000-4000-a000-000000000002',
-    roomTypeName: 'Deluxe Room',
-    status: 'occupied',
-    guestName: 'Vikram Malhotra',
-    hkOccupancy: 'occupied',
-    isActive: true,
-    amenities: ['wifi', 'tv', 'ac', 'safe', 'tea_maker', 'balcony'],
-  },
-  {
-    id: 'r0000202-0000-4000-a000-000000000001',
-    propertyId: PROPERTY_ID,
-    number: '202',
-    floor: '2',
-    roomTypeId: 'b0000002-0000-4000-a000-000000000002',
-    roomTypeName: 'Deluxe Room',
-    status: 'vacant_clean',
-    hkOccupancy: 'vacant',
-    isActive: true,
-    amenities: ['wifi', 'tv', 'ac', 'safe', 'tea_maker'],
-  },
-  // Executive Rooms (8 Rooms: 203 to 210, Single ₹2,199 / Double ₹2,499)
-  {
-    id: 'r0000203-0000-4000-a000-000000000001',
-    propertyId: PROPERTY_ID,
-    number: '203',
-    floor: '2',
-    roomTypeId: 'b0000003-0000-4000-a000-000000000003',
-    roomTypeName: 'Executive Room',
-    status: 'occupied',
-    guestName: 'Anita Rao',
-    hkOccupancy: 'occupied',
-    isActive: true,
-    amenities: ['wifi', 'tv', 'ac', 'safe', 'minibar', 'city_view'],
-  },
-  {
-    id: 'r0000204-0000-4000-a000-000000000001',
-    propertyId: PROPERTY_ID,
-    number: '204',
-    floor: '2',
-    roomTypeId: 'b0000003-0000-4000-a000-000000000003',
-    roomTypeName: 'Executive Room',
-    status: 'vacant_clean',
-    hkOccupancy: 'vacant',
-    isActive: true,
-    amenities: ['wifi', 'tv', 'ac', 'safe', 'minibar'],
-  },
-  {
-    id: 'r0000205-0000-4000-a000-000000000001',
-    propertyId: PROPERTY_ID,
-    number: '205',
-    floor: '2',
-    roomTypeId: 'b0000003-0000-4000-a000-000000000003',
-    roomTypeName: 'Executive Room',
-    status: 'booked',
-    guestName: 'Deepak Joshi',
-    hkOccupancy: 'vacant',
-    isActive: true,
-    amenities: ['wifi', 'tv', 'ac', 'safe', 'minibar'],
-  },
-  {
-    id: 'r0000206-0000-4000-a000-000000000001',
-    propertyId: PROPERTY_ID,
-    number: '206',
-    floor: '2',
-    roomTypeId: 'b0000003-0000-4000-a000-000000000003',
-    roomTypeName: 'Executive Room',
-    status: 'vacant_clean',
-    hkOccupancy: 'vacant',
-    isActive: true,
-    amenities: ['wifi', 'tv', 'ac', 'safe', 'minibar'],
-  },
-  {
-    id: 'r0000207-0000-4000-a000-000000000001',
-    propertyId: PROPERTY_ID,
-    number: '207',
-    floor: '2',
-    roomTypeId: 'b0000003-0000-4000-a000-000000000003',
-    roomTypeName: 'Executive Room',
-    status: 'vacant_clean',
-    hkOccupancy: 'vacant',
-    isActive: true,
-    amenities: ['wifi', 'tv', 'ac', 'safe', 'minibar'],
-  },
-  {
-    id: 'r0000208-0000-4000-a000-000000000001',
-    propertyId: PROPERTY_ID,
-    number: '208',
-    floor: '2',
-    roomTypeId: 'b0000003-0000-4000-a000-000000000003',
-    roomTypeName: 'Executive Room',
-    status: 'vacant_dirty',
-    hkOccupancy: 'vacant',
-    isActive: true,
-    amenities: ['wifi', 'tv', 'ac', 'safe', 'minibar'],
-  },
-  {
-    id: 'r0000209-0000-4000-a000-000000000001',
-    propertyId: PROPERTY_ID,
-    number: '209',
-    floor: '2',
-    roomTypeId: 'b0000003-0000-4000-a000-000000000003',
-    roomTypeName: 'Executive Room',
-    status: 'out_of_order',
-    hkOccupancy: 'vacant',
-    isActive: true,
-    amenities: ['wifi', 'tv', 'ac', 'safe', 'minibar'],
-  },
-  {
-    id: 'r0000210-0000-4000-a000-000000000001',
-    propertyId: PROPERTY_ID,
-    number: '210',
-    floor: '2',
-    roomTypeId: 'b0000003-0000-4000-a000-000000000003',
-    roomTypeName: 'Executive Room',
-    status: 'vacant_clean',
-    hkOccupancy: 'vacant',
-    isActive: true,
-    amenities: ['wifi', 'tv', 'ac', 'safe', 'minibar'],
-  },
-  // Suite Rooms (4 Rooms: 211 to 214, Double ₹2,799)
-  {
-    id: 'r0000211-0000-4000-a000-000000000001',
-    propertyId: PROPERTY_ID,
-    number: '211',
-    floor: '2',
-    roomTypeId: 'b0000004-0000-4000-a000-000000000004',
-    roomTypeName: 'Suite',
-    status: 'occupied',
-    guestName: 'Rajesh Agarwal',
-    hkOccupancy: 'occupied',
-    isActive: true,
-    amenities: ['wifi', 'tv', 'ac', 'safe', 'minibar', 'living_area', 'bathtub', 'balcony'],
-  },
-  {
-    id: 'r0000212-0000-4000-a000-000000000001',
-    propertyId: PROPERTY_ID,
-    number: '212',
-    floor: '2',
-    roomTypeId: 'b0000004-0000-4000-a000-000000000004',
-    roomTypeName: 'Suite',
-    status: 'vacant_clean',
-    hkOccupancy: 'vacant',
-    isActive: true,
-    amenities: ['wifi', 'tv', 'ac', 'safe', 'minibar', 'living_area', 'bathtub'],
-  },
-  {
-    id: 'r0000213-0000-4000-a000-000000000001',
-    propertyId: PROPERTY_ID,
-    number: '213',
-    floor: '2',
-    roomTypeId: 'b0000004-0000-4000-a000-000000000004',
-    roomTypeName: 'Suite',
-    status: 'booked',
-    guestName: 'Suresh Reddy',
-    hkOccupancy: 'vacant',
-    isActive: true,
-    amenities: ['wifi', 'tv', 'ac', 'safe', 'minibar', 'living_area', 'bathtub'],
-  },
-  {
-    id: 'r0000214-0000-4000-a000-000000000001',
-    propertyId: PROPERTY_ID,
-    number: '214',
-    floor: '2',
-    roomTypeId: 'b0000004-0000-4000-a000-000000000004',
-    roomTypeName: 'Suite',
-    status: 'vacant_clean',
-    hkOccupancy: 'vacant',
-    isActive: true,
-    amenities: ['wifi', 'tv', 'ac', 'safe', 'minibar', 'living_area', 'bathtub'],
-  },
+  // 3rd Floor (10 Rooms: 3001-3010)
+  { id: '12f46802-e6ef-4442-9719-07696d1d823f', propertyId: PROPERTY_ID, number: '3001', floor: '3', roomTypeId: 'b0000002-0000-4000-a000-000000000002', roomTypeName: 'Deluxe Room', status: 'vacant_clean', hkOccupancy: 'vacant', isActive: true, amenities: ['wifi', 'tv', 'ac', 'safe', 'balcony'] },
+  { id: 'b04ded34-41be-4834-a0cf-e4a5ad5b47d9', propertyId: PROPERTY_ID, number: '3002', floor: '3', roomTypeId: 'b0000003-0000-4000-a000-000000000003', roomTypeName: 'Executive Room', status: 'vacant_clean', hkOccupancy: 'vacant', isActive: true, amenities: ['wifi', 'tv', 'ac', 'safe', 'minibar'] },
+  { id: '23881fbd-edc5-4abe-a975-c85733a86672', propertyId: PROPERTY_ID, number: '3003', floor: '3', roomTypeId: 'b0000002-0000-4000-a000-000000000002', roomTypeName: 'Deluxe Room', status: 'vacant_clean', hkOccupancy: 'vacant', isActive: true, amenities: ['wifi', 'tv', 'ac', 'safe', 'balcony'] },
+  { id: '7634b89b-b1e2-4281-8b23-e1934c15eb69', propertyId: PROPERTY_ID, number: '3004', floor: '3', roomTypeId: 'b0000002-0000-4000-a000-000000000002', roomTypeName: 'Deluxe Room', status: 'vacant_clean', hkOccupancy: 'vacant', isActive: true, amenities: ['wifi', 'tv', 'ac', 'safe', 'balcony'] },
+  { id: 'fdeb0677-bf47-4fbd-a65a-60ac6134bb82', propertyId: PROPERTY_ID, number: '3005', floor: '3', roomTypeId: 'b0000003-0000-4000-a000-000000000003', roomTypeName: 'Executive Room', status: 'vacant_clean', hkOccupancy: 'vacant', isActive: true, amenities: ['wifi', 'tv', 'ac', 'safe', 'minibar'] },
+  { id: '3b5bbe33-31aa-4a69-ba9d-ef30444ed4a4', propertyId: PROPERTY_ID, number: '3006', floor: '3', roomTypeId: 'b0000001-0000-4000-a000-000000000001', roomTypeName: 'Budget', status: 'vacant_clean', hkOccupancy: 'vacant', isActive: true, amenities: ['wifi', 'tv', 'ac', 'room_service'] },
+  { id: 'c00a1f3f-2260-43c4-aa59-e36a4fc8141d', propertyId: PROPERTY_ID, number: '3007', floor: '3', roomTypeId: 'b0000002-0000-4000-a000-000000000002', roomTypeName: 'Deluxe Room', status: 'vacant_clean', hkOccupancy: 'vacant', isActive: true, amenities: ['wifi', 'tv', 'ac', 'safe', 'balcony'] },
+  { id: '64e8a350-9131-4df5-8642-1dfea6d52c45', propertyId: PROPERTY_ID, number: '3008', floor: '3', roomTypeId: 'b0000003-0000-4000-a000-000000000003', roomTypeName: 'Executive Room', status: 'vacant_clean', hkOccupancy: 'vacant', isActive: true, amenities: ['wifi', 'tv', 'ac', 'safe', 'minibar'] },
+  { id: '6f158f95-ea10-44a4-ac0d-697d422f7586', propertyId: PROPERTY_ID, number: '3009', floor: '3', roomTypeId: 'b0000003-0000-4000-a000-000000000003', roomTypeName: 'Executive Room', status: 'vacant_clean', hkOccupancy: 'vacant', isActive: true, amenities: ['wifi', 'tv', 'ac', 'safe', 'minibar'] },
+  { id: '5a61c51b-d33f-4b0a-84a2-d5fc56705a42', propertyId: PROPERTY_ID, number: '3010', floor: '3', roomTypeId: 'b0000004-0000-4000-a000-000000000004', roomTypeName: 'Suite', status: 'vacant_clean', hkOccupancy: 'vacant', isActive: true, amenities: ['wifi', 'tv', 'ac', 'safe', 'minibar', 'living_area', 'bathtub'] },
+
+  // 4th Floor (8 Rooms: 4001-4008)
+  { id: '1a4c3c83-cd99-4f4c-b55b-e4b072769db2', propertyId: PROPERTY_ID, number: '4001', floor: '4', roomTypeId: 'b0000002-0000-4000-a000-000000000002', roomTypeName: 'Deluxe Room', status: 'vacant_clean', hkOccupancy: 'vacant', isActive: true, amenities: ['wifi', 'tv', 'ac', 'safe', 'balcony'] },
+  { id: 'ae825695-3665-4c2e-b720-041ceaf589ce', propertyId: PROPERTY_ID, number: '4002', floor: '4', roomTypeId: 'b0000003-0000-4000-a000-000000000003', roomTypeName: 'Executive Room', status: 'vacant_clean', hkOccupancy: 'vacant', isActive: true, amenities: ['wifi', 'tv', 'ac', 'safe', 'minibar'] },
+  { id: '9858efbf-2df3-4ab3-8c79-3f9e4bdcd77a', propertyId: PROPERTY_ID, number: '4003', floor: '4', roomTypeId: 'b0000002-0000-4000-a000-000000000002', roomTypeName: 'Deluxe Room', status: 'vacant_clean', hkOccupancy: 'vacant', isActive: true, amenities: ['wifi', 'tv', 'ac', 'safe', 'balcony'] },
+  { id: '4672e9d7-ecb3-4e62-9a83-81631a9036e6', propertyId: PROPERTY_ID, number: '4004', floor: '4', roomTypeId: 'b0000002-0000-4000-a000-000000000002', roomTypeName: 'Deluxe Room', status: 'vacant_clean', hkOccupancy: 'vacant', isActive: true, amenities: ['wifi', 'tv', 'ac', 'safe', 'balcony'] },
+  { id: '2f4e5dcc-292b-4c54-ba8b-5be33b3e1879', propertyId: PROPERTY_ID, number: '4005', floor: '4', roomTypeId: 'b0000003-0000-4000-a000-000000000003', roomTypeName: 'Executive Room', status: 'vacant_clean', hkOccupancy: 'vacant', isActive: true, amenities: ['wifi', 'tv', 'ac', 'safe', 'minibar'] },
+  { id: '738f4cdf-e4f8-4473-8202-067f59e38ee6', propertyId: PROPERTY_ID, number: '4006', floor: '4', roomTypeId: 'b0000001-0000-4000-a000-000000000001', roomTypeName: 'Budget', status: 'vacant_clean', hkOccupancy: 'vacant', isActive: true, amenities: ['wifi', 'tv', 'ac', 'room_service'] },
+  { id: 'eb7b1cc9-9de6-4e5b-9c72-03fb2edd58a5', propertyId: PROPERTY_ID, number: '4007', floor: '4', roomTypeId: 'b0000002-0000-4000-a000-000000000002', roomTypeName: 'Deluxe Room', status: 'vacant_clean', hkOccupancy: 'vacant', isActive: true, amenities: ['wifi', 'tv', 'ac', 'safe', 'balcony'] },
+  { id: '8f34f3f5-17ba-4fdb-926c-27b0754b504d', propertyId: PROPERTY_ID, number: '4008', floor: '4', roomTypeId: 'b0000003-0000-4000-a000-000000000003', roomTypeName: 'Executive Room', status: 'vacant_clean', hkOccupancy: 'vacant', isActive: true, amenities: ['wifi', 'tv', 'ac', 'safe', 'minibar'] },
 ];
 
 const ROOMS_STORAGE_KEY = 'hotel_spark_rooms_list';
@@ -592,265 +275,9 @@ export interface StoredNotification {
   isRead: boolean;
 }
 
-export const DEFAULT_STAYS: StoredStay[] = [
-  {
-    id: 'stay-001',
-    propertyId: PROPERTY_ID,
-    guestName: 'Rahul Verma',
-    mobile: '+91 98490 12345',
-    email: 'rahul.verma@example.com',
-    address: 'Flat 402, Sai Residency, Jagtial Road',
-    city: 'Karimnagar',
-    state: 'Telangana',
-    idProofType: 'Aadhaar Card',
-    idProofNumber: '7823 4512 9012',
-    idProofFrontUrl: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=600&auto=format&fit=crop&q=80',
-    idProofBackUrl: 'https://images.unsplash.com/photo-1557683316-973673baf926?w=600&auto=format&fit=crop&q=80',
-    adults: 2,
-    children: 0,
-    roomId: 'r0000101-0000-4000-a000-000000000001',
-    roomNumber: '101',
-    roomTypeName: 'Deluxe King Room',
-    checkInTime: new Date(Date.now() - 24 * 3600 * 1000).toISOString(),
-    expectedCheckoutTime: new Date(Date.now() + 24 * 3600 * 1000).toISOString(),
-    nights: 2,
-    pricePerNight: 3500,
-    extraCharges: 0,
-    discount: 0,
-    totalAmount: 7000,
-    advancePaid: 5000,
-    previousPayments: 0,
-    balance: 2000,
-    paymentMethod: 'UPI',
-    paymentStatus: 'partially_paid',
-    stayStatus: 'in_house',
-    billNumber: 'INV-SPARK-2026-101',
-    notes: 'Requested quiet room away from elevator.',
-    createdAt: new Date(Date.now() - 24 * 3600 * 1000).toISOString(),
-    updatedAt: new Date(Date.now() - 24 * 3600 * 1000).toISOString(),
-  },
-  {
-    id: 'stay-002',
-    propertyId: PROPERTY_ID,
-    guestName: 'Priya Sharma',
-    mobile: '+91 98490 23456',
-    email: 'priya.s@example.com',
-    address: 'Plot 12, Jubilee Hills',
-    city: 'Hyderabad',
-    state: 'Telangana',
-    idProofType: 'Driving License',
-    idProofNumber: 'TS-02-2021-0045211',
-    idProofFrontUrl: 'https://images.unsplash.com/photo-1544717305-2782549b5136?w=600&auto=format&fit=crop&q=80',
-    idProofBackUrl: 'https://images.unsplash.com/photo-1557683316-973673baf926?w=600&auto=format&fit=crop&q=80',
-    adults: 1,
-    children: 0,
-    roomId: 'r0000102-0000-4000-a000-000000000001',
-    roomNumber: '102',
-    roomTypeName: 'Deluxe King Room',
-    checkInTime: new Date(Date.now() - 12 * 3600 * 1000).toISOString(),
-    expectedCheckoutTime: new Date(Date.now() + 12 * 3600 * 1000).toISOString(),
-    nights: 1,
-    pricePerNight: 3500,
-    extraCharges: 0,
-    discount: 0,
-    totalAmount: 3500,
-    advancePaid: 3500,
-    previousPayments: 0,
-    balance: 0,
-    paymentMethod: 'Card',
-    paymentStatus: 'paid',
-    stayStatus: 'in_house',
-    billNumber: 'INV-SPARK-2026-102',
-    notes: 'Corporate stay (Infosys).',
-    createdAt: new Date(Date.now() - 12 * 3600 * 1000).toISOString(),
-    updatedAt: new Date(Date.now() - 12 * 3600 * 1000).toISOString(),
-  },
-  {
-    id: 'stay-003',
-    propertyId: PROPERTY_ID,
-    guestName: 'Vikram Malhotra',
-    mobile: '+91 98490 34567',
-    email: 'vikram.m@example.com',
-    address: 'H.No 3-4-192, Kakatiya Colony',
-    city: 'Hanamkonda',
-    state: 'Telangana',
-    idProofType: 'Passport',
-    idProofNumber: 'V8923412',
-    idProofFrontUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=600&auto=format&fit=crop&q=80',
-    idProofBackUrl: 'https://images.unsplash.com/photo-1557683316-973673baf926?w=600&auto=format&fit=crop&q=80',
-    adults: 3,
-    children: 1,
-    roomId: 'r0000201-0000-4000-a000-000000000001',
-    roomNumber: '201',
-    roomTypeName: 'Executive Spark Suite',
-    checkInTime: new Date(Date.now() - 48 * 3600 * 1000).toISOString(),
-    expectedCheckoutTime: new Date(Date.now() + 24 * 3600 * 1000).toISOString(),
-    nights: 3,
-    pricePerNight: 6500,
-    extraCharges: 1000,
-    discount: 500,
-    totalAmount: 20000,
-    advancePaid: 10000,
-    previousPayments: 0,
-    balance: 10000,
-    paymentMethod: 'Bank Transfer',
-    paymentStatus: 'partially_paid',
-    stayStatus: 'in_house',
-    billNumber: 'INV-SPARK-2026-201',
-    notes: 'Extra bed added in master bedroom.',
-    createdAt: new Date(Date.now() - 48 * 3600 * 1000).toISOString(),
-    updatedAt: new Date(Date.now() - 48 * 3600 * 1000).toISOString(),
-  },
-  {
-    id: 'stay-004',
-    propertyId: PROPERTY_ID,
-    guestName: 'Sneha Reddy',
-    mobile: '+91 98490 45678',
-    email: 'sneha.reddy@example.com',
-    address: 'Main Road, Korutla',
-    city: 'Jagtial',
-    state: 'Telangana',
-    idProofType: 'Aadhaar Card',
-    idProofNumber: '6712 3490 1289',
-    idProofFrontUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=600&auto=format&fit=crop&q=80',
-    idProofBackUrl: 'https://images.unsplash.com/photo-1579783902614-a3fb3927b675?w=600&auto=format&fit=crop&q=80',
-    adults: 2,
-    children: 0,
-    roomId: 'r0000301-0000-4000-a000-000000000001',
-    roomNumber: '301',
-    roomTypeName: 'Standard Queen Room',
-    checkInTime: new Date(Date.now() - 18 * 3600 * 1000).toISOString(),
-    expectedCheckoutTime: new Date(Date.now() + 6 * 3600 * 1000).toISOString(),
-    nights: 1,
-    pricePerNight: 2500,
-    extraCharges: 0,
-    discount: 0,
-    totalAmount: 2500,
-    advancePaid: 2000,
-    previousPayments: 0,
-    balance: 500,
-    paymentMethod: 'Cash',
-    paymentStatus: 'partially_paid',
-    stayStatus: 'in_house',
-    billNumber: 'INV-SPARK-2026-301',
-    notes: 'Late checkout requested by 2:00 PM.',
-    createdAt: new Date(Date.now() - 18 * 3600 * 1000).toISOString(),
-    updatedAt: new Date(Date.now() - 18 * 3600 * 1000).toISOString(),
-  },
-  {
-    id: 'stay-hist-001',
-    propertyId: PROPERTY_ID,
-    guestName: 'Anil Kumar Goud',
-    mobile: '+91 98760 11223',
-    email: 'anil.goud@example.com',
-    address: 'Kishan Nagar',
-    city: 'Karimnagar',
-    state: 'Telangana',
-    idProofType: 'Aadhaar Card',
-    idProofNumber: 'XXXX XXXX 8899',
-    idProofFrontUrl: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=600&auto=format&fit=crop&q=80',
-    idProofBackUrl: 'https://images.unsplash.com/photo-1557683316-973673baf926?w=600&auto=format&fit=crop&q=80',
-    adults: 2,
-    children: 1,
-    roomId: 'r0000103-0000-4000-a000-000000000001',
-    roomNumber: '103',
-    roomTypeName: 'Deluxe Room',
-    checkInTime: new Date(Date.now() - 5 * 24 * 3600 * 1000).toISOString(),
-    expectedCheckoutTime: new Date(Date.now() - 3 * 24 * 3600 * 1000).toISOString(),
-    actualCheckoutTime: new Date(Date.now() - 3 * 24 * 3600 * 1000).toISOString(),
-    nights: 2,
-    pricePerNight: 2099,
-    extraCharges: 399,
-    discount: 0,
-    totalAmount: 4597,
-    advancePaid: 2500,
-    previousPayments: 2097,
-    balance: 0,
-    paymentMethod: 'UPI',
-    paymentStatus: 'paid',
-    stayStatus: 'checked_out',
-    billNumber: 'INV-SPARK-2026-0042',
-    notes: 'Checked out cleanly.',
-    createdAt: new Date(Date.now() - 5 * 24 * 3600 * 1000).toISOString(),
-    updatedAt: new Date(Date.now() - 3 * 24 * 3600 * 1000).toISOString(),
-  },
-  {
-    id: 'stay-hist-002',
-    propertyId: PROPERTY_ID,
-    guestName: 'Sunita Rao',
-    mobile: '+91 99887 76655',
-    email: 'sunita.rao@example.com',
-    address: 'Ashok Nagar',
-    city: 'Hyderabad',
-    state: 'Telangana',
-    idProofType: 'Passport',
-    idProofNumber: 'Z1238904',
-    idProofFrontUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=600&auto=format&fit=crop&q=80',
-    idProofBackUrl: 'https://images.unsplash.com/photo-1579783902614-a3fb3927b675?w=600&auto=format&fit=crop&q=80',
-    adults: 1,
-    children: 0,
-    roomId: 'r0000202-0000-4000-a000-000000000001',
-    roomNumber: '202',
-    roomTypeName: 'Executive Spark Suite',
-    checkInTime: new Date(Date.now() - 8 * 24 * 3600 * 1000).toISOString(),
-    expectedCheckoutTime: new Date(Date.now() - 6 * 24 * 3600 * 1000).toISOString(),
-    actualCheckoutTime: new Date(Date.now() - 6 * 24 * 3600 * 1000).toISOString(),
-    nights: 2,
-    pricePerNight: 6500,
-    extraCharges: 0,
-    discount: 1000,
-    totalAmount: 12000,
-    advancePaid: 12000,
-    previousPayments: 0,
-    balance: 0,
-    paymentMethod: 'Card',
-    paymentStatus: 'paid',
-    stayStatus: 'checked_out',
-    billNumber: 'INV-SPARK-2026-0038',
-    notes: 'Very satisfied with service.',
-    createdAt: new Date(Date.now() - 8 * 24 * 3600 * 1000).toISOString(),
-    updatedAt: new Date(Date.now() - 6 * 24 * 3600 * 1000).toISOString(),
-  },
-];
+export const DEFAULT_STAYS: StoredStay[] = [];
 
-export const DEFAULT_NOTIFICATIONS: StoredNotification[] = [
-  {
-    id: 'notif-1',
-    type: 'check_in',
-    title: 'Guest Checked In: Room 101',
-    message: 'Rahul Verma has checked into Room 101. Advance ₹5,000 received via UPI.',
-    severity: 'info',
-    createdAt: new Date(Date.now() - 2 * 3600 * 1000).toISOString(),
-    isRead: false,
-  },
-  {
-    id: 'notif-2',
-    type: 'payment',
-    title: 'Advance Payment Received',
-    message: '₹10,000 recorded for Vikram Malhotra in Room 201 (Executive Spark Suite).',
-    severity: 'info',
-    createdAt: new Date(Date.now() - 5 * 3600 * 1000).toISOString(),
-    isRead: false,
-  },
-  {
-    id: 'notif-3',
-    type: 'balance_due',
-    title: 'Outstanding Balance Alert',
-    message: 'Room 201 (Vikram Malhotra) has an outstanding balance of ₹10,000.',
-    severity: 'warning',
-    createdAt: new Date(Date.now() - 8 * 3600 * 1000).toISOString(),
-    isRead: false,
-  },
-  {
-    id: 'notif-4',
-    type: 'check_out',
-    title: 'Room 104 Marked Dirty',
-    message: 'Previous guest checked out. Room 104 marked VACANT DIRTY for housekeeping.',
-    severity: 'info',
-    createdAt: new Date(Date.now() - 10 * 3600 * 1000).toISOString(),
-    isRead: true,
-  },
-];
+export const DEFAULT_NOTIFICATIONS: StoredNotification[] = [];
 
 export function getStoredRooms(): StoredRoom[] {
   try {
@@ -858,7 +285,7 @@ export function getStoredRooms(): StoredRoom[] {
       const saved = window.localStorage.getItem(ROOMS_STORAGE_KEY);
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length >= 28) {
+        if (Array.isArray(parsed) && parsed.length >= 28 && parsed.some((r: any) => r.number === '2001') && !parsed.some((r: any) => r.number === '101')) {
           return parsed;
         }
       }
@@ -1021,19 +448,15 @@ export function getStoredStays(): StoredStay[] {
       const saved = window.localStorage.getItem(STAYS_STORAGE_KEY);
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          return parsed.map((item: StoredStay) => {
-            const def = DEFAULT_STAYS.find((d) => d.id === item.id);
-            if (def) {
-              return {
-                ...def,
-                ...item,
-                idProofFrontUrl: item.idProofFrontUrl || def.idProofFrontUrl,
-                idProofBackUrl: item.idProofBackUrl || def.idProofBackUrl,
-              };
-            }
-            return item;
-          });
+        if (Array.isArray(parsed)) {
+          return parsed.filter((item: StoredStay) => 
+            !item.id.startsWith('stay-00') && 
+            !item.id.startsWith('stay-hist-') && 
+            item.guestName !== 'Rahul Verma' && 
+            item.guestName !== 'Priya Sharma' && 
+            item.guestName !== 'Vikram Malhotra' && 
+            item.guestName !== 'Sneha Reddy'
+          );
         }
       }
     }
@@ -1085,111 +508,7 @@ const HK_TASKS_STORAGE_KEY = 'hotel_spark_hk_tasks_list';
 const RESERVATIONS_STORAGE_KEY = 'hotel_spark_reservations_list';
 const GUESTS_STORAGE_KEY = 'hotel_spark_guests_list';
 
-const DEFAULT_GUESTS = [
-  {
-    id: 'g0000001-0000-4000-a000-000000000001',
-    propertyId: PROPERTY_ID,
-    firstName: 'Rahul',
-    lastName: 'Verma',
-    email: 'rahul.verma@example.com',
-    phone: '+91 98765 11111',
-    address: 'Banjara Hills, Hyderabad',
-    addressLine1: 'Banjara Hills, Road No. 12',
-    city: 'Hyderabad',
-    state: 'Telangana',
-    stateProvince: 'Telangana',
-    postalCode: '500034',
-    countryCode: 'IN',
-    idCountry: 'IN',
-    idType: 'aadhaar',
-    idProofType: 'Aadhaar Card',
-    idNumber: '7890 1234 5678',
-    idProofNumber: '7890 1234 5678',
-    idProofFrontUrl: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=600&auto=format&fit=crop&q=80',
-    idProofBackUrl: 'https://images.unsplash.com/photo-1557683316-973673baf926?w=600&auto=format&fit=crop&q=80',
-    stayCount: 3,
-    totalSpend: 10500,
-    status: 'active',
-    createdAt: '2026-11-10T10:00:00Z',
-  },
-  {
-    id: 'g0000002-0000-4000-a000-000000000001',
-    propertyId: PROPERTY_ID,
-    firstName: 'Priya',
-    lastName: 'Sharma',
-    email: 'priya.s@example.com',
-    phone: '+91 98765 22222',
-    address: 'Madhapur, Hyderabad',
-    addressLine1: 'Plot 45, Silicon Valley, Madhapur',
-    city: 'Hyderabad',
-    state: 'Telangana',
-    stateProvince: 'Telangana',
-    postalCode: '500081',
-    countryCode: 'IN',
-    idCountry: 'IN',
-    idType: 'drivers_license',
-    idProofType: 'Driving License',
-    idNumber: 'TS09-2023-009182',
-    idProofNumber: 'TS09-2023-009182',
-    idProofFrontUrl: 'https://images.unsplash.com/photo-1544717305-2782549b5136?w=600&auto=format&fit=crop&q=80',
-    idProofBackUrl: 'https://images.unsplash.com/photo-1557683316-973673baf926?w=600&auto=format&fit=crop&q=80',
-    stayCount: 2,
-    totalSpend: 7000,
-    status: 'active',
-    createdAt: '2026-11-12T14:30:00Z',
-  },
-  {
-    id: 'g0000003-0000-4000-a000-000000000001',
-    propertyId: PROPERTY_ID,
-    firstName: 'Vikram',
-    lastName: 'Malhotra',
-    email: 'vikram.m@corporatetech.com',
-    phone: '+91 98765 33333',
-    address: 'Koramangala, Bengaluru',
-    addressLine1: '4th Block, Koramangala',
-    city: 'Bengaluru',
-    state: 'Karnataka',
-    stateProvince: 'Karnataka',
-    postalCode: '560034',
-    countryCode: 'IN',
-    idCountry: 'IN',
-    idType: 'passport',
-    idProofType: 'Passport',
-    idNumber: 'Z8765432',
-    idProofNumber: 'Z8765432',
-    idProofFrontUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=600&auto=format&fit=crop&q=80',
-    stayCount: 1,
-    totalSpend: 13000,
-    status: 'active',
-    createdAt: '2026-11-14T09:15:00Z',
-  },
-  {
-    id: 'g0000004-0000-4000-a000-000000000001',
-    propertyId: PROPERTY_ID,
-    firstName: 'Ananya',
-    lastName: 'Reddy',
-    email: 'ananya.reddy@example.com',
-    phone: '+91 98765 44444',
-    address: 'Subhash Nagar, Karimnagar',
-    addressLine1: 'House 3-2-114, Subhash Nagar',
-    city: 'Karimnagar',
-    state: 'Telangana',
-    stateProvince: 'Telangana',
-    postalCode: '505001',
-    countryCode: 'IN',
-    idCountry: 'IN',
-    idType: 'aadhaar',
-    idProofType: 'Aadhaar Card',
-    idNumber: '4567 8901 2345',
-    idProofNumber: '4567 8901 2345',
-    idProofFrontUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=600&auto=format&fit=crop&q=80',
-    idProofBackUrl: 'https://images.unsplash.com/photo-1579783902614-a3fb3927b675?w=600&auto=format&fit=crop&q=80',
-    stayCount: 4,
-    totalSpend: 14000,
-    status: 'active',
-    createdAt: '2026-11-05T12:00:00Z',
-  },
-];
+const DEFAULT_GUESTS: any[] = [];
 
 const DEFAULT_HK_TASKS = [
   {
@@ -1246,46 +565,7 @@ const DEFAULT_HK_TASKS = [
   },
 ];
 
-const DEFAULT_RESERVATIONS = [
-  {
-    id: 'resv-001',
-    propertyId: PROPERTY_ID,
-    confirmationNumber: 'SPARK-RES-8801',
-    guestName: 'Suresh Goud',
-    guest: { firstName: 'Suresh', lastName: 'Goud', email: 'suresh.goud@example.com', phone: '+91 98480 12345' },
-    roomNumber: '103',
-    roomId: 'r0000103-0000-4000-a000-000000000001',
-    roomTypeId: 'b0000001-0000-4000-a000-000000000001',
-    roomTypeName: 'Deluxe King Room',
-    arrivalDate: new Date().toISOString().split('T')[0],
-    departureDate: new Date(Date.now() + 2 * 24 * 3600 * 1000).toISOString().split('T')[0],
-    nights: 2,
-    status: 'confirmed',
-    totalAmount: 7000,
-    source: 'FRONT_DESK',
-    paymentStatus: 'partially_paid',
-    advancePaid: 3500,
-  },
-  {
-    id: 'resv-002',
-    propertyId: PROPERTY_ID,
-    confirmationNumber: 'SPARK-RES-8802',
-    guestName: 'Mohammed Rafi',
-    guest: { firstName: 'Mohammed', lastName: 'Rafi', email: 'rafi.m@example.com', phone: '+91 99890 54321' },
-    roomNumber: '202',
-    roomId: 'r0000202-0000-4000-a000-000000000001',
-    roomTypeId: 'b0000002-0000-4000-a000-000000000001',
-    roomTypeName: 'Executive Spark Suite',
-    arrivalDate: new Date(Date.now() + 24 * 3600 * 1000).toISOString().split('T')[0],
-    departureDate: new Date(Date.now() + 3 * 24 * 3600 * 1000).toISOString().split('T')[0],
-    nights: 2,
-    status: 'confirmed',
-    totalAmount: 13000,
-    source: 'WEBSITE',
-    paymentStatus: 'paid',
-    advancePaid: 13000,
-  },
-];
+const DEFAULT_RESERVATIONS: any[] = [];
 
 export function getStoredEmployees(): any[] {
   try {
@@ -1343,7 +623,14 @@ export function getStoredReservations(): any[] {
       const saved = window.localStorage.getItem(RESERVATIONS_STORAGE_KEY);
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        if (Array.isArray(parsed)) {
+          return parsed.filter((r: any) => 
+            !r.id.startsWith('resv-00') && 
+            !r.confirmationNumber?.includes('880') && 
+            r.guestName !== 'Suresh Goud' && 
+            r.guestName !== 'Mohammed Rafi'
+          );
+        }
       }
     }
   } catch (e) {
@@ -1368,7 +655,9 @@ export function getStoredGuests(): any[] {
       const saved = window.localStorage.getItem(GUESTS_STORAGE_KEY);
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        if (Array.isArray(parsed)) {
+          return parsed.filter((g: any) => !g.id.startsWith('g000000'));
+        }
       }
     }
   } catch (e) {
@@ -1389,182 +678,7 @@ export function saveStoredGuests(list: any[]) {
 
 export const DIRECT_BOOKINGS_STORAGE_KEY = 'hotel_spark_direct_bookings';
 
-export const DEFAULT_DIRECT_BOOKINGS: any[] = [
-  {
-    id: '2a52aaa6-dd15-4c31-9716-a81c2080288a',
-    propertyId: PROPERTY_ID,
-    status: 'pending',
-    reference: 'SPARK-MWK5T093-4045',
-    submissionIdempotencyKey: 'SPARK-MWK5T093-4045',
-    arrivalDate: '2026-11-18',
-    departureDate: '2026-11-19',
-    roomTypeId: 'b0000003-0000-4000-a000-000000000001',
-    roomTypeName: 'Standard Queen Room',
-    roomTypeCode: 'STD',
-    ratePlanId: 'c0000003-0000-4000-a000-000000000001',
-    ratePlanName: 'Best Available Rate',
-    adults: 2,
-    children: 0,
-    guestFirstName: 'Bhanu',
-    guestLastName: 'reddy',
-    guestEmail: 'banu.prasad0607@gmail.com',
-    guestPhone: '08897532007',
-    specialRequests: 'Direct website booking from hotel website',
-    submittedTotal: '2800.00',
-    currencyCode: 'INR',
-    confirmedReservationNumber: null,
-    assignedRoomNumber: null,
-    availableRoomsCount: 4,
-    denialReason: null,
-    decidedAt: null,
-    createdAt: '2026-11-17T03:55:20.194336+00:00',
-  },
-  {
-    id: 'b744d03d-24fb-4bca-85f0-619f79883db1',
-    propertyId: PROPERTY_ID,
-    status: 'pending',
-    reference: 'SPARK-MWIU09X1-7284',
-    submissionIdempotencyKey: 'SPARK-MWIU09X1-7284',
-    arrivalDate: '2026-11-17',
-    departureDate: '2026-11-18',
-    roomTypeId: 'b0000001-0000-4000-a000-000000000001',
-    roomTypeName: 'Deluxe King Room',
-    roomTypeCode: 'DLX',
-    ratePlanId: 'c0000001-0000-4000-a000-000000000001',
-    ratePlanName: 'Best Available Rate',
-    adults: 2,
-    children: 0,
-    guestFirstName: 'Chitti',
-    guestLastName: 'reddy',
-    guestEmail: 'banu.prasad0607@gmail.com',
-    guestPhone: '08897532007',
-    specialRequests: 'Direct website booking from hotel website',
-    submittedTotal: '3920.00',
-    currencyCode: 'INR',
-    confirmedReservationNumber: null,
-    assignedRoomNumber: null,
-    availableRoomsCount: 4,
-    denialReason: null,
-    decidedAt: null,
-    createdAt: '2026-11-16T05:37:16.406565+00:00',
-  },
-  {
-    id: 'c287d743-808d-41f1-8034-e9baf96faabc',
-    propertyId: PROPERTY_ID,
-    status: 'pending',
-    reference: 'TEST-1794887959774',
-    submissionIdempotencyKey: 'TEST-1794887959774',
-    arrivalDate: '2026-11-20',
-    departureDate: '2026-11-22',
-    roomTypeId: 'b0000001-0000-4000-a000-000000000001',
-    roomTypeName: 'Deluxe King Room',
-    roomTypeCode: 'DLX',
-    ratePlanId: 'c0000001-0000-4000-a000-000000000001',
-    ratePlanName: 'Best Available Rate',
-    adults: 2,
-    children: 0,
-    guestFirstName: 'Test',
-    guestLastName: 'Guest',
-    guestEmail: 'test@example.com',
-    guestPhone: '+91 9876543210',
-    specialRequests: 'Online guest reservation inquiry',
-    submittedTotal: '4500.00',
-    currencyCode: 'INR',
-    confirmedReservationNumber: null,
-    assignedRoomNumber: null,
-    availableRoomsCount: 4,
-    denialReason: null,
-    decidedAt: null,
-    createdAt: '2026-11-17T03:59:19.965374+00:00',
-  },
-  {
-    id: '30b3fd49-613c-4c29-9b7b-877e645eb66f',
-    propertyId: PROPERTY_ID,
-    status: 'pending',
-    reference: 'ANON-TEST-1794757415633',
-    submissionIdempotencyKey: 'ANON-TEST-1794757415633',
-    arrivalDate: '2026-11-25',
-    departureDate: '2026-11-27',
-    roomTypeId: 'b0000001-0000-4000-a000-000000000001',
-    roomTypeName: 'Deluxe King Room',
-    roomTypeCode: 'DLX',
-    ratePlanId: 'c0000001-0000-4000-a000-000000000001',
-    ratePlanName: 'Best Available Rate',
-    adults: 2,
-    children: 0,
-    guestFirstName: 'Guest',
-    guestLastName: 'Test',
-    guestEmail: 'guest@example.com',
-    guestPhone: '+91 99999 88888',
-    specialRequests: 'Quiet room preferred',
-    submittedTotal: '7000.00',
-    currencyCode: 'INR',
-    confirmedReservationNumber: null,
-    assignedRoomNumber: null,
-    availableRoomsCount: 4,
-    denialReason: null,
-    decidedAt: null,
-    createdAt: '2026-11-15T15:43:35.633000+00:00',
-  },
-  {
-    id: '415de485-046d-4591-830b-6183994c823a',
-    propertyId: PROPERTY_ID,
-    status: 'accepted',
-    reference: 'REQ-LIVE-1794753471962',
-    submissionIdempotencyKey: 'REQ-LIVE-1794753471962',
-    arrivalDate: '2026-11-20',
-    departureDate: '2026-11-22',
-    roomTypeId: 'b0000001-0000-4000-a000-000000000001',
-    roomTypeName: 'Deluxe King Room',
-    roomTypeCode: 'DLX',
-    ratePlanId: 'c0000001-0000-4000-a000-000000000001',
-    ratePlanName: 'Best Available Rate',
-    adults: 2,
-    children: 0,
-    guestFirstName: 'Banu',
-    guestLastName: 'Prasad',
-    guestEmail: 'banuprasad@example.com',
-    guestPhone: '+91 98765 00000',
-    specialRequests: 'High floor with city view',
-    submittedTotal: '7000.00',
-    currencyCode: 'INR',
-    confirmedReservationNumber: 'c39dfb01-4f5b-436b-a5ba-59b3cd41c9bb',
-    assignedRoomNumber: '101',
-    availableRoomsCount: 4,
-    denialReason: null,
-    decidedAt: '2026-11-15T14:38:13.044666+00:00',
-    createdAt: '2026-11-15T14:37:44.425111+00:00',
-  },
-  {
-    id: 'fb3e09c9-b088-4604-82e2-30c010c06715',
-    propertyId: PROPERTY_ID,
-    status: 'denied',
-    reference: 'REQ-LIVE-CONFLICT',
-    submissionIdempotencyKey: 'REQ-LIVE-CONFLICT',
-    arrivalDate: '2026-11-20',
-    departureDate: '2026-11-22',
-    roomTypeId: 'b0000001-0000-4000-a000-000000000001',
-    roomTypeName: 'Deluxe King Room',
-    roomTypeCode: 'DLX',
-    ratePlanId: 'c0000001-0000-4000-a000-000000000001',
-    ratePlanName: 'Best Available Rate',
-    adults: 2,
-    children: 0,
-    guestFirstName: 'Anita',
-    guestLastName: 'Desai',
-    guestEmail: 'anita@example.com',
-    guestPhone: '+91 98765 11111',
-    specialRequests: '',
-    submittedTotal: '7000.00',
-    currencyCode: 'INR',
-    confirmedReservationNumber: null,
-    assignedRoomNumber: null,
-    availableRoomsCount: 4,
-    denialReason: 'Requested room is unavailable for selected dates.',
-    decidedAt: '2026-11-15T14:38:37.767024+00:00',
-    createdAt: '2026-11-15T14:38:23.572490+00:00',
-  },
-];
+export const DEFAULT_DIRECT_BOOKINGS: any[] = [];
 
 export function getStoredDirectBookings(): any[] {
   try {
@@ -1572,7 +686,16 @@ export function getStoredDirectBookings(): any[] {
       const saved = window.localStorage.getItem(DIRECT_BOOKINGS_STORAGE_KEY);
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        if (Array.isArray(parsed)) {
+          return parsed.filter((b: any) => 
+            b.id !== '2a52aaa6-dd15-4c31-9716-a81c2080288a' &&
+            b.id !== 'b744d03d-24fb-4bca-85f0-619f79883db1' &&
+            b.id !== 'c287d743-808d-41f1-8034-e9baf96faabc' &&
+            b.id !== '30b3fd49-613c-4c29-9b7b-877e645eb66f' &&
+            b.id !== '415de485-046d-4591-830b-6183994c823a' &&
+            b.id !== 'fb3e09c9-b088-4604-82e2-30c010c06715'
+          );
+        }
       }
     }
   } catch (e) {
@@ -1655,7 +778,10 @@ export async function handleSupabaseAdapter(config: AxiosRequestConfig): Promise
     const idMatch = url.match(/\/direct-bookings\/([^/]+)\/approve/);
     const requestId = idMatch ? idMatch[1] : '';
     const body = typeof config.data === 'string' ? JSON.parse(config.data || '{}') : (config.data || {});
-    const roomId = body.roomId || '5aca9c61-49d7-42db-885c-58d30dfceac7';
+    const currentRooms = getStoredRooms();
+    const targetRoom = currentRooms.find((r) => r.id === body.roomId || r.number === body.roomId) || currentRooms.find((r) => r.status === 'vacant_clean') || currentRooms[0];
+    const roomId = targetRoom.id;
+    const roomNumber = targetRoom.number;
     const confCode = `CONF-${Date.now().toString(36).toUpperCase()}`;
 
     // 1. Update localStorage direct bookings
@@ -1666,7 +792,7 @@ export async function handleSupabaseAdapter(config: AxiosRequestConfig): Promise
         approvedBooking = {
           ...b,
           status: 'accepted',
-          assignedRoomNumber: '101',
+          assignedRoomNumber: roomNumber,
           confirmedReservationNumber: confCode,
           decidedAt: new Date().toISOString(),
         };
@@ -1677,9 +803,8 @@ export async function handleSupabaseAdapter(config: AxiosRequestConfig): Promise
     saveStoredDirectBookings(updatedDirectBookings);
 
     // 2. Update room status in localStorage
-    const currentRooms = getStoredRooms();
     const updatedRooms = currentRooms.map((r) =>
-      r.id === roomId || r.number === '101' ? { ...r, status: 'occupied' } : r
+      r.id === roomId || r.number === roomNumber ? { ...r, status: 'occupied', guestName: `${approvedBooking?.guestFirstName || 'Guest'} ${approvedBooking?.guestLastName || ''}`.trim() } : r
     );
     saveStoredRooms(updatedRooms);
 
@@ -1703,8 +828,8 @@ export async function handleSupabaseAdapter(config: AxiosRequestConfig): Promise
       idProofBackUrl: 'https://images.unsplash.com/photo-1557683316-973673baf926?w=600&auto=format&fit=crop&q=80',
       adults: approvedBooking?.adults || 2,
       children: approvedBooking?.children || 0,
-      roomId: roomId || 'r0000101-0000-4000-a000-000000000001',
-      roomNumber: '101',
+      roomId: roomId,
+      roomNumber: roomNumber,
       roomTypeName: approvedBooking?.roomTypeName || 'Deluxe King Room',
       checkInTime: new Date().toISOString(),
       expectedCheckoutTime: new Date(Date.now() + 86400000).toISOString(),
@@ -1736,7 +861,7 @@ export async function handleSupabaseAdapter(config: AxiosRequestConfig): Promise
       arrivalDate: approvedBooking?.arrivalDate || new Date().toISOString().split('T')[0],
       departureDate: approvedBooking?.departureDate || new Date(Date.now() + 86400000).toISOString().split('T')[0],
       roomId,
-      roomNumber: '101',
+      roomNumber: roomNumber,
       roomTypeId: approvedBooking?.roomTypeId || 'b0000001-0000-4000-a000-000000000001',
       roomTypeName: approvedBooking?.roomTypeName || 'Deluxe King Room',
       guestName: fullGuestName,
@@ -1779,7 +904,7 @@ export async function handleSupabaseAdapter(config: AxiosRequestConfig): Promise
 
     return ok({
       success: true,
-      roomNumber: '101',
+      roomNumber: roomNumber,
       confirmationNumber: confCode,
     });
   }
@@ -1841,11 +966,15 @@ export async function handleSupabaseAdapter(config: AxiosRequestConfig): Promise
 
     // Attempt 1: Fetch via Netlify serverless endpoint
     try {
-      const resp = await fetch('/api/direct-bookings');
-      if (resp.ok) {
-        const data = await resp.json();
-        if (Array.isArray(data) && data.length > 0) {
-          serverReqs = data;
+      const resp = await fetch('/api/v1/direct-bookings').catch(() => fetch('/api/direct-bookings'));
+      if (resp && resp.ok) {
+        const text = await resp.text();
+        if (text.startsWith('[') || text.startsWith('{')) {
+          const data = JSON.parse(text);
+          const list = Array.isArray(data) ? data : (Array.isArray(data?.data) ? data.data : []);
+          if (list.length > 0) {
+            serverReqs = list;
+          }
         }
       }
     } catch {

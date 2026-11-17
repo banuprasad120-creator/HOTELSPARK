@@ -8,9 +8,13 @@ const SUPABASE_SECRET_KEY =
   (typeof Buffer !== 'undefined' ? Buffer.from(SECRET_KEY_B64, 'base64').toString('utf8') : '');
 
 const ROOM_TYPE_NAMES: Record<string, { name: string; code: string }> = {
-  'b0000001-0000-4000-a000-000000000001': { name: 'Deluxe King Room', code: 'DLX' },
-  'b0000002-0000-4000-a000-000000000001': { name: 'Executive Spark Suite', code: 'SUT' },
-  'b0000003-0000-4000-a000-000000000001': { name: 'Standard Queen Room', code: 'STD' },
+  'b0000001-0000-4000-a000-000000000001': { name: 'Budget', code: 'BGT' },
+  'b0000002-0000-4000-a000-000000000002': { name: 'Deluxe Room', code: 'DLX' },
+  'b0000003-0000-4000-a000-000000000003': { name: 'Executive Room', code: 'EXE' },
+  'b0000004-0000-4000-a000-000000000004': { name: 'Suite', code: 'SUT' },
+  // Legacy aliases
+  'b0000002-0000-4000-a000-000000000001': { name: 'Suite', code: 'SUT' },
+  'b0000003-0000-4000-a000-000000000001': { name: 'Executive Room', code: 'EXE' },
 };
 
 export const handler: Handler = async (event) => {

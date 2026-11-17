@@ -834,9 +834,10 @@ function RoomTypeList() {
   });
 
   const DEFAULT_TYPES_WITH_PLANS: RoomType[] = [
-    { id: 'b0000001-0000-4000-a000-000000000001', name: 'Deluxe King Room', code: 'DLX', description: 'Spacious king-size bed room with ensuite bath', maxOccupancy: 2, bedType: 'king', amenities: ['wifi', 'tv', 'ac', 'safe'], basePrice: 3500 },
-    { id: 'b0000002-0000-4000-a000-000000000001', name: 'Executive Spark Suite', code: 'SUT', description: 'Luxurious suite with separate living room', maxOccupancy: 4, bedType: 'king', amenities: ['wifi', 'tv', 'ac', 'bathtub', 'minibar'], basePrice: 6500 },
-    { id: 'b0000003-0000-4000-a000-000000000001', name: 'Standard Queen Room', code: 'STD', description: 'Cozy queen-size bed room', maxOccupancy: 2, bedType: 'queen', amenities: ['wifi', 'tv', 'ac'], basePrice: 2500 },
+    { id: 'b0000001-0000-4000-a000-000000000001', name: 'Budget', code: 'BGT', description: 'Comfortable compact room for single travelers. Rooms: 2006, 3006, 4006.', maxOccupancy: 1, bedType: 'single', amenities: ['wifi', 'tv', 'ac', 'room_service'], basePrice: 1599 },
+    { id: 'b0000002-0000-4000-a000-000000000002', name: 'Deluxe Room', code: 'DLX', description: 'Elegant deluxe room with plush bedding and private ensuite bath. 12 rooms across Floors 2, 3 & 4.', maxOccupancy: 2, bedType: 'double', amenities: ['wifi', 'tv', 'ac', 'safe', 'balcony'], basePrice: 1799 },
+    { id: 'b0000003-0000-4000-a000-000000000003', name: 'Executive Room', code: 'EXE', description: 'Sophisticated executive room featuring panoramic views. 11 rooms across Floors 2, 3 & 4.', maxOccupancy: 3, bedType: 'queen', amenities: ['wifi', 'tv', 'ac', 'safe', 'minibar'], basePrice: 2199 },
+    { id: 'b0000004-0000-4000-a000-000000000004', name: 'Suite', code: 'SUT', description: 'Spacious signature suite featuring a master bedroom and living hall. Rooms: 2010, 3010.', maxOccupancy: 4, bedType: 'king', amenities: ['wifi', 'tv', 'ac', 'safe', 'minibar', 'living_area', 'bathtub'], basePrice: 2799 },
   ];
 
   const typesRaw = Array.isArray(data?.data) ? data.data : (Array.isArray(data) ? data : []);
@@ -858,7 +859,7 @@ function RoomTypeList() {
     if (roomType.basePrice && !isNaN(Number(roomType.basePrice))) return Number(roomType.basePrice);
     if (roomType.baseAmount && !isNaN(Number(roomType.baseAmount))) return Number(roomType.baseAmount);
     if (roomType.price && !isNaN(Number(roomType.price))) return Number(roomType.price);
-    return roomType.code === 'SUT' ? 6500 : roomType.code === 'STD' ? 2500 : 3500;
+    return roomType.code === 'SUT' ? 2799 : roomType.code === 'EXE' ? 2199 : roomType.code === 'DLX' ? 1799 : 1599;
   };
 
   const quickPriceMutation = useMutation({
