@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useRef, useState, useEffect, useMemo } from 'react';
 import { X, Printer, CheckCircle, Hotel, Phone, MapPin, Calendar, ShieldCheck, Settings2, Eye, Download, FileCheck } from 'lucide-react';
 import type { StoredStay } from '../../lib/supabaseAdapter';
 import AadhaarViewerModal from '../guests/AadhaarViewerModal';
@@ -20,6 +20,31 @@ export default function BillInvoiceModal({ stay, isOpen, onClose }: BillInvoiceM
   const [showTerms, setShowTerms] = useState(true);
   const [showSettings, setShowSettings] = useState(false);
   const [showAadhaarModal, setShowAadhaarModal] = useState(false);
+
+  // Close on Escape key
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && !showAadhaarModal) {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, showAadhaarModal, onClose]);
+
+  const maskedIdNumber = useMemo(() => {
+    if (!stay?.idProofNumber) return 'Verified';
+    const isAadhaar = stay.idProofType?.toLowerCase().includes('aadhaar');
+    if (isAadhaar) {
+      const clean = stay.idProofNumber.replace(/\D/g, '');
+      if (clean.length >= 4) {
+        return `XXXX XXXX ${clean.slice(-4)}`;
+      }
+      return 'XXXX XXXX 1234';
+    }
+    return stay.idProofNumber;
+  }, [stay?.idProofNumber, stay?.idProofType]);
 
   if (!isOpen || !stay) return null;
 
@@ -65,13 +90,18 @@ export default function BillInvoiceModal({ stay, isOpen, onClose }: BillInvoiceM
   const finalBalanceDue = Math.max(0, grandTotal - totalPaid);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 overflow-y-auto">
-      <div className="relative w-full max-w-3xl bg-white rounded-2xl shadow-2xl overflow-hidden my-8 print:m-0 print:p-0 print:shadow-none print:w-full">
-        {/* Modal Action Bar (hidden on print) */}
-        <div className="flex flex-wrap items-center justify-between px-6 py-4 bg-telivity-navy text-white print:hidden gap-3">
+    <div
+      className="fixed inset-0 z-50 overflow-y-auto bg-black/70 backdrop-blur-xs p-2 sm:p-6 flex justify-center items-start"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div className="relative w-full max-w-3xl bg-white rounded-2xl shadow-2xl overflow-hidden my-4 sm:my-8 print:m-0 print:p-0 print:shadow-none print:w-full">
+        {/* Modal Action Bar (Sticky at top, hidden on print) */}
+        <div className="sticky top-0 z-30 flex flex-wrap items-center justify-between px-4 sm:px-6 py-3.5 bg-telivity-navy text-white print:hidden gap-3 shadow-md">
           <div className="flex items-center gap-2">
-            <CheckCircle className="text-emerald-400" size={20} />
-            <span className="font-bold text-sm tracking-wide">HOTEL SPARK — OFFICIAL GUEST FOLIO & INVOICE</span>
+            <CheckCircle className="text-emerald-400" size={18} />
+            <span className="font-bold text-xs sm:text-sm tracking-wide">HOTEL SPARK — OFFICIAL GUEST FOLIO & INVOICE</span>
           </div>
           <div className="flex items-center gap-2">
             <button
@@ -79,18 +109,20 @@ export default function BillInvoiceModal({ stay, isOpen, onClose }: BillInvoiceM
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition ${showSettings ? 'bg-white/20 border-white text-white' : 'border-white/20 text-white/80 hover:bg-white/10'}`}
               title="Customize Tax & Invoice Settings"
             >
-              <Settings2 size={14} /> Customize Invoice
+              <Settings2 size={14} /> <span className="hidden sm:inline">Customize</span>
             </button>
             <button
               onClick={handlePrint}
-              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-telivity-teal hover:bg-telivity-light-teal text-white text-xs font-semibold shadow-xs transition"
+              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-telivity-teal hover:bg-teal-600 text-white text-xs font-bold shadow-xs transition"
+              title="Print or Save Invoice as PDF"
             >
               <Printer size={15} /> Print / Save PDF
             </button>
             <button
               onClick={onClose}
-              className="p-1.5 rounded-lg hover:bg-white/10 text-white/80 hover:text-white transition"
+              className="p-1.5 rounded-lg hover:bg-white/20 text-white transition bg-white/10"
               aria-label="Close"
+              title="Close (Esc)"
             >
               <X size={18} />
             </button>
@@ -206,7 +238,7 @@ export default function BillInvoiceModal({ stay, isOpen, onClose }: BillInvoiceM
               <div className="mt-2.5 pt-2 border-t border-gray-200/60 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                 <div className="flex items-center gap-1.5 text-[11px] text-emerald-800 font-semibold truncate">
                   <ShieldCheck size={14} className="text-emerald-600 shrink-0" />
-                  <span className="truncate">ID Proof: {stay.idProofType} ({stay.idProofNumber || 'Verified'})</span>
+                  <span className="truncate">ID Proof: {stay.idProofType} ({maskedIdNumber})</span>
                 </div>
                 <button
                   type="button"
@@ -382,6 +414,36 @@ export default function BillInvoiceModal({ stay, isOpen, onClose }: BillInvoiceM
 
           <div className="text-center mt-6 pt-3 border-t border-gray-100 text-[10px] text-telivity-mid-grey">
             Thank you for staying at Hotel Spark, Karimnagar! We look forward to welcoming you again.
+          </div>
+        </div>
+
+        {/* Bottom Action Footer (Sticky at bottom, hidden on print) */}
+        <div className="sticky bottom-0 z-20 flex flex-wrap items-center justify-between px-4 sm:px-6 py-3 bg-gray-50/95 backdrop-blur-xs border-t border-gray-200 print:hidden gap-3 shadow-sm">
+          <div className="text-xs text-telivity-mid-grey">
+            Invoice #{invoiceNumber} • Press <kbd className="bg-gray-200 px-1.5 py-0.5 rounded text-[10px] font-mono">Esc</kbd> to exit
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setShowAadhaarModal(true)}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-xs font-bold transition shadow-2xs"
+            >
+              <Eye size={13} /> View Aadhaar ID
+            </button>
+            <button
+              type="button"
+              onClick={handlePrint}
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-telivity-teal hover:bg-teal-600 text-white text-xs font-bold shadow-xs transition"
+            >
+              <Printer size={14} /> Print / Save PDF
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-1.5 rounded-xl bg-gray-200 hover:bg-gray-300 text-telivity-navy text-xs font-bold transition"
+            >
+              Close Invoice
+            </button>
           </div>
         </div>
       </div>

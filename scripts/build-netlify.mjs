@@ -54,6 +54,15 @@ try {
   fs.mkdirSync(adminSubdir, { recursive: true });
   fs.cpSync(dashboardDist, adminSubdir, { recursive: true });
 
+  // Safeguard: Copy dashboard assets to root dist_netlify/assets as well
+  // This guarantees that asset references to either /admin/assets/* or /assets/* resolve directly to JS/CSS
+  const dashboardAssets = path.join(dashboardDist, 'assets');
+  if (fs.existsSync(dashboardAssets)) {
+    const rootAssets = path.join(distNetlify, 'assets');
+    fs.mkdirSync(rootAssets, { recursive: true });
+    fs.cpSync(dashboardAssets, rootAssets, { recursive: true });
+  }
+
   // 5. Create Netlify _redirects file
   const redirectsContent = `# Hotel Spark Netlify Redirects
 /admin      /admin/index.html   200

@@ -191,15 +191,39 @@ export default function DepartmentPanels() {
               Department Operational Panels
             </h1>
             <p className="text-xs text-gray-300 mt-1 max-w-2xl">
-              Access every hotel department—Front Desk, Housekeeping, 3-Shift Management, and Accounts—all in one unified panel.
+              Access every hotel department—Front Desk, Housekeeping, 3-Shift Management, and Accounts—or jump directly into dedicated role panels below.
             </p>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            <button
+              type="button"
+              onClick={() => navigate('/admin-panel')}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-amber-500 hover:bg-amber-600 text-slate-900 font-bold rounded-xl text-xs transition shadow-md"
+              title="Open Separate Admin & Owner Panel"
+            >
+              <span>🛡️ Admin Panel</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => navigate('/manager-panel')}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl text-xs transition shadow-md"
+              title="Open Separate Manager & 3-Shift Panel"
+            >
+              <span>👔 Manager Panel</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => navigate('/front-office-panel')}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-teal-600 hover:bg-teal-700 text-white font-bold rounded-xl text-xs transition shadow-md"
+              title="Open Separate Front Office Panel"
+            >
+              <span>🛎️ Front Office</span>
+            </button>
             <button
               type="button"
               onClick={() => setWalkInOpen(true)}
-              className="inline-flex items-center gap-2 px-4 py-2.5 bg-telivity-teal hover:bg-teal-600 text-white font-bold rounded-xl text-xs transition shadow-lg"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-telivity-teal hover:bg-teal-600 text-white font-bold rounded-xl text-xs transition shadow-lg"
             >
               <Plus size={15} />
               <span>Walk-In Check-In</span>
