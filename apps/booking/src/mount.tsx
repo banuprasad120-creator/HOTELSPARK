@@ -2,6 +2,7 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { createMemoryRouter, RouterProvider } from 'react-router-dom';
 import { QueryClientProvider } from '@tanstack/react-query';
+import { SpeedInsights } from '@vercel/speed-insights/react';
 import { queryClient } from './lib/queryClient';
 import { setBookingKey } from './api/client';
 import { resolveBookingKey } from './lib/bookingKey';
@@ -47,6 +48,7 @@ export function mountBooking(el: Element) {
       path: '*',
       element: (
         <QueryClientProvider client={queryClient}>
+          <SpeedInsights />
           <ConfigProvider>
             <BookingFlowProvider>
               <App />

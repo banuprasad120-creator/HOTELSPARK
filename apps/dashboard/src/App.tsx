@@ -1,5 +1,6 @@
 import { lazy, Suspense } from 'react';
 import { Routes, Route } from 'react-router-dom';
+import { SpeedInsights } from '@vercel/speed-insights/react';
 import AppLayout from './components/layout/AppLayout';
 import PropertyScopeBoundary from './components/layout/PropertyScopeBoundary';
 import { ErrorBoundary } from './components/ui/ErrorBoundary';
@@ -59,6 +60,7 @@ export default function App() {
 
   return (
     <AppLayout>
+      <SpeedInsights />
       <ErrorBoundary>
         <Suspense fallback={<SkeletonPage />}>
           <PropertyScopeBoundary>
