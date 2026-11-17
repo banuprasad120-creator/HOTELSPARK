@@ -20,17 +20,17 @@ try {
   // 1. Build shared package
   console.log('\n📦 Step 1: Building @telivityhaip/shared...');
   const sharedDir = path.join(rootDir, 'packages', 'shared');
-  run('npx tsup', sharedDir);
+  run('npx --yes tsup', sharedDir);
 
   // 2. Build guest website (apps/booking) with base '/'
   console.log('\n🌐 Step 2: Building Guest Booking Website...');
   const bookingDir = path.join(rootDir, 'apps', 'booking');
-  run('npx vite build --base /', bookingDir);
+  run('npx --yes vite build --base /', bookingDir);
 
   // 3. Build admin console (apps/dashboard) with base '/admin/'
   console.log('\n⚡ Step 3: Building Admin Console...');
   const dashboardDir = path.join(rootDir, 'apps', 'dashboard');
-  run('npx vite build --base /admin/', dashboardDir);
+  run('npx --yes vite build --base /admin/', dashboardDir);
 
   // 4. Prepare dist_netlify directory
   console.log('\n📁 Step 4: Preparing dist_netlify directory...');
