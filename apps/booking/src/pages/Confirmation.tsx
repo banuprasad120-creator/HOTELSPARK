@@ -95,7 +95,7 @@ export function Confirmation() {
           </div>
 
           <p className="text-xs font-bold uppercase tracking-wider text-emerald-800">
-            Booking Confirmed
+            Booking confirmed
           </p>
           <p className="mt-1 text-3xl font-extrabold tracking-wide text-gray-900">
             {booking.confirmationNumber}
@@ -112,7 +112,7 @@ export function Confirmation() {
           <Sparkles className="w-4 h-4 text-amber-600" />
           Reservation Request Summary
         </h3>
-        <Row label="Booking Reference" value={referenceCode} />
+        {isPendingApproval && <Row label="Booking Reference" value={referenceCode} />}
         <Row
           label="Request Status"
           value={
@@ -142,6 +142,15 @@ export function Confirmation() {
       </div>
 
       <div className="flex flex-col gap-3 sm:flex-row">
+        <Link
+          to="/manage"
+          state={{ confirmationNumber: referenceCode, email }}
+          className="flex-1"
+        >
+          <Button variant="secondary" className="w-full">
+            Manage this booking
+          </Button>
+        </Link>
         <a
           href="https://wa.me/919876543210?text=Hello%20Hotel%20Spark,%20I%20have%20submitted%20booking%20request%20"
           target="_blank"
@@ -150,7 +159,7 @@ export function Confirmation() {
         >
           <Button variant="secondary" className="w-full flex items-center justify-center gap-2 border-emerald-300 text-emerald-800 hover:bg-emerald-50">
             <MessageCircle className="w-4 h-4 text-emerald-600" />
-            Contact Hotel on WhatsApp
+            WhatsApp
           </Button>
         </a>
         <Button className="flex-1 bg-amber-700 hover:bg-amber-800 text-white" onClick={() => navigate('/')}>

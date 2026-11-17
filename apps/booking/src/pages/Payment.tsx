@@ -26,7 +26,12 @@ export function Payment() {
   const navigate = useNavigate();
   const { config } = useConfig();
   const { criteria, roomType, rate, quote, guest, serviceIds } = useBookingFlow();
-  const [activeTab, setActiveTab] = useState<PaymentTab>('upi_qr');
+  const [activeTab, setActiveTab] = useState<PaymentTab>(() => {
+    if (config?.stripePublishableKey || config?.paymentMethodClientMode === 'redsys' || config?.paymentMethodClientMode === 'worldline') {
+      return 'card';
+    }
+    return 'upi_qr';
+  });
 
   useEffect(() => {
     if (!criteria || !roomType || !rate || !quote || !guest) {
@@ -75,6 +80,7 @@ export function Payment() {
   if (!quote || !guest) return null;
 
   const depositDue = Number(quote.depositDue);
+  const needsPayment = depositDue > 0;
   const isRedsys = config?.paymentMethodClientMode === 'redsys';
   const isWorldline = config?.paymentMethodClientMode === 'worldline';
 
@@ -97,7 +103,7 @@ export function Payment() {
         </span>
       </div>
 
-      <h1 className="text-2xl font-bold text-gray-900">Payment & Reservation Confirmation</h1>
+      <h1 className="text-2xl font-bold text-gray-900">Payment</h1>
 
       <PriceBreakdown quote={quote} />
 
@@ -107,8 +113,23 @@ export function Payment() {
         </p>
       )}
 
-      {/* Payment Method Selector Tabs */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      {!needsPayment ? (
+        <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+          <p className="mb-4 text-sm text-gray-600">
+            No deposit is required. You'll pay at the property.
+          </p>
+          <Button
+            className="w-full"
+            onClick={() => bookMutation.mutate(undefined)}
+            disabled={bookMutation.isPending}
+          >
+            {bookMutation.isPending ? 'Confirming…' : 'Confirm booking'}
+          </Button>
+        </div>
+      ) : (
+        <>
+          {/* Payment Method Selector Tabs */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <button
           type="button"
           onClick={() => setActiveTab('upi_qr')}
@@ -224,7 +245,11 @@ export function Payment() {
                   You will be redirected to Redsys to complete payment securely.
                 </p>
                 <Button className="w-full" onClick={payRedsys} disabled={bookMutation.isPending}>
-                  {bookMutation.isPending ? 'Redirecting…' : 'Pay securely via Redsys'}
+                  {bookMutation.isPending
+                    ? 'Redirecting…'
+                    : depositDue > 0
+                    ? 'Pay deposit securely via Redsys'
+                    : 'Pay securely via Redsys'}
                 </Button>
               </>
             ) : isWorldline ? (
@@ -304,6 +329,8 @@ export function Payment() {
           </div>
         )}
       </div>
+        </>
+      )}
     </div>
   );
 }

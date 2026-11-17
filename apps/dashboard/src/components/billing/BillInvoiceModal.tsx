@@ -42,10 +42,10 @@ export default function BillInvoiceModal({ stay, isOpen, onClose }: BillInvoiceM
   const discount = stay.discount || 0;
 
   // Tax calculations: 12% GST (6% CGST + 6% SGST)
-  let subtotalAmount = 0;
-  let cgstAmount = 0;
-  let sgstAmount = 0;
-  let grandTotal = 0;
+  let subtotalAmount: number;
+  let cgstAmount: number;
+  let sgstAmount: number;
+  let grandTotal: number;
 
   if (taxMode === 'inclusive') {
     grandTotal = Math.max(0, rawRoomCharges + extraCharges - discount);

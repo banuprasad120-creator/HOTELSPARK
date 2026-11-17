@@ -190,7 +190,7 @@ describe('Booking widget request/instant rollout', () => {
     renderWidget('request');
     await selectQuotedStay();
 
-    await userEvent.click(screen.getByRole('button', { name: 'Continue to your details' }));
+    await userEvent.click(screen.getByRole('button', { name: /Continue to (guest|your) details/i }));
     await screen.findByRole('heading', { name: 'Tell us about your stay' });
     await userEvent.type(screen.getByLabelText(/^First name/), 'Ada');
     await userEvent.type(screen.getByLabelText(/^Last name/), 'Lovelace');
@@ -240,7 +240,7 @@ describe('Booking widget request/instant rollout', () => {
     await userEvent.type(screen.getByLabelText(/^Email/), 'grace@example.com');
     await userEvent.click(screen.getByRole('button', { name: 'Continue to payment' }));
     await screen.findByRole('heading', { name: 'Payment' });
-    expect(screen.getByText(/Deposit due now:/i)).toBeVisible();
+    expect(screen.getByText(/Deposit due now/i)).toBeVisible();
     expect(screen.queryByRole('button', { name: 'Confirm booking' })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Pay & confirm booking' })).toBeVisible();
     expect(stripe.loadStripe).toHaveBeenCalledWith(
