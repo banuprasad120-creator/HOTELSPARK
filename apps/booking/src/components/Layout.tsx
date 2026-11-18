@@ -32,6 +32,16 @@ export function Layout({ children }: { children: React.ReactNode }) {
             </Link>
 
             <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  const el = document.getElementById('booking-bar') || document.getElementById('story-suites') || document.getElementById('booking-section');
+                  el?.scrollIntoView({ behavior: 'smooth' });
+                }}
+                className="rounded-full bg-teal-500 px-4 py-1.5 text-xs font-bold text-gray-950 shadow-md shadow-teal-500/20 transition hover:bg-teal-400 hover:scale-105 active:scale-95"
+              >
+                Book Now
+              </button>
               <Link
                 to="/manage"
                 className="rounded-full border border-white/20 bg-white/10 px-4 py-1.5 text-xs font-semibold text-white backdrop-blur-sm transition hover:bg-white/20 hover:border-white/40"

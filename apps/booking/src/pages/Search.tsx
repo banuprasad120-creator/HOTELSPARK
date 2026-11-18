@@ -9,6 +9,70 @@ function isoDate(d: Date): string {
   return d.toISOString().slice(0, 10);
 }
 
+interface RoomShowcaseItem {
+  id: string;
+  name: string;
+  bed: string;
+  maxGuests: number;
+  price: number;
+  priceNote: string;
+  roomsInfo: string;
+  amenities: string[];
+  image: string;
+  badge?: string;
+}
+
+const OFFICIAL_ROOMS: RoomShowcaseItem[] = [
+  {
+    id: 'b0000001-0000-4000-a000-000000000001',
+    name: 'Budget Room',
+    bed: 'Single Bed',
+    maxGuests: 1,
+    price: 1599,
+    priceNote: '+ GST · Rooms 2006, 3006, 4006',
+    roomsInfo: 'Compact & comfortable for solo travelers. 3 rooms across floors 2, 3 & 4.',
+    amenities: ['Free WiFi', 'Air Conditioning', 'LED TV', '24/7 Room Service'],
+    image: 'https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=800&q=80',
+    badge: 'Popular for Solo Stays',
+  },
+  {
+    id: 'b0000002-0000-4000-a000-000000000002',
+    name: 'Deluxe Room',
+    bed: 'Double Bed',
+    maxGuests: 2,
+    price: 2099,
+    priceNote: 'Single ₹1,799 / Double ₹2,099 + GST',
+    roomsInfo: 'Elegant deluxe room with plush bedding and private ensuite bath. 12 rooms across Floors 2, 3 & 4.',
+    amenities: ['High-Speed WiFi', 'Split AC', 'Smart TV', 'Ensuite Bath', 'In-Room Safe'],
+    image: 'https://images.unsplash.com/photo-1591088398332-8a7791972843?auto=format&fit=crop&w=800&q=80',
+    badge: 'Best Value for Couples',
+  },
+  {
+    id: 'b0000003-0000-4000-a000-000000000003',
+    name: 'Executive Room',
+    bed: 'Queen Bed',
+    maxGuests: 2,
+    price: 2499,
+    priceNote: 'Single ₹2,199 / Double ₹2,499 + GST',
+    roomsInfo: 'Sophisticated executive room featuring panoramic views and queen-size bed. 11 rooms across Floors 2, 3 & 4.',
+    amenities: ['Panoramic Views', 'Work Desk', 'Smart TV', 'Split AC', 'Premium Toiletries'],
+    image: 'https://images.unsplash.com/photo-1566665797739-1674de7a421a?auto=format&fit=crop&w=800&q=80',
+    badge: 'Executive Choice',
+  },
+  {
+    id: 'b0000004-0000-4000-a000-000000000004',
+    name: 'Executive Suite',
+    bed: 'King Bed',
+    maxGuests: 2,
+    price: 2799,
+    priceNote: '+ GST · Rooms 2010, 3010',
+    roomsInfo: 'Spacious signature suite featuring a master bedroom, living hall and luxury bathtub.',
+    amenities: ['Private Living Hall', 'Luxury Bathtub', 'Balcony', 'King Bed', '24/7 Concierge'],
+    image: 'https://images.unsplash.com/photo-1618773928121-c32242e63f39?auto=format&fit=crop&w=800&q=80',
+    badge: 'Signature Luxury Suite',
+  },
+];
+
 export function Search() {
   const navigate = useNavigate();
   const { setCriteria } = useBookingFlow();
@@ -23,26 +87,222 @@ export function Search() {
   const [promoCode, setPromoCode] = useState('');
   const [error, setError] = useState<string | null>(null);
 
-  const submit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (new Date(checkOut) <= new Date(checkIn)) {
+  const doSearch = (dates?: { checkIn: string; checkOut: string; adults: number; children: number }) => {
+    const cin = dates?.checkIn || checkIn;
+    const cout = dates?.checkOut || checkOut;
+    const adl = dates?.adults ?? adults;
+    const chd = dates?.children ?? children;
+
+    if (new Date(cout) <= new Date(cin)) {
       setError('Check-out must be after check-in.');
       return;
     }
     setError(null);
     setCriteria({
-      checkIn,
-      checkOut,
-      adults,
-      children,
+      checkIn: cin,
+      checkOut: cout,
+      adults: adl,
+      children: chd,
       promoCode: promoCode.trim() || undefined,
     });
     navigate('/results');
   };
 
+  const submit = (e: React.FormEvent) => {
+    e.preventDefault();
+    doSearch();
+  };
+
+  const handleBookRoom = (room: RoomShowcaseItem) => {
+    doSearch({
+      checkIn,
+      checkOut,
+      adults: Math.min(room.maxGuests, adults),
+      children,
+    });
+  };
+
+  // 1. Hero Floating Quick Booking Bar
+  const heroBookingBar = (
+    <form
+      onSubmit={submit}
+      className="rounded-2xl border border-white/20 bg-black/65 p-4 sm:p-5 shadow-2xl backdrop-blur-2xl text-white text-left transition hover:border-teal-400/50"
+    >
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4 items-end">
+        <div>
+          <label htmlFor="hero-checkIn" className="block text-[11px] font-bold uppercase tracking-wider text-teal-300 mb-1">
+            📅 Check-in
+          </label>
+          <input
+            id="hero-checkIn"
+            type="date"
+            className="w-full rounded-xl border border-white/20 bg-white/10 px-3.5 py-2.5 text-sm text-white placeholder-gray-400 backdrop-blur-md focus:border-teal-400 focus:bg-black/60 focus:outline-none focus:ring-1 focus:ring-teal-400"
+            value={checkIn}
+            min={isoDate(today)}
+            onChange={(e) => setCheckIn(e.target.value)}
+          />
+        </div>
+
+        <div>
+          <label htmlFor="hero-checkOut" className="block text-[11px] font-bold uppercase tracking-wider text-teal-300 mb-1">
+            📅 Check-out
+          </label>
+          <input
+            id="hero-checkOut"
+            type="date"
+            className="w-full rounded-xl border border-white/20 bg-white/10 px-3.5 py-2.5 text-sm text-white placeholder-gray-400 backdrop-blur-md focus:border-teal-400 focus:bg-black/60 focus:outline-none focus:ring-1 focus:ring-teal-400"
+            value={checkOut}
+            min={checkIn}
+            onChange={(e) => setCheckOut(e.target.value)}
+          />
+        </div>
+
+        <div>
+          <label htmlFor="hero-guests" className="block text-[11px] font-bold uppercase tracking-wider text-teal-300 mb-1">
+            👥 Guests
+          </label>
+          <div className="flex gap-2">
+            <select
+              id="hero-guests"
+              aria-label="Number of adults"
+              className="w-1/2 rounded-xl border border-white/20 bg-black/80 px-2.5 py-2.5 text-sm text-white focus:border-teal-400 focus:outline-none focus:ring-1 focus:ring-teal-400"
+              value={adults}
+              onChange={(e) => setAdults(Number(e.target.value))}
+            >
+              {[1, 2, 3, 4].map((n) => (
+                <option key={n} value={n} className="bg-gray-900 text-white">
+                  {n} Adult{n > 1 ? 's' : ''}
+                </option>
+              ))}
+            </select>
+            <select
+              aria-label="Number of children"
+              className="w-1/2 rounded-xl border border-white/20 bg-black/80 px-2.5 py-2.5 text-sm text-white focus:border-teal-400 focus:outline-none focus:ring-1 focus:ring-teal-400"
+              value={children}
+              onChange={(e) => setChildren(Number(e.target.value))}
+            >
+              {[0, 1, 2, 3].map((n) => (
+                <option key={n} value={n} className="bg-gray-900 text-white">
+                  {n} Child{n !== 1 ? 'ren' : ''}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <button
+            type="submit"
+            className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-teal-500 to-emerald-500 px-5 py-2.5 text-sm font-bold text-gray-950 shadow-lg shadow-teal-500/30 transition hover:from-teal-400 hover:to-emerald-400 hover:scale-[1.02] active:scale-[0.98]"
+          >
+            <span>Search Rooms</span>
+            <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      {error && <p className="mt-2 text-xs text-red-400">{error}</p>}
+    </form>
+  );
+
+  // 2. Featured Rooms & Tariffs Showcase
+  const roomsSection = (
+    <div className="space-y-8 w-full">
+      <div className="text-center max-w-2xl mx-auto space-y-2">
+        <span className="inline-block rounded-full bg-teal-500/20 px-4 py-1 text-xs font-bold tracking-wider text-teal-300 border border-teal-400/30">
+          OFFICIAL 28 ROOMS & TARIFFS
+        </span>
+        <h2 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
+          Signature Accommodations
+        </h2>
+        <p className="text-sm sm:text-base text-gray-300 leading-relaxed">
+          Commission-free direct booking with official hotel rates across Floors 2, 3 & 4 in Karimnagar.
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {OFFICIAL_ROOMS.map((room) => (
+          <div
+            key={room.id}
+            className="group flex flex-col rounded-3xl border border-white/20 bg-black/60 shadow-2xl backdrop-blur-2xl overflow-hidden transition-all duration-300 hover:border-teal-400/60 hover:-translate-y-1"
+          >
+            {/* Room Image */}
+            <div className="relative h-48 w-full overflow-hidden bg-gray-900">
+              <img
+                src={room.image}
+                alt={room.name}
+                className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
+                loading="lazy"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+              {room.badge && (
+                <span className="absolute top-3 left-3 rounded-full bg-teal-500/90 px-3 py-0.5 text-[10px] font-bold uppercase tracking-wider text-gray-950 backdrop-blur-sm">
+                  {room.badge}
+                </span>
+              )}
+              <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between text-white">
+                <span className="text-xs font-medium text-gray-200">🛏️ {room.bed}</span>
+                <span className="text-xs font-medium text-gray-200">👥 Up to {room.maxGuests}</span>
+              </div>
+            </div>
+
+            {/* Room Details */}
+            <div className="p-5 flex flex-col flex-1 justify-between space-y-4">
+              <div>
+                <h3 className="text-lg font-bold text-white group-hover:text-teal-300 transition">
+                  {room.name}
+                </h3>
+                <p className="mt-1 text-xs text-gray-300 line-clamp-2">
+                  {room.roomsInfo}
+                </p>
+
+                {/* Amenities pills */}
+                <div className="mt-3 flex flex-wrap gap-1.5">
+                  {room.amenities.slice(0, 3).map((amenity, idx) => (
+                    <span
+                      key={idx}
+                      className="rounded-md bg-white/10 px-2 py-0.5 text-[10px] text-gray-300 border border-white/10"
+                    >
+                      ✓ {amenity}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              {/* Price & Action */}
+              <div className="pt-3 border-t border-white/15 flex items-center justify-between">
+                <div>
+                  <div className="text-[11px] text-gray-400">Starting from</div>
+                  <div className="text-lg font-extrabold text-teal-300">
+                    ₹{room.price.toLocaleString('en-IN')}
+                    <span className="text-xs font-normal text-gray-400"> / night</span>
+                  </div>
+                  <div className="text-[10px] text-gray-400">{room.priceNote}</div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => handleBookRoom(room)}
+                  className="rounded-xl bg-teal-500 px-4 py-2 text-xs font-bold text-gray-950 shadow-md shadow-teal-500/20 transition hover:bg-teal-400 hover:scale-105 active:scale-95"
+                >
+                  Book Now
+                </button>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+
   return (
-    <FullScreenScrollVideo>
-      <form onSubmit={submit} className="space-y-5 rounded-3xl border border-white/60 bg-white/95 p-8 sm:p-10 shadow-2xl backdrop-blur-2xl text-gray-900">
+    <FullScreenScrollVideo heroContent={heroBookingBar} roomsSection={roomsSection}>
+      <form
+        onSubmit={submit}
+        className="space-y-5 rounded-3xl border border-white/60 bg-white/95 p-8 sm:p-10 shadow-2xl backdrop-blur-2xl text-gray-900"
+      >
         <div className="border-b border-gray-100 pb-4">
           <div className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-teal-600">
             <span className="h-2 w-2 rounded-full bg-teal-500" />
@@ -54,65 +314,65 @@ export function Search() {
           </p>
         </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <Field label="Check-in" htmlFor="checkIn" required>
-          <input
-            id="checkIn"
-            type="date"
-            className={inputClass}
-            value={checkIn}
-            min={isoDate(today)}
-            onChange={(e) => setCheckIn(e.target.value)}
-          />
-        </Field>
-        <Field label="Check-out" htmlFor="checkOut" required>
-          <input
-            id="checkOut"
-            type="date"
-            className={inputClass}
-            value={checkOut}
-            min={checkIn}
-            onChange={(e) => setCheckOut(e.target.value)}
-          />
-        </Field>
-        <Field label="Adults" htmlFor="adults" required>
-          <input
-            id="adults"
-            type="number"
-            min={1}
-            className={inputClass}
-            value={adults}
-            onChange={(e) => setAdults(Math.max(1, Number(e.target.value)))}
-          />
-        </Field>
-        <Field label="Children" htmlFor="children">
-          <input
-            id="children"
-            type="number"
-            min={0}
-            className={inputClass}
-            value={children}
-            onChange={(e) => setChildren(Math.max(0, Number(e.target.value)))}
-          />
-        </Field>
-      </div>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <Field label="Check-in" htmlFor="checkIn" required>
+            <input
+              id="checkIn"
+              type="date"
+              className={inputClass}
+              value={checkIn}
+              min={isoDate(today)}
+              onChange={(e) => setCheckIn(e.target.value)}
+            />
+          </Field>
+          <Field label="Check-out" htmlFor="checkOut" required>
+            <input
+              id="checkOut"
+              type="date"
+              className={inputClass}
+              value={checkOut}
+              min={checkIn}
+              onChange={(e) => setCheckOut(e.target.value)}
+            />
+          </Field>
+          <Field label="Adults" htmlFor="adults" required>
+            <input
+              id="adults"
+              type="number"
+              min={1}
+              className={inputClass}
+              value={adults}
+              onChange={(e) => setAdults(Math.max(1, Number(e.target.value)))}
+            />
+          </Field>
+          <Field label="Children" htmlFor="children">
+            <input
+              id="children"
+              type="number"
+              min={0}
+              className={inputClass}
+              value={children}
+              onChange={(e) => setChildren(Math.max(0, Number(e.target.value)))}
+            />
+          </Field>
+        </div>
 
-      <Field label="Promo code" htmlFor="promo">
-        <input
-          id="promo"
-          type="text"
-          className={inputClass}
-          value={promoCode}
-          placeholder="Optional"
-          onChange={(e) => setPromoCode(e.target.value)}
-        />
-      </Field>
+        <Field label="Promo code" htmlFor="promo">
+          <input
+            id="promo"
+            type="text"
+            className={inputClass}
+            value={promoCode}
+            placeholder="Optional"
+            onChange={(e) => setPromoCode(e.target.value)}
+          />
+        </Field>
 
-      {error && <p className="text-sm text-red-600">{error}</p>}
+        {error && <p className="text-sm text-red-600">{error}</p>}
 
-      <Button type="submit" className="w-full">
-        Search availability
-      </Button>
+        <Button type="submit" className="w-full">
+          Search availability
+        </Button>
       </form>
     </FullScreenScrollVideo>
   );

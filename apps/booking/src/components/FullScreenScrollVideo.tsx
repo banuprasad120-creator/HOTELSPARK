@@ -2,9 +2,11 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 
 interface FullScreenScrollVideoProps {
   children?: React.ReactNode;
+  heroContent?: React.ReactNode;
+  roomsSection?: React.ReactNode;
 }
 
-export function FullScreenScrollVideo({ children }: FullScreenScrollVideoProps) {
+export function FullScreenScrollVideo({ children, heroContent, roomsSection }: FullScreenScrollVideoProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const animationFrameRef = useRef<number | null>(null);
@@ -114,7 +116,7 @@ export function FullScreenScrollVideo({ children }: FullScreenScrollVideoProps) 
       <div className="fixed inset-0 -z-10 h-screen w-screen overflow-hidden bg-gray-950">
         <video
           ref={videoRef}
-          src="/booking/spark.mp4"
+          src="/spark.mp4"
           playsInline
           muted={isMuted}
           loop
@@ -175,28 +177,38 @@ export function FullScreenScrollVideo({ children }: FullScreenScrollVideoProps) 
       </div>
 
       {/* 2. Scroll Storytelling Stage 1: Full-Screen Hero Viewport */}
-      <section className="relative flex min-h-screen flex-col items-center justify-center px-6 text-center">
-        <div className="max-w-3xl space-y-5">
+      <section className="relative flex min-h-screen flex-col items-center justify-center px-4 sm:px-6 pt-24 pb-16 text-center">
+        <div className="max-w-4xl space-y-5 w-full">
           <div className="inline-flex items-center gap-2 rounded-full border border-teal-400/40 bg-teal-950/60 px-4 py-1.5 text-xs font-semibold tracking-widest text-teal-300 backdrop-blur-md">
             <span className="h-2 w-2 rounded-full bg-emerald-400 animate-ping" />
-            HOTEL SPARK
+            HOTEL SPARK · KARIMNAGAR
           </div>
 
           <h1 className="text-4xl sm:text-6xl md:text-7xl font-extrabold tracking-tight text-white drop-shadow-2xl">
             Welcome to Hotel Spark
           </h1>
 
-          <p className="mx-auto max-w-2xl text-base sm:text-xl text-gray-200 drop-shadow-lg leading-relaxed">
-            Where luxury meets the ocean. Experience contemporary coastal elegance, bespoke hospitality, and effortless relaxation.
+          <p className="mx-auto max-w-2xl text-sm sm:text-lg text-gray-200 drop-shadow-lg leading-relaxed">
+            Where luxury meets comfort. Experience contemporary elegance, official direct rates, and instant reservations.
           </p>
 
-          <div className="flex flex-wrap items-center justify-center gap-4 pt-4">
+          {/* Hero Quick Booking Bar */}
+          {heroContent && (
+            <div id="booking-bar" className="w-full pt-2">
+              {heroContent}
+            </div>
+          )}
+
+          <div className="flex flex-wrap items-center justify-center gap-4 pt-2">
             <button
               type="button"
-              onClick={scrollToBooking}
-              className="inline-flex items-center gap-2 rounded-full bg-teal-500 px-8 py-3.5 text-sm font-bold text-gray-950 shadow-lg shadow-teal-500/30 transition hover:bg-teal-400 hover:scale-105 active:scale-95"
+              onClick={() => {
+                const el = document.getElementById('story-suites') || document.getElementById('booking-section');
+                el?.scrollIntoView({ behavior: 'smooth' });
+              }}
+              className="inline-flex items-center gap-2 rounded-full bg-teal-500 px-7 py-3 text-sm font-bold text-gray-950 shadow-lg shadow-teal-500/30 transition hover:bg-teal-400 hover:scale-105 active:scale-95"
             >
-              <span>Find A Room</span>
+              <span>View Rooms & Tariffs</span>
               <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
               </svg>
@@ -204,49 +216,50 @@ export function FullScreenScrollVideo({ children }: FullScreenScrollVideoProps) 
 
             <button
               type="button"
-              onClick={() => {
-                const el = document.getElementById('story-suites');
-                el?.scrollIntoView({ behavior: 'smooth' });
-              }}
-              className="inline-flex items-center gap-2 rounded-full border border-white/30 bg-white/10 px-6 py-3.5 text-sm font-semibold text-white backdrop-blur-md transition hover:bg-white/20 hover:border-white/50"
+              onClick={scrollToBooking}
+              className="inline-flex items-center gap-2 rounded-full border border-white/30 bg-white/10 px-6 py-3 text-sm font-semibold text-white backdrop-blur-md transition hover:bg-white/20 hover:border-white/50"
             >
-              <span>Explore Hotel</span>
+              <span>Advanced Search</span>
             </button>
           </div>
         </div>
 
         {/* Scroll Prompt at Bottom of Hero */}
-        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1.5 text-xs text-gray-400 tracking-wider">
+        <div className="mt-8 flex flex-col items-center gap-1.5 text-xs text-gray-400 tracking-wider">
           <span className="animate-bounce">↓</span>
-          <span>SCROLL TO EXPLORE</span>
+          <span>EXPLORE ROOMS & OFFERS BELOW</span>
         </div>
       </section>
 
-      {/* 3. Scroll Storytelling Stage 2: Suites & Living */}
-      <section id="story-suites" className="relative flex min-h-screen items-center px-6 py-24">
-        <div className="mx-auto max-w-5xl w-full">
-          <div className="max-w-xl rounded-3xl border border-white/20 bg-black/60 p-8 sm:p-10 shadow-2xl backdrop-blur-2xl">
-            <span className="inline-block rounded-md bg-teal-500/20 px-3 py-1 text-xs font-bold tracking-wider text-teal-300 border border-teal-400/30">
-              01 · SIGNATURE SUITES
-            </span>
-            <h2 className="mt-4 text-3xl sm:text-4xl font-extrabold tracking-tight text-white">
-              Crafted For Distinction
-            </h2>
-            <p className="mt-3 text-base text-gray-200 leading-relaxed">
-              Every room at Hotel Spark is curated for effortless comfort — from plush custom King bedding and marble soaking tubs to panoramic private oceanview terraces.
-            </p>
-            <div className="mt-6 flex flex-wrap gap-2 text-xs font-semibold text-emerald-300">
-              <span className="rounded-lg bg-white/10 px-3 py-1.5 backdrop-blur-sm border border-white/10">
-                ✓ Ocean Balconies
+      {/* 3. Scroll Storytelling Stage 2: Suites & Rooms Showcase */}
+      <section id="story-suites" className="relative flex min-h-screen items-center px-4 sm:px-6 py-20">
+        <div className="mx-auto max-w-6xl w-full">
+          {roomsSection ? (
+            roomsSection
+          ) : (
+            <div className="max-w-xl rounded-3xl border border-white/20 bg-black/60 p-8 sm:p-10 shadow-2xl backdrop-blur-2xl">
+              <span className="inline-block rounded-md bg-teal-500/20 px-3 py-1 text-xs font-bold tracking-wider text-teal-300 border border-teal-400/30">
+                01 · SIGNATURE SUITES
               </span>
-              <span className="rounded-lg bg-white/10 px-3 py-1.5 backdrop-blur-sm border border-white/10">
-                ✓ 24/7 In-Room Dining
-              </span>
-              <span className="rounded-lg bg-white/10 px-3 py-1.5 backdrop-blur-sm border border-white/10">
-                ✓ Ultra High-Speed WiFi
-              </span>
+              <h2 className="mt-4 text-3xl sm:text-4xl font-extrabold tracking-tight text-white">
+                Crafted For Distinction
+              </h2>
+              <p className="mt-3 text-base text-gray-200 leading-relaxed">
+                Every room at Hotel Spark is curated for effortless comfort — from plush custom bedding and marble soaking tubs to panoramic private terraces.
+              </p>
+              <div className="mt-6 flex flex-wrap gap-2 text-xs font-semibold text-emerald-300">
+                <span className="rounded-lg bg-white/10 px-3 py-1.5 backdrop-blur-sm border border-white/10">
+                  ✓ 28 Luxury Rooms
+                </span>
+                <span className="rounded-lg bg-white/10 px-3 py-1.5 backdrop-blur-sm border border-white/10">
+                  ✓ 24/7 In-Room Dining
+                </span>
+                <span className="rounded-lg bg-white/10 px-3 py-1.5 backdrop-blur-sm border border-white/10">
+                  ✓ Ultra High-Speed WiFi
+                </span>
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </section>
 
