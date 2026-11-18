@@ -15,6 +15,8 @@ export const api = axios.create({
 
 const isStandalonePms = typeof window !== 'undefined' && (
   window.location.hostname.includes('netlify.app') ||
+  window.location.hostname.includes('vercel.app') ||
+  window.location.hostname.includes('hotelspark') ||
   window.location.hostname.includes('spark') ||
   window.location.port === '5173' ||
   window.location.port === '5174' ||

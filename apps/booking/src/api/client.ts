@@ -42,7 +42,11 @@ export function getBookingKey(): string {
 }
 
 const origin = (import.meta.env.VITE_API_BASE ?? '').replace(/\/$/, '');
-const isStaticHosting = !origin || (typeof window !== 'undefined' && window.location.hostname.includes('netlify.app'));
+const isStaticHosting = !origin || (typeof window !== 'undefined' && (
+  window.location.hostname.includes('netlify.app') ||
+  window.location.hostname.includes('vercel.app') ||
+  window.location.hostname.includes('hotelspark')
+));
 
 export const api = axios.create({
   baseURL: `${origin}/api/v1/booking-engine`,
