@@ -735,6 +735,142 @@ export function addNotification(
   return newNotif;
 }
 
+export const MEDIA_STORAGE_KEY = 'haip_media_store';
+
+export interface StoredMediaItem {
+  id: string;
+  propertyId: string;
+  ownerType: 'property' | 'room_type' | 'room';
+  ownerId: string;
+  url: string;
+  storageKey: string | null;
+  category: 'hero' | 'exterior' | 'room' | 'amenity' | 'dining' | 'other';
+  caption: string | null;
+  altText: string | null;
+  sortOrder: number;
+  isPrimary: boolean;
+}
+
+export const DEFAULT_MEDIA_ITEMS: StoredMediaItem[] = [
+  // Budget Room Type (b0000001-0000-4000-a000-000000000001)
+  {
+    id: 'med-bgt-01',
+    propertyId: PROPERTY_ID,
+    ownerType: 'room_type',
+    ownerId: 'b0000001-0000-4000-a000-000000000001',
+    url: 'https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=1200&q=80',
+    storageKey: null,
+    category: 'room',
+    caption: 'Hotel Spark Budget Room',
+    altText: 'Budget Room Single/Double Bed',
+    sortOrder: 0,
+    isPrimary: true,
+  },
+  // Deluxe Room Type (b0000002-0000-4000-a000-000000000002)
+  {
+    id: 'med-dlx-01',
+    propertyId: PROPERTY_ID,
+    ownerType: 'room_type',
+    ownerId: 'b0000002-0000-4000-a000-000000000002',
+    url: 'https://images.unsplash.com/photo-1591088398332-8a7791972843?auto=format&fit=crop&w=1200&q=80',
+    storageKey: null,
+    category: 'room',
+    caption: 'Hotel Spark Deluxe Room',
+    altText: 'Deluxe Room with Queen Bed and Balcony',
+    sortOrder: 0,
+    isPrimary: true,
+  },
+  // Executive Room Type (b0000003-0000-4000-a000-000000000003 - includes Room 2005)
+  {
+    id: 'med-exe-01',
+    propertyId: PROPERTY_ID,
+    ownerType: 'room_type',
+    ownerId: 'b0000003-0000-4000-a000-000000000003',
+    url: 'https://images.unsplash.com/photo-1566665797739-1674de7a421a?auto=format&fit=crop&w=1200&q=80',
+    storageKey: null,
+    category: 'room',
+    caption: 'Hotel Spark Executive King Room',
+    altText: 'Executive Room Panoramic Views and Work Desk',
+    sortOrder: 0,
+    isPrimary: true,
+  },
+  // Suite Type (b0000004-0000-4000-a000-000000000004)
+  {
+    id: 'med-sut-01',
+    propertyId: PROPERTY_ID,
+    ownerType: 'room_type',
+    ownerId: 'b0000004-0000-4000-a000-000000000004',
+    url: 'https://images.unsplash.com/photo-1618773928121-c32242e63f39?auto=format&fit=crop&w=1200&q=80',
+    storageKey: null,
+    category: 'room',
+    caption: 'Hotel Spark Signature Suite',
+    altText: 'Signature Luxury Suite Living Room and Master Bed',
+    sortOrder: 0,
+    isPrimary: true,
+  },
+];
+
+export function getStoredMedia(): StoredMediaItem[] {
+  try {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      const saved = window.localStorage.getItem(MEDIA_STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed;
+        }
+      }
+    }
+  } catch (e) {
+    void e;
+  }
+  return [...DEFAULT_MEDIA_ITEMS];
+}
+
+export function saveStoredMedia(items: StoredMediaItem[]): void {
+  try {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      window.localStorage.setItem(MEDIA_STORAGE_KEY, JSON.stringify(items));
+    }
+  } catch (e) {
+    void e;
+  }
+}
+
+export async function fileToDataUrl(file: File, maxEdge = 1600, quality = 0.82): Promise<string> {
+  try {
+    if (typeof window !== 'undefined' && typeof window.createImageBitmap === 'function') {
+      const bitmap = await createImageBitmap(file);
+      const scale = Math.min(1, maxEdge / Math.max(bitmap.width, bitmap.height));
+      const width = Math.max(1, Math.round(bitmap.width * scale));
+      const height = Math.max(1, Math.round(bitmap.height * scale));
+
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.drawImage(bitmap, 0, 0, width, height);
+        bitmap.close();
+        const dataUrl = canvas.toDataURL('image/jpeg', quality);
+        if (dataUrl && dataUrl.length > 64) {
+          return dataUrl;
+        }
+      }
+      bitmap.close();
+    }
+  } catch (err) {
+    console.warn('Canvas image compression fallback to FileReader:', err);
+  }
+
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result));
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(file);
+  });
+}
+
 export async function handleSupabaseAdapter(config: AxiosRequestConfig): Promise<AxiosResponse> {
   const rawUrl = config.url || '';
   const url = rawUrl.replace(/^\/api/, '');
@@ -747,6 +883,154 @@ export async function handleSupabaseAdapter(config: AxiosRequestConfig): Promise
     headers: { 'content-type': 'application/json' },
     config: config as any,
   });
+
+  // Media endpoints: config, list, upload, add, delete, primary, reorder
+  if (url.includes('/media/config')) {
+    return ok({ uploadEnabled: true });
+  }
+
+  if (url.includes('/media/upload') && method === 'POST') {
+    let file: File | null = null;
+    let propId = PROPERTY_ID;
+    let ownerType: any = 'room';
+    let ownerId = '';
+    let caption = '';
+
+    if (typeof FormData !== 'undefined' && config.data instanceof FormData) {
+      file = config.data.get('file') as File;
+      propId = (config.data.get('propertyId') as string) || PROPERTY_ID;
+      ownerType = (config.data.get('ownerType') as string) || 'room';
+      ownerId = (config.data.get('ownerId') as string) || '';
+      caption = (config.data.get('caption') as string) || '';
+    } else if (config.data && typeof config.data === 'object') {
+      file = config.data.file;
+      propId = config.data.propertyId || PROPERTY_ID;
+      ownerType = config.data.ownerType || 'room';
+      ownerId = config.data.ownerId || '';
+      caption = config.data.caption || '';
+    }
+
+    if (!file) {
+      return ok({ error: 'No file provided' });
+    }
+
+    const dataUrl = await fileToDataUrl(file);
+    const allMedia = getStoredMedia();
+    const existingForOwner = allMedia.filter((m) => m.ownerType === ownerType && m.ownerId === ownerId);
+
+    const newItem: StoredMediaItem = {
+      id: typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `med_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+      propertyId: propId,
+      ownerType,
+      ownerId,
+      url: dataUrl,
+      storageKey: null,
+      category: 'room',
+      caption: caption || file.name.replace(/\.[^/.]+$/, ''),
+      altText: caption || file.name,
+      sortOrder: existingForOwner.length,
+      isPrimary: existingForOwner.length === 0,
+    };
+
+    const updated = [...allMedia, newItem];
+    saveStoredMedia(updated);
+    return ok(newItem);
+  }
+
+  if (url.includes('/media/reorder') && method === 'POST') {
+    const body = typeof config.data === 'string' ? JSON.parse(config.data || '{}') : (config.data || {});
+    const orderedIds: string[] = body.orderedIds || [];
+    const allMedia = getStoredMedia();
+    orderedIds.forEach((id, index) => {
+      const item = allMedia.find((m) => m.id === id);
+      if (item) item.sortOrder = index;
+    });
+    saveStoredMedia(allMedia);
+    return ok({ success: true });
+  }
+
+  if (url.includes('/media/') && url.includes('/primary') && method === 'POST') {
+    const match = url.match(/\/media\/([^/?]+)\/primary/);
+    const mediaId = match ? match[1] : '';
+    const allMedia = getStoredMedia();
+    const target = allMedia.find((m) => m.id === mediaId);
+    if (target) {
+      allMedia.forEach((m) => {
+        if (m.ownerType === target.ownerType && m.ownerId === target.ownerId) {
+          m.isPrimary = m.id === mediaId;
+        }
+      });
+      saveStoredMedia(allMedia);
+    }
+    return ok({ success: true, id: mediaId });
+  }
+
+  if (url.match(/\/media\/([^/?]+)$/) && method === 'DELETE') {
+    const match = url.match(/\/media\/([^/?]+)$/);
+    const mediaId = match ? match[1] : '';
+    const allMedia = getStoredMedia();
+    const itemToRemove = allMedia.find((m) => m.id === mediaId);
+    const updated = allMedia.filter((m) => m.id !== mediaId);
+    if (itemToRemove?.isPrimary) {
+      const nextPrimary = updated.find((m) => m.ownerType === itemToRemove.ownerType && m.ownerId === itemToRemove.ownerId);
+      if (nextPrimary) {
+        nextPrimary.isPrimary = true;
+      }
+    }
+    saveStoredMedia(updated);
+    return ok({ success: true, id: mediaId });
+  }
+
+  if ((url.endsWith('/media') || url.includes('/media?')) && method === 'POST') {
+    const body = typeof config.data === 'string' ? JSON.parse(config.data || '{}') : (config.data || {});
+    const allMedia = getStoredMedia();
+    const ownerType = body.ownerType || 'room';
+    const ownerId = body.ownerId || '';
+    const existingForOwner = allMedia.filter((m) => m.ownerType === ownerType && m.ownerId === ownerId);
+
+    const newItem: StoredMediaItem = {
+      id: typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `med_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+      propertyId: body.propertyId || PROPERTY_ID,
+      ownerType,
+      ownerId,
+      url: body.url,
+      storageKey: null,
+      category: body.category || 'room',
+      caption: body.caption || null,
+      altText: body.altText || body.caption || 'Hotel Spark Room Photo',
+      sortOrder: existingForOwner.length,
+      isPrimary: existingForOwner.length === 0,
+    };
+
+    const updated = [...allMedia, newItem];
+    saveStoredMedia(updated);
+    return ok(newItem);
+  }
+
+  if ((url.endsWith('/media') || url.includes('/media?')) && method === 'GET') {
+    let ownerType = config.params?.ownerType;
+    let ownerId = config.params?.ownerId;
+    if (!ownerType || !ownerId) {
+      try {
+        const urlObj = new URL(url, 'http://localhost');
+        ownerType = ownerType || urlObj.searchParams.get('ownerType');
+        ownerId = ownerId || urlObj.searchParams.get('ownerId');
+      } catch (e) {
+        void e;
+      }
+    }
+
+    const allMedia = getStoredMedia();
+    let filtered = allMedia;
+    if (ownerType) {
+      filtered = filtered.filter((m) => m.ownerType === ownerType);
+    }
+    if (ownerId) {
+      filtered = filtered.filter((m) => m.ownerId === ownerId);
+    }
+    filtered.sort((a, b) => a.sortOrder - b.sortOrder);
+    return ok(filtered);
+  }
 
   // 1. Properties
   if (url.includes('/properties')) {

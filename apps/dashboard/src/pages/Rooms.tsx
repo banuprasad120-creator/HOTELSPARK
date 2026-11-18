@@ -389,7 +389,7 @@ function RoomDetailPanel({
       )}
 
       {canManagePhotos && (
-        <Modal open={photosOpen} onClose={() => setPhotosOpen(false)} title={t('rooms.photosForRoom', { number: room.number })}>
+        <Modal open={photosOpen} onClose={() => setPhotosOpen(false)} title={t('rooms.photosForRoom', { number: room.number })} wide>
           <MediaGallery propertyId={propertyId} ownerType="room" ownerId={room.id} canManage={canManagePhotos} />
         </Modal>
       )}
@@ -1267,7 +1267,7 @@ function RoomTypeList() {
       )}
 
       {photoType && propertyId && (
-        <Modal open={!!photoType} onClose={() => setPhotoType(null)} title={t('rooms.photosForType', { name: photoType.name })}>
+        <Modal open={!!photoType} onClose={() => setPhotoType(null)} title={t('rooms.photosForType', { name: photoType.name })} wide>
           <MediaGallery propertyId={propertyId} ownerType="room_type" ownerId={photoType.id} />
         </Modal>
       )}
