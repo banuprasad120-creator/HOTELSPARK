@@ -56,9 +56,9 @@ type NavSection = {
 };
 
 const DEPT_ALLOWED_ROUTES: Record<string, string[]> = {
-  admin: ['/', '/admin-panel', '/manager-panel', '/front-office-panel', '/tariff-settings', '/departments', '/current-guests', '/front-desk', '/reservations', '/guests', '/rooms', '/rooms/types', '/housekeeping', '/staff', '/folios', '/guest-history', '/direct-bookings', '/reports', '/settings'],
-  manager: ['/', '/admin-panel', '/manager-panel', '/front-office-panel', '/tariff-settings', '/departments', '/staff', '/current-guests', '/front-desk', '/housekeeping', '/reports', '/settings'],
-  front_office: ['/', '/front-office-panel', '/tariff-settings', '/departments', '/current-guests', '/front-desk', '/reservations', '/guests', '/guest-history', '/direct-bookings'],
+  admin: ['/', '/admin-panel', '/manager-panel', '/front-office-panel', '/tariff-settings', '/departments', '/current-guests', '/front-desk', '/reservations', '/guests', '/rooms', '/rooms/types', '/housekeeping', '/staff', '/folios', '/guest-history', '/direct-bookings', '/direct-bookings/pending', '/direct-bookings/approved', '/direct-bookings/rejected', '/direct-bookings/history', '/reports', '/settings'],
+  manager: ['/', '/admin-panel', '/manager-panel', '/front-office-panel', '/tariff-settings', '/departments', '/staff', '/current-guests', '/front-desk', '/reservations', '/guests', '/rooms', '/rooms/types', '/housekeeping', '/direct-bookings', '/direct-bookings/pending', '/direct-bookings/approved', '/direct-bookings/history', '/reports', '/settings'],
+  front_office: ['/', '/front-office-panel', '/tariff-settings', '/departments', '/current-guests', '/front-desk', '/reservations', '/guests', '/rooms', '/rooms/types', '/guest-history', '/direct-bookings', '/direct-bookings/pending', '/direct-bookings/approved', '/direct-bookings/history'],
   housekeeping: ['/', '/departments', '/rooms', '/rooms/types', '/housekeeping', '/staff'],
   accounts: ['/', '/departments', '/folios', '/guest-history', '/reports'],
 };
@@ -86,7 +86,10 @@ const NAV_SECTIONS: NavSection[] = [
   {
     sectionKey: 'Direct Website Bookings',
     items: [
-      { to: '/direct-bookings', icon: Inbox, labelKey: 'Booking Inquiries', permission: 'reservations.read' },
+      { to: '/direct-bookings', icon: Globe, labelKey: '🛎️ Website Bookings (Live)' },
+      { to: '/direct-bookings/pending', icon: Clock, labelKey: '⏳ Pending Approvals' },
+      { to: '/direct-bookings/approved', icon: CheckCircle2, labelKey: '✅ Approved Bookings' },
+      { to: '/direct-bookings/history', icon: History, labelKey: '📜 Booking History & Audit' },
     ],
   },
   {

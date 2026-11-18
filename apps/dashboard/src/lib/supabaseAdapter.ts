@@ -678,7 +678,91 @@ export function saveStoredGuests(list: any[]) {
 
 export const DIRECT_BOOKINGS_STORAGE_KEY = 'hotel_spark_direct_bookings';
 
-export const DEFAULT_DIRECT_BOOKINGS: any[] = [];
+export const DEFAULT_DIRECT_BOOKINGS: any[] = [
+  {
+    id: 'req_spark_web_001',
+    propertyId: PROPERTY_ID,
+    status: 'pending',
+    reference: 'SPARK-WEB-001',
+    submissionIdempotencyKey: 'SPARK-WEB-001',
+    arrivalDate: '2026-11-20',
+    departureDate: '2026-11-22',
+    roomTypeId: 'b0000002-0000-4000-a000-000000000002',
+    roomTypeName: 'Deluxe Room',
+    roomTypeCode: 'DLX',
+    ratePlanId: 'c0000002-0000-4000-a000-000000000002',
+    ratePlanName: 'Best Available Rate',
+    adults: 2,
+    children: 0,
+    guestFirstName: 'Rahul',
+    guestLastName: 'Verma',
+    guestEmail: 'rahul.verma@example.com',
+    guestPhone: '+91 98765 11223',
+    specialRequests: 'Quiet room requested, arriving late evening.',
+    submittedTotal: '4698.00',
+    currencyCode: 'INR',
+    confirmedReservationNumber: null,
+    assignedRoomNumber: null,
+    availableRoomsCount: 12,
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: 'req_spark_web_002',
+    propertyId: PROPERTY_ID,
+    status: 'accepted',
+    reference: 'SPARK-WEB-002',
+    submissionIdempotencyKey: 'SPARK-WEB-002',
+    arrivalDate: '2026-11-21',
+    departureDate: '2026-11-24',
+    roomTypeId: 'b0000003-0000-4000-a000-000000000003',
+    roomTypeName: 'Executive Room',
+    roomTypeCode: 'EXE',
+    ratePlanId: 'c0000003-0000-4000-a000-000000000003',
+    ratePlanName: 'Best Available Rate',
+    adults: 2,
+    children: 1,
+    guestFirstName: 'Priya',
+    guestLastName: 'Sharma',
+    guestEmail: 'priya.sharma@example.com',
+    guestPhone: '+91 98765 44556',
+    specialRequests: 'Room 2005 preferred with extra towels.',
+    submittedTotal: '8396.00',
+    currencyCode: 'INR',
+    confirmedReservationNumber: 'SPARK-CONF-2005',
+    assignedRoomId: '7db20997-3628-42dc-9870-69894e0e584f',
+    assignedRoomNumber: '2005',
+    availableRoomsCount: 11,
+    decidedAt: new Date().toISOString(),
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: 'req_spark_web_003',
+    propertyId: PROPERTY_ID,
+    status: 'pending',
+    reference: 'SPARK-WEB-003',
+    submissionIdempotencyKey: 'SPARK-WEB-003',
+    arrivalDate: '2026-11-25',
+    departureDate: '2026-11-27',
+    roomTypeId: 'b0000004-0000-4000-a000-000000000004',
+    roomTypeName: 'Suite',
+    roomTypeCode: 'SUT',
+    ratePlanId: 'c0000004-0000-4000-a000-000000000004',
+    ratePlanName: 'Best Available Rate',
+    adults: 2,
+    children: 0,
+    guestFirstName: 'Ananya',
+    guestLastName: 'Rao',
+    guestEmail: 'ananya.rao@example.com',
+    guestPhone: '+91 98765 77889',
+    specialRequests: 'Anniversary trip, luxury arrangement requested.',
+    submittedTotal: '6269.00',
+    currencyCode: 'INR',
+    confirmedReservationNumber: null,
+    assignedRoomNumber: null,
+    availableRoomsCount: 2,
+    createdAt: new Date().toISOString(),
+  },
+];
 
 export function getStoredDirectBookings(): any[] {
   try {
@@ -686,7 +770,7 @@ export function getStoredDirectBookings(): any[] {
       const saved = window.localStorage.getItem(DIRECT_BOOKINGS_STORAGE_KEY);
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) {
+        if (Array.isArray(parsed) && parsed.length > 0) {
           return parsed.filter((b: any) => 
             b.id !== '2a52aaa6-dd15-4c31-9716-a81c2080288a' &&
             b.id !== 'b744d03d-24fb-4bca-85f0-619f79883db1' &&
@@ -1919,6 +2003,42 @@ export async function handleSupabaseAdapter(config: AxiosRequestConfig): Promise
       for (const lr of localResvs) {
         if (!list.some((existing) => existing.id === lr.id || existing.confirmationNumber === lr.confirmationNumber)) {
           list.push(lr);
+        }
+      }
+
+      // Also merge website direct bookings so Booking Management (/reservations) displays them
+      const directBookings = getStoredDirectBookings();
+      for (const db of directBookings) {
+        const confNum = db.reference || db.submissionIdempotencyKey || `SPARK-${db.id.slice(0, 8).toUpperCase()}`;
+        if (!list.some((existing) => existing.id === db.id || existing.confirmationNumber === confNum)) {
+          list.push({
+            id: db.id,
+            propertyId: db.propertyId || PROPERTY_ID,
+            confirmationNumber: confNum,
+            status: db.status === 'accepted' ? 'confirmed' : (db.status || 'pending'),
+            arrivalDate: db.arrivalDate,
+            departureDate: db.departureDate,
+            roomId: db.assignedRoomId,
+            roomNumber: db.assignedRoomNumber || (db.status === 'accepted' ? '2001' : 'Unassigned (Website)'),
+            roomTypeId: db.roomTypeId,
+            roomTypeName: db.roomTypeName || 'Deluxe Room',
+            guestName: `${db.guestFirstName || 'Guest'} ${db.guestLastName || ''}`.trim(),
+            guest: {
+              firstName: db.guestFirstName || 'Guest',
+              lastName: db.guestLastName || '',
+              email: db.guestEmail || '',
+              phone: db.guestPhone || '',
+            },
+            guestEmail: db.guestEmail || '',
+            guestPhone: db.guestPhone || '',
+            totalAmount: Number(db.submittedTotal) || 2099,
+            currencyCode: db.currencyCode || 'INR',
+            adults: db.adults || 2,
+            children: db.children || 0,
+            source: 'WEBSITE',
+            specialRequests: db.specialRequests || '',
+            createdAt: db.createdAt || new Date().toISOString(),
+          });
         }
       }
 

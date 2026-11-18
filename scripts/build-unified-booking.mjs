@@ -73,9 +73,10 @@ if (fs.existsSync(dashboardAssets)) {
 
 // Ensure apps/booking/vercel.json is properly configured
 const vercelConfig = {
+  cleanUrls: true,
   rewrites: [
-    { source: '/admin/(.*)', destination: '/admin/index.html' },
     { source: '/admin', destination: '/admin/index.html' },
+    { source: '/admin/(.*)', destination: '/admin/index.html' },
     { source: '/(.*)', destination: '/index.html' }
   ]
 };

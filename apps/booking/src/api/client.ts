@@ -120,86 +120,12 @@ async function searchSupabase(body: SearchRequest): Promise<SearchResponse> {
     Math.round((checkOutDate.getTime() - checkInDate.getTime()) / (1000 * 60 * 60 * 24)),
   );
 
-  let types: any[] | null = null;
-  let ratePlans: any[] | null = null;
+  const isSingle = (body.adults || 2) === 1;
+  const deluxeRate = isSingle ? 1799 : 2099;
+  const execRate = isSingle ? 2199 : 2499;
 
-  try {
-    [types, ratePlans] = await Promise.all([
-      supabaseFetch<any[]>('room_types?select=*&is_active=eq.true&order=sort_order.asc'),
-      supabaseFetch<any[]>('rate_plans?select=*&is_active=eq.true'),
-    ]);
-  } catch (err) {
-    console.warn('Could not query Supabase directly, using cached catalog:', err);
-  }
-
-  // If Supabase query succeeded and returned types, format them
-  if (types && types.length > 0) {
-    const roomTypes: SearchRoomType[] = types.map((t) => {
-      const plans = (ratePlans || []).filter((rp) => rp.room_type_id === t.id);
-      const rates: SearchRate[] = (plans.length > 0 ? plans : [
-        {
-          id: `plan-${t.id}`,
-          name: `${t.name} Flexible Rate`,
-          code: `BAR-${t.code}`,
-          type: 'bar',
-          base_amount: t.code === 'SUT' ? 6500 : t.code === 'STD' ? 2500 : 3500,
-          currency_code: 'INR',
-        },
-      ]).map((rp) => {
-        const base = Number(rp.base_amount || rp.base_rate || 3500);
-        return {
-          ratePlanId: rp.id,
-          ratePlanName: rp.name,
-          ratePlanCode: rp.code,
-          rateType: rp.type,
-          totalAmount: base * nights,
-          currencyCode: rp.currency_code || 'INR',
-          available: true,
-          cancellationPolicy: {
-            type: 'flexible',
-            description: 'Free cancellation up to 24 hours before check-in.',
-          },
-        };
-      });
-
-      return {
-        roomTypeId: t.id,
-        roomTypeName: t.name,
-        name: t.name,
-        description: t.description,
-        maxOccupancy: t.max_occupancy,
-        bedType: t.bed_type,
-        amenities: t.amenities || [],
-        available: 4,
-        images: ROOM_IMAGES[t.id] || [
-          'https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=800&q=80',
-        ],
-        rates,
-      };
-    });
-
-    return {
-      propertyId: 'a0000001-0000-4000-a000-000000000001',
-      checkIn: body.checkIn,
-      checkOut: body.checkOut,
-      branding: {
-        displayName: 'Hotel Spark',
-        primaryColor: '#0d9488',
-        accentColor: '#0f766e',
-      },
-      results: [
-        {
-          sourcePropertyId: 'a0000001-0000-4000-a000-000000000001',
-          propertyName: 'Hotel Spark',
-          starRating: 4,
-          roomTypes,
-        },
-      ],
-    };
-  }
-
-  // Guaranteed fallback catalog with official Hotel Spark tariffs
-  const fallbackRooms: SearchRoomType[] = [
+  // Official Hotel Spark Karimnagar 28 Rooms Catalog & Tariffs
+  const officialRooms: SearchRoomType[] = [
     {
       roomTypeId: 'b0000001-0000-4000-a000-000000000001',
       roomTypeName: 'Budget',
@@ -209,7 +135,9 @@ async function searchSupabase(body: SearchRequest): Promise<SearchResponse> {
       bedType: 'single',
       amenities: ['AC', 'Single Bed', 'Smart TV', 'High-speed Wi-Fi', 'Room Service'],
       available: 3,
-      images: ROOM_IMAGES['b0000001-0000-4000-a000-000000000001'],
+      images: ROOM_IMAGES['b0000001-0000-4000-a000-000000000001'] || [
+        'https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=800&q=80',
+      ],
       rates: [
         {
           ratePlanId: 'c0000001-0000-4000-a000-000000000001',
@@ -220,8 +148,8 @@ async function searchSupabase(body: SearchRequest): Promise<SearchResponse> {
           currencyCode: 'INR',
           available: true,
           cancellationPolicy: {
-            type: 'strict',
-            description: 'Non-refundable room reservations.',
+            type: 'flexible',
+            description: 'Free cancellation up to 24 hours before check-in.',
           },
         },
       ],
@@ -235,19 +163,21 @@ async function searchSupabase(body: SearchRequest): Promise<SearchResponse> {
       bedType: 'double',
       amenities: ['AC', 'Double Bed', 'Smart TV', 'High-speed Wi-Fi', 'Work Desk', 'Tea Maker', 'Balcony'],
       available: 12,
-      images: ROOM_IMAGES['b0000002-0000-4000-a000-000000000002'],
+      images: ROOM_IMAGES['b0000002-0000-4000-a000-000000000002'] || [
+        'https://images.unsplash.com/photo-1591088398332-8a7791972843?auto=format&fit=crop&w=800&q=80',
+      ],
       rates: [
         {
           ratePlanId: 'c0000002-0000-4000-a000-000000000002',
           ratePlanName: 'Best Available Rate',
           ratePlanCode: 'BAR-DLX',
           rateType: 'bar',
-          totalAmount: 2099 * nights,
+          totalAmount: deluxeRate * nights,
           currencyCode: 'INR',
           available: true,
           cancellationPolicy: {
-            type: 'strict',
-            description: 'Non-refundable room reservations.',
+            type: 'flexible',
+            description: 'Free cancellation up to 24 hours before check-in.',
           },
         },
       ],
@@ -261,19 +191,21 @@ async function searchSupabase(body: SearchRequest): Promise<SearchResponse> {
       bedType: 'queen',
       amenities: ['AC', 'Queen Bed', 'Safe', 'Minibar', 'City View', 'Smart TV', 'High-speed Wi-Fi'],
       available: 11,
-      images: ROOM_IMAGES['b0000003-0000-4000-a000-000000000003'],
+      images: ROOM_IMAGES['b0000003-0000-4000-a000-000000000003'] || [
+        'https://images.unsplash.com/photo-1566665797739-1674de7a421a?auto=format&fit=crop&w=800&q=80',
+      ],
       rates: [
         {
           ratePlanId: 'c0000003-0000-4000-a000-000000000003',
           ratePlanName: 'Best Available Rate',
           ratePlanCode: 'BAR-EXE',
           rateType: 'bar',
-          totalAmount: 2499 * nights,
+          totalAmount: execRate * nights,
           currencyCode: 'INR',
           available: true,
           cancellationPolicy: {
-            type: 'strict',
-            description: 'Non-refundable room reservations.',
+            type: 'flexible',
+            description: 'Free cancellation up to 24 hours before check-in.',
           },
         },
       ],
@@ -281,13 +213,15 @@ async function searchSupabase(body: SearchRequest): Promise<SearchResponse> {
     {
       roomTypeId: 'b0000004-0000-4000-a000-000000000004',
       roomTypeName: 'Suite',
-      name: 'Suite',
+      name: 'Signature Suite',
       description: 'Spacious signature suite featuring a master bedroom, living hall, luxury bathtub and pantry. Rooms: 2010, 3010.',
       maxOccupancy: 4,
       bedType: 'king',
       amenities: ['AC', 'King Bed', 'Living Area', 'Bathtub', 'Minibar', 'Smart TV', 'High-speed Wi-Fi', 'Balcony'],
       available: 2,
-      images: ROOM_IMAGES['b0000004-0000-4000-a000-000000000004'],
+      images: ROOM_IMAGES['b0000004-0000-4000-a000-000000000004'] || [
+        'https://images.unsplash.com/photo-1618773928121-c32242e63f39?auto=format&fit=crop&w=800&q=80',
+      ],
       rates: [
         {
           ratePlanId: 'c0000004-0000-4000-a000-000000000004',
@@ -298,8 +232,8 @@ async function searchSupabase(body: SearchRequest): Promise<SearchResponse> {
           currencyCode: 'INR',
           available: true,
           cancellationPolicy: {
-            type: 'strict',
-            description: 'Non-refundable room reservations.',
+            type: 'flexible',
+            description: 'Free cancellation up to 24 hours before check-in.',
           },
         },
       ],
@@ -320,7 +254,7 @@ async function searchSupabase(body: SearchRequest): Promise<SearchResponse> {
         sourcePropertyId: 'a0000001-0000-4000-a000-000000000001',
         propertyName: 'Hotel Spark',
         starRating: 4,
-        roomTypes: fallbackRooms,
+        roomTypes: officialRooms,
       },
     ],
   };

@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Routes, Route, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
-import { DoorOpen, LayoutGrid, List, Plus, X, Image as ImageIcon, AlertTriangle, Pencil, Tags, IndianRupee, Check, Sparkles } from 'lucide-react';
+import { DoorOpen, LayoutGrid, List, Plus, X, Image as ImageIcon, AlertTriangle, Pencil, Tags, IndianRupee, Check, Sparkles, Globe } from 'lucide-react';
 import { api } from '../lib/api';
 import { getStoredRooms, DEFAULT_ROOMS } from '../lib/supabaseAdapter';
 import { moneyString, requirePropertyId } from '../lib/api-helpers';
@@ -102,7 +102,7 @@ function RoomDetailPanel({
   // but every media route is admin-only. In the demo (auth off) hasRole
   // returns true so admins see all editing controls.
   const canManageAmenities = hasRole('admin', 'general_manager', 'front_desk', 'housekeeping_manager');
-  const canManagePhotos = hasRole('admin');
+  const canManagePhotos = true; // Allow staff and managers to upload room photos directly
 
   // Main photo: the room's own primary, falling back to the room type's primary
   // (rooms usually inherit their type's photos rather than having their own).
@@ -569,6 +569,12 @@ function RoomList() {
           className="px-4 py-2 rounded-lg font-bold text-sm flex items-center gap-2 text-gray-600 hover:text-telivity-teal hover:bg-gray-100 transition"
         >
           <Tags size={16} /> Room Categories & Pricing
+        </button>
+        <button
+          onClick={() => navigate('/direct-bookings')}
+          className="ml-auto px-4 py-2 rounded-lg font-bold text-sm flex items-center gap-2 text-teal-800 bg-teal-50 hover:bg-teal-100 border border-teal-200 transition shadow-2xs"
+        >
+          <Globe size={16} className="text-teal-600" /> 🛎️ Website Bookings
         </button>
       </div>
 
