@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "tsc -b && vite build --base /admin/ && node -e \"const fs=require('fs'); fs.mkdirSync('dist/admin', {recursive:true}); fs.copyFileSync('dist/index.html', 'dist/admin/index.html'); fs.copyFileSync('dist/index.html', 'dist/admin.html'); if(fs.existsSync('dist/assets')) fs.cpSync('dist/assets', 'dist/admin/assets', {recursive:true});\"",
     "preview": "vite preview",
     "lint": "eslint src/",
     "typecheck": "tsc --noEmit",
