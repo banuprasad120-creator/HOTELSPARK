@@ -18,7 +18,14 @@ import { useAuth, SPARK_CREDENTIAL_USERS, getAllAuthUsers, getPasswordOverrides 
 export default function AdminLogin() {
   const { login } = useAuth();
   const navigate = useNavigate();
-  const [email, setEmail] = useState('admin@sparkhotel.com');
+  const currentPath = typeof window !== 'undefined' ? window.location.pathname : '';
+  const initialEmail = currentPath.includes('manager')
+    ? 'manager@sparkhotel.com'
+    : currentPath.includes('front-office')
+      ? 'fo001@sparkhotel.com'
+      : 'admin@sparkhotel.com';
+
+  const [email, setEmail] = useState(initialEmail);
   const [password, setPassword] = useState('SparkHotel@2026');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -30,13 +37,27 @@ export default function AdminLogin() {
       .slice(0, 7);
   }, []);
 
+  const buttonLabel = useMemo(() => {
+    const target = email.toLowerCase().trim();
+    if (target.includes('manager') || target === 'mgr001') return 'Sign In to Manager Panel';
+    if (target.includes('fo00') || target.includes('reception') || target.includes('front')) {
+      return 'Sign In to Front Office Panel';
+    }
+    return 'Sign In to Admin Panel';
+  }, [email]);
+
   const redirectByRole = (user: any) => {
+    const search = window.location.search || '?propertyId=a0000001-0000-4000-a000-000000000001';
     if (user?.roles.includes('admin') || user?.email === 'admin@sparkhotel.com') {
-      navigate('/admin');
+      if (currentPath.includes('manager')) {
+        navigate(`/manager${search}`);
+      } else {
+        navigate(`/admin${search}`);
+      }
     } else if (user?.roles.includes('manager')) {
-      navigate('/manager');
+      navigate(`/manager${search}`);
     } else {
-      navigate('/front-office');
+      navigate(`/front-office${search}`);
     }
   };
 
@@ -162,7 +183,7 @@ export default function AdminLogin() {
                 disabled={loading}
                 className="w-full mt-2 py-3 px-4 bg-teal-600 hover:bg-teal-700 active:bg-teal-800 text-white font-bold text-sm rounded-xl shadow-md shadow-teal-700/20 flex items-center justify-center gap-2 transition disabled:opacity-50"
               >
-                <span>{loading ? 'Authenticating…' : 'Sign In to Admin Panel'}</span>
+                <span>{loading ? 'Authenticating…' : buttonLabel}</span>
                 <ArrowRight size={16} />
               </button>
             </form>
