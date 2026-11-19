@@ -600,7 +600,7 @@ function AccountingHome() {
               <option value="">{t('accounting.selectTransaction')}</option>
               {reversible.map((tx) => (
                 <option key={tx.id} value={tx.id}>
-                  {formatMoney(tx.amount, currencyCode)} · {tx.createdAt?.split('T')[0] ?? tx.id.slice(0, 8)}
+                  {formatMoney(tx.amount, currencyCode)} · {tx.createdAt?.split('T')[0] ?? (tx.id ? String(tx.id).slice(0, 8) : '—')}
                 </option>
               ))}
             </select>

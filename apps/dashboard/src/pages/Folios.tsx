@@ -222,7 +222,7 @@ function SplitFolioPanel({
   const folioLabel = (folioId: string) =>
     folioId === folio.id
       ? folio.folioNumber
-      : siblings.find((f) => f.id === folioId)?.folioNumber ?? folioId.slice(0, 8);
+      : siblings.find((f) => f.id === folioId)?.folioNumber ?? (folioId ? String(folioId).slice(0, 8) : '—');
 
   const movableCharges = charges.filter((c) => !c.isLocked && !c.isReversal);
 

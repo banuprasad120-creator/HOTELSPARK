@@ -1467,7 +1467,7 @@ export default function FrontDesk() {
                       .map((room) => (
                         <option key={room.id} value={room.id}>
                           {t('frontDesk.roomNumber', {
-                            number: room.roomNumber ?? room.number ?? room.id.slice(0, 8),
+                            number: room.roomNumber ?? room.number ?? (room.id ? String(room.id).slice(0, 8) : '101'),
                           })}{' '}
                           {room.roomTypeName ? `(${room.roomTypeName})` : ''} —{' '}
                           {formatLabel(room.status, t)}

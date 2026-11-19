@@ -876,6 +876,9 @@ function RoomList() {
           onCheckoutSuccess={(updatedStay) => {
             queryClient.invalidateQueries({ queryKey: ['stays'] });
             queryClient.invalidateQueries({ queryKey: ['rooms'] });
+            queryClient.invalidateQueries({ queryKey: ['rooms', 'status-summary'] });
+            queryClient.invalidateQueries({ queryKey: ['staff-notifications'] });
+            setDetailRoom(null);
             setCheckoutStay(null);
             if (updatedStay && updatedStay.id) {
               setInvoiceStay(updatedStay);
@@ -1241,13 +1244,18 @@ function RoomTypeList() {
                       {roomType.description || 'No description added yet.'}
                     </p>
                     <div className="flex flex-wrap gap-1">
-                      {(roomType.amenities ?? []).slice(0, 4).map((a) => (
+                      {(Array.isArray(roomType.amenities)
+                        ? roomType.amenities
+                        : typeof roomType.amenities === 'string'
+                          ? (roomType.amenities as string).split(',').map((x) => x.trim())
+                          : []
+                      ).slice(0, 4).map((a) => (
                         <span key={a} className="inline-block bg-teal-50 text-teal-800 border border-teal-100 rounded px-1.5 py-0.5 text-[10px] font-medium">
                           {a}
                         </span>
                       ))}
-                      {(roomType.amenities ?? []).length > 4 && (
-                        <span className="text-[10px] text-gray-400 font-medium">+{roomType.amenities!.length - 4} more</span>
+                      {(Array.isArray(roomType.amenities) ? roomType.amenities.length : 0) > 4 && (
+                        <span className="text-[10px] text-gray-400 font-medium">+{(roomType.amenities as any[]).length - 4} more</span>
                       )}
                     </div>
                   </td>

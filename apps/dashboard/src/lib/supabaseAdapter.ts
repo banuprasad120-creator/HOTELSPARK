@@ -1348,7 +1348,7 @@ export async function handleSupabaseAdapter(config: AxiosRequestConfig): Promise
                 status: r.status,
                 guestFirstName: r.guest_first_name,
                 guestLastName: r.guest_last_name,
-                reference: r.submission_idempotency_key || `SPARK-${r.id.slice(0, 8).toUpperCase()}`,
+                reference: r.submission_idempotency_key || `SPARK-${(r.id ? String(r.id).slice(0, 8) : 'REQ').toUpperCase()}`,
                 submittedTotal: r.submitted_total,
                 assignedRoomNumber: r.status === 'accepted' ? '2001' : null,
                 denialReason: r.denial_reason,
@@ -1428,8 +1428,8 @@ export async function handleSupabaseAdapter(config: AxiosRequestConfig): Promise
               id: r.id,
               propertyId: r.property_id || PROPERTY_ID,
               status: r.status,
-              reference: r.submission_idempotency_key || `SPARK-${r.id.slice(0, 8).toUpperCase()}`,
-              submissionIdempotencyKey: r.submission_idempotency_key || `SPARK-${r.id.slice(0, 8).toUpperCase()}`,
+              reference: r.submission_idempotency_key || `SPARK-${(r.id ? String(r.id).slice(0, 8) : 'REQ').toUpperCase()}`,
+              submissionIdempotencyKey: r.submission_idempotency_key || `SPARK-${(r.id ? String(r.id).slice(0, 8) : 'REQ').toUpperCase()}`,
               arrivalDate: r.arrival_date,
               departureDate: r.departure_date,
               roomTypeId: r.room_type_id,
@@ -1946,7 +1946,7 @@ export async function handleSupabaseAdapter(config: AxiosRequestConfig): Promise
         list.push({
           id: b.id,
           propertyId: b.property_id || PROPERTY_ID,
-          confirmationNumber: b.submission_idempotency_key || `SPARK-${b.id.slice(0, 8).toUpperCase()}`,
+          confirmationNumber: b.submission_idempotency_key || `SPARK-${(b.id ? String(b.id).slice(0, 8) : 'BKG').toUpperCase()}`,
           status: b.status === 'accepted' ? 'confirmed' : 'pending',
           arrivalDate: b.arrival_date,
           departureDate: b.departure_date,
@@ -1979,7 +1979,9 @@ export async function handleSupabaseAdapter(config: AxiosRequestConfig): Promise
         list.push({
           id: r.id,
           propertyId: r.property_id || PROPERTY_ID,
-          confirmationNumber: r.booking_id ? `CONF-${r.booking_id.slice(0, 8).toUpperCase()}` : `CONF-${r.id.slice(0, 8).toUpperCase()}`,
+          confirmationNumber: r.booking_id
+            ? `CONF-${String(r.booking_id).slice(0, 8).toUpperCase()}`
+            : `CONF-${(r.id ? String(r.id).slice(0, 8) : '0000').toUpperCase()}`,
           status: r.status || 'confirmed',
           arrivalDate: r.arrival_date,
           departureDate: r.departure_date,
@@ -2011,7 +2013,7 @@ export async function handleSupabaseAdapter(config: AxiosRequestConfig): Promise
       // Also merge website direct bookings so Booking Management (/reservations) displays them
       const directBookings = getStoredDirectBookings();
       for (const db of directBookings) {
-        const confNum = db.reference || db.submissionIdempotencyKey || `SPARK-${db.id.slice(0, 8).toUpperCase()}`;
+        const confNum = db.reference || db.submissionIdempotencyKey || `SPARK-${(db.id ? String(db.id).slice(0, 8) : 'DIR').toUpperCase()}`;
         if (!list.some((existing) => existing.id === db.id || existing.confirmationNumber === confNum)) {
           list.push({
             id: db.id,
@@ -2813,8 +2815,8 @@ export async function handleSupabaseAdapter(config: AxiosRequestConfig): Promise
           phone: newStay.mobile,
           email: newStay.email,
           room_id: newStay.roomId,
-          arrival_date: newStay.checkInTime.slice(0, 10),
-          departure_date: newStay.expectedCheckoutTime.slice(0, 10),
+          arrival_date: (newStay.checkInTime ? String(newStay.checkInTime).slice(0, 10) : new Date().toISOString().slice(0, 10)),
+          departure_date: (newStay.expectedCheckoutTime ? String(newStay.expectedCheckoutTime).slice(0, 10) : new Date().toISOString().slice(0, 10)),
           adults: newStay.adults,
           children: newStay.children,
           status: 'checked_in',

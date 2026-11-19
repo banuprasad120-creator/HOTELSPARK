@@ -253,7 +253,7 @@ function HousekeepingDashboard() {
                 {housekeeperSummary.map((hk) => (
                   <tr key={hk.housekeeperId} className="border-b border-gray-50">
                     <td className="py-2 pr-4 font-mono text-xs text-telivity-slate">
-                      {hk.housekeeperId.slice(0, 8)}…
+                      {hk.housekeeperId ? hk.housekeeperId.slice(0, 8) : '—'}…
                     </td>
                     <td className="py-2 pr-4">{hk.tasksAssigned}</td>
                     <td className="py-2 pr-4">{hk.tasksInProgress}</td>
@@ -373,7 +373,7 @@ function TaskBoard() {
 
   const staffLabel = (staffId: string) => {
     const staff = hkStaff.find((s) => s.id === staffId);
-    return staff ? staff.name || staff.email : staffId.slice(0, 8) + '…';
+    return staff ? staff.name || staff.email : (staffId ? staffId.slice(0, 8) + '…' : '—');
   };
 
   if (!propertyId) {

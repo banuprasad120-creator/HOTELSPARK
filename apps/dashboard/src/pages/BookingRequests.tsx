@@ -296,7 +296,7 @@ function BookingRequestDetailPage({ propertyId, canWrite }: { propertyId: string
               <h1 className="truncate text-2xl font-semibold text-telivity-navy">{scopedRequest.guestFirstName} {scopedRequest.guestLastName}</h1>
               <StatusBadge status={scopedRequest.status === 'accepted' ? 'success' : scopedRequest.status === 'denied' ? 'error' : 'pending'} label={t(`bookingRequests.statuses.${scopedRequest.status}`)} />
             </div>
-            <p className="mt-1 text-sm text-telivity-slate">{t('bookingRequests.detail.reference', { reference: scopedRequest.id.slice(0, 8), date: scopedRequest.createdAt.slice(0, 10) })}</p>
+            <p className="mt-1 text-sm text-telivity-slate">{t('bookingRequests.detail.reference', { reference: scopedRequest.id ? String(scopedRequest.id).slice(0, 8) : '—', date: scopedRequest.createdAt ? String(scopedRequest.createdAt).slice(0, 10) : '—' })}</p>
           </div>
 
           <dl className="grid grid-cols-2 gap-x-6 gap-y-2 border-y border-slate-200 py-3 text-sm xl:border-x xl:border-y-0 xl:px-6 xl:py-0">

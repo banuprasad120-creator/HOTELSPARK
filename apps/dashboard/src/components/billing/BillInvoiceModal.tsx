@@ -39,7 +39,7 @@ export default function BillInvoiceModal({ stay, isOpen, onClose }: BillInvoiceM
     const isAadhaar = stay.idProofType ? String(stay.idProofType).toLowerCase().includes('aadhaar') : false;
     if (isAadhaar) {
       const clean = idStr.replace(/\D/g, '');
-      if (clean.length >= 4) {
+      if (clean && clean.length >= 4) {
         return `XXXX XXXX ${clean.slice(-4)}`;
       }
       return 'XXXX XXXX 1234';

@@ -359,7 +359,7 @@ export default function StaffManagement() {
       const payload = {
         propertyId,
         name: deptName.trim(),
-        code: deptCode.trim().toUpperCase() || deptName.slice(0, 4).toUpperCase(),
+        code: deptCode.trim().toUpperCase() || (deptName ? deptName.slice(0, 4).toUpperCase() : 'DEPT'),
         description: deptDesc.trim(),
         managerName: deptManager.trim(),
       };

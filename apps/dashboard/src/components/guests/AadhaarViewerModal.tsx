@@ -107,7 +107,7 @@ export function maskAadhaar(raw?: string, revealed = false): string {
     const last4 = digits.slice(-4);
     return `XXXX XXXX ${last4}`;
   }
-  return revealed ? raw : 'XXXX XXXX ' + raw.slice(-4);
+  return revealed ? raw : 'XXXX XXXX ' + (raw ? String(raw).slice(-4) : 'XXXX');
 }
 
 export function triggerDownload(url: string, filename: string) {

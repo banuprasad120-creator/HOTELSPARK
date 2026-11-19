@@ -753,7 +753,7 @@ function BlockDetail() {
   const roomTypes: { id: string; name: string }[] = roomTypesData?.data ?? roomTypesData ?? [];
   const ratePlans: { id: string; name: string; code?: string }[] = ratePlansData?.data ?? ratePlansData ?? [];
 
-  const roomTypeName = (id?: string | null) => roomTypes.find((rt) => rt.id === id)?.name ?? (id ? id.slice(0, 8) : '—');
+  const roomTypeName = (id?: string | null) => roomTypes.find((rt) => rt.id === id)?.name ?? (id ? String(id).slice(0, 8) : '—');
 
   const releaseBlock = useMutation({
     mutationFn: () => {
@@ -855,7 +855,7 @@ function BlockDetail() {
         <div>
           <p className="text-xs text-telivity-mid-grey">{t('groups.ratePlan')}</p>
           <p className="font-medium text-telivity-navy">
-            {ratePlans.find((rp) => rp.id === block.ratePlanId)?.name ?? (block.ratePlanId ? block.ratePlanId.slice(0, 8) : '—')}
+            {ratePlans.find((rp) => rp.id === block.ratePlanId)?.name ?? (block.ratePlanId ? String(block.ratePlanId).slice(0, 8) : '—')}
           </p>
         </div>
         <div>

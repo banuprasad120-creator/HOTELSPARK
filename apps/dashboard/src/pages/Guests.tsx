@@ -366,7 +366,7 @@ function GuestDetail() {
     setLastName(guest.lastName ?? '');
     setEmail(guest.email ?? '');
     setPhone(guest.phone ?? '');
-    setDateOfBirth(guest.dateOfBirth ? guest.dateOfBirth.slice(0, 10) : '');
+    setDateOfBirth(guest.dateOfBirth ? String(guest.dateOfBirth).slice(0, 10) : '');
     setGender(guest.gender ?? '');
     setProfession(guest.profession ?? '');
     setNationality(guest.nationality ?? defaultCountry);
@@ -385,7 +385,7 @@ function GuestDetail() {
     setIdIssuer(reg.idIssuer ?? '');
     setIdIssuerState(reg.idIssuerState ?? '');
     setIdCountry(guest.idCountry ?? defaultCountry);
-    setIdExpiry(guest.idExpiry ? guest.idExpiry.slice(0, 10) : '');
+    setIdExpiry(guest.idExpiry ? String(guest.idExpiry).slice(0, 10) : '');
 
     setAddressLine1(guest.addressLine1 ?? '');
     setAddressLine2(guest.addressLine2 ?? '');

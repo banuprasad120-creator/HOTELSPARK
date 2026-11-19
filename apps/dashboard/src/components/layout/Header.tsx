@@ -177,7 +177,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
                 className="flex items-center gap-2 p-1 rounded-xl hover:bg-gray-100 transition"
               >
                 <div className="w-8 h-8 rounded-full bg-telivity-teal text-white font-bold text-xs flex items-center justify-center shadow-xs">
-                  {user.name.slice(0, 2).toUpperCase()}
+                  {((user?.name || user?.email || 'User')).slice(0, 2).toUpperCase()}
                 </div>
                 <div className="hidden sm:block text-left">
                   <p className="text-xs font-bold text-telivity-navy leading-tight">{user.name}</p>

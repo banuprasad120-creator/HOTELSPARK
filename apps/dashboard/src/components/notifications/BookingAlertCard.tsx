@@ -28,7 +28,7 @@ export default function BookingAlertCard() {
 
   const showAlert = useCallback((alert: BookingAlertData) => {
     setActiveAlert(alert);
-    setHistory((prev) => [alert, ...prev.slice(0, 4)]);
+    setHistory((prev) => [alert, ...(Array.isArray(prev) ? prev.slice(0, 4) : [])]);
     setProgress(100);
     playBookingChime();
   }, []);
