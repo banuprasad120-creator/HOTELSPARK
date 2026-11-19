@@ -71,8 +71,29 @@ if (fs.existsSync(dashboardAssets)) {
   fs.cpSync(dashboardAssets, bookingAssets, { recursive: true });
 }
 
+// 5. Ensure APK is in dist/downloads and public/downloads
+const bookingDownloads = path.join(bookingDir, 'public', 'downloads');
+const distDownloads = path.join(bookingDist, 'downloads');
+if (fs.existsSync(bookingDownloads)) {
+  if (!fs.existsSync(distDownloads)) {
+    fs.mkdirSync(distDownloads, { recursive: true });
+  }
+  fs.cpSync(bookingDownloads, distDownloads, { recursive: true });
+  console.log(`\n📲 Copied APK downloads to ${distDownloads}`);
+}
+
 // Ensure apps/booking/vercel.json is properly configured
 const vercelConfig = {
+  headers: [
+    {
+      source: '/downloads/:path*',
+      headers: [
+        { key: 'Content-Type', value: 'application/vnd.android.package-archive' },
+        { key: 'Content-Disposition', value: 'attachment' },
+        { key: 'Cache-Control', value: 'public, max-age=31536000, immutable' }
+      ]
+    }
+  ],
   rewrites: [
     { source: '/admin/:path*', destination: '/admin/index.html' },
     { source: '/admin', destination: '/admin/index.html' },

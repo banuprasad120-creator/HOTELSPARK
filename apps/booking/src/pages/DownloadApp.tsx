@@ -134,22 +134,30 @@ export function DownloadApp() {
 
             {/* Direct Action Button */}
             <div className="flex flex-col w-full sm:w-auto gap-2">
-              <button
-                type="button"
-                onClick={handleDownload}
-                className="inline-flex items-center justify-center gap-2.5 px-6 py-3.5 rounded-2xl bg-gradient-to-r from-teal-500 to-emerald-400 hover:from-teal-400 hover:to-emerald-300 text-gray-950 font-bold text-sm shadow-xl shadow-teal-500/25 transition transform active:scale-95"
+              <a
+                href={APK_URL}
+                download={APK_FILENAME}
+                onClick={() => setDownloadStarted(true)}
+                className="inline-flex items-center justify-center gap-2.5 px-6 py-3.5 rounded-2xl bg-gradient-to-r from-teal-500 to-emerald-400 hover:from-teal-400 hover:to-emerald-300 text-gray-950 font-bold text-sm shadow-xl shadow-teal-500/25 transition transform active:scale-95 cursor-pointer text-center"
               >
                 <Download size={18} />
                 <span>Download APK ({APK_VERSION})</span>
-              </button>
+              </a>
               <button
                 type="button"
                 onClick={() => setShowQRModal(true)}
-                className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl border border-white/15 bg-white/5 hover:bg-white/10 text-xs text-gray-300 transition"
+                className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl border border-white/15 bg-white/5 hover:bg-white/10 text-xs text-gray-300 transition cursor-pointer"
               >
                 <QrCode size={14} className="text-teal-400" />
                 <span>Scan QR from Phone</span>
               </button>
+              <a
+                href={fullDownloadUrl}
+                download={APK_FILENAME}
+                className="text-center text-[11px] text-teal-400/80 hover:text-teal-300 underline mt-1"
+              >
+                Direct Mirror Download Link
+              </a>
             </div>
           </div>
 
