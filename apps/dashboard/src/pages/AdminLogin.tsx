@@ -14,14 +14,9 @@ export default function AdminLogin() {
   const { login } = useAuth();
   const navigate = useNavigate();
   const currentPath = typeof window !== 'undefined' ? window.location.pathname : '';
-  const initialEmail = currentPath.includes('manager')
-    ? 'manager@sparkhotel.com'
-    : currentPath.includes('front-office')
-      ? 'fo001@sparkhotel.com'
-      : 'admin@sparkhotel.com';
 
-  const [email, setEmail] = useState(initialEmail);
-  const [password, setPassword] = useState('SparkHotel@2026');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -32,7 +27,8 @@ export default function AdminLogin() {
     if (target.includes('fo00') || target.includes('reception') || target.includes('front')) {
       return 'Sign In to Front Office Panel';
     }
-    return 'Sign In to Admin Panel';
+    if (target.includes('admin') || target === 'adm001') return 'Sign In to Admin Panel';
+    return 'Sign In to Dashboard';
   }, [email]);
 
   const redirectByRole = (user: any) => {

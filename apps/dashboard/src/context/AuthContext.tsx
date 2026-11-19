@@ -279,13 +279,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       if (typeof window !== 'undefined' && window.localStorage) {
         const saved = window.localStorage.getItem('hotel_spark_active_user');
-        if (saved === 'logged_out') return null;
-        if (saved) return JSON.parse(saved);
+        if (saved && saved !== 'logged_out') {
+          return JSON.parse(saved);
+        }
       }
     } catch (e) {
       void e;
     }
-    return SPARK_CREDENTIAL_USERS[0];
+    return null;
   });
   const [permissions, setPermissions] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(AUTH_ENABLED);
