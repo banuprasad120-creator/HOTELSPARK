@@ -952,7 +952,7 @@ export default function DepartmentPanels() {
         <WalkInCheckInModal open={walkInOpen} onClose={() => setWalkInOpen(false)} />
       )}
 
-      {invoiceStay && (
+      {invoiceStay && invoiceStay.id && (
         <BillInvoiceModal
           stay={invoiceStay}
           isOpen={Boolean(invoiceStay)}
@@ -969,7 +969,9 @@ export default function DepartmentPanels() {
             queryClient.invalidateQueries({ queryKey: ['stays'] });
             queryClient.invalidateQueries({ queryKey: ['rooms'] });
             setCheckoutStay(null);
-            setInvoiceStay(updatedStay);
+            if (updatedStay && updatedStay.id) {
+              setInvoiceStay(updatedStay);
+            }
           }}
         />
       )}

@@ -877,13 +877,15 @@ function RoomList() {
             queryClient.invalidateQueries({ queryKey: ['stays'] });
             queryClient.invalidateQueries({ queryKey: ['rooms'] });
             setCheckoutStay(null);
-            setInvoiceStay(updatedStay);
+            if (updatedStay && updatedStay.id) {
+              setInvoiceStay(updatedStay);
+            }
           }}
         />
       )}
 
       {/* Bill / Invoice Modal (Printable) */}
-      {invoiceStay && (
+      {invoiceStay && invoiceStay.id && (
         <BillInvoiceModal
           stay={invoiceStay}
           isOpen={Boolean(invoiceStay)}

@@ -89,26 +89,35 @@ export default function CheckoutModal({ stay, isOpen, onClose, onCheckoutSuccess
   const currentBalance = Math.max(0, grandTotal - totalPaidSoFar);
 
   const checkoutMutation = useMutation({
-    mutationFn: () => {
+    mutationFn: async () => {
       if (!stay) throw new Error('No active stay selected');
       if (isAlreadyCheckedOut) throw new Error('Stay is already checked out');
 
       const payAmt = Number(finalPayment) || 0;
-      return api
-        .post(`/v1/stays/${stay.id}/checkout`, {
-          finalPayment: payAmt,
-          paymentMethod,
-          nights,
-          pricePerNight: ratePerNight,
-          extraCharges,
-          discount,
-          taxMode,
-          cgstAmount,
-          sgstAmount,
-          totalAmount: grandTotal,
-          propertyId,
-        })
-        .then((r) => r.data?.stay || r.data);
+      const res = await api.post(`/v1/stays/${stay.id}/checkout`, {
+        finalPayment: payAmt,
+        paymentMethod,
+        nights,
+        pricePerNight: ratePerNight,
+        extraCharges,
+        discount,
+        taxMode,
+        cgstAmount,
+        sgstAmount,
+        totalAmount: grandTotal,
+        propertyId,
+        roomId: stay.roomId,
+        roomNumber: stay.roomNumber,
+        guestName: stay.guestName,
+        mobile: stay.mobile,
+        advancePaid: stay.advancePaid || 0,
+      });
+
+      if (res.data && res.data.success === false) {
+        throw new Error(res.data.message || 'Checkout failed');
+      }
+
+      return res.data?.stay || res.data;
     },
     onSuccess: (updatedStay: StoredStay) => {
       if (stay) {
@@ -123,8 +132,16 @@ export default function CheckoutModal({ stay, isOpen, onClose, onCheckoutSuccess
       queryClient.invalidateQueries({ queryKey: ['staff-notifications'] });
       queryClient.invalidateQueries({ queryKey: ['staff-notifications-unread'] });
 
-      const finalRecord: StoredStay = updatedStay || {
+      const validStayId = (updatedStay && updatedStay.id) ? updatedStay.id : (stay?.id || `stay-${Date.now()}`);
+      const validBillNum = (updatedStay && updatedStay.billNumber)
+        ? updatedStay.billNumber
+        : (stay?.billNumber || `INV-SPARK-2026-${stay?.roomNumber || '101'}-${String(Math.floor(1000 + Math.random() * 9000))}`);
+
+      const finalRecord: StoredStay = {
         ...stay!,
+        ...(updatedStay && updatedStay.id ? updatedStay : {}),
+        id: validStayId,
+        billNumber: validBillNum,
         nights,
         pricePerNight: ratePerNight,
         extraCharges,
@@ -219,7 +236,7 @@ export default function CheckoutModal({ stay, isOpen, onClose, onCheckoutSuccess
             <div className="flex justify-between items-center">
               <span className="text-telivity-mid-grey">ID Proof on Record:</span>
               <span className="font-medium text-emerald-800 bg-emerald-100/60 px-2 py-0.5 rounded text-[11px]">
-                {stay.idProofType} ({stay.idProofNumber ? `ending in ${stay.idProofNumber.slice(-4)}` : 'Verified'})
+                {stay.idProofType} ({stay.idProofNumber ? `ending in ${String(stay.idProofNumber).slice(-4)}` : 'Verified'})
               </span>
             </div>
           </div>

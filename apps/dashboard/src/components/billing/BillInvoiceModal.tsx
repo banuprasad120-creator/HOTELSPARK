@@ -35,15 +35,16 @@ export default function BillInvoiceModal({ stay, isOpen, onClose }: BillInvoiceM
 
   const maskedIdNumber = useMemo(() => {
     if (!stay?.idProofNumber) return 'Verified';
-    const isAadhaar = stay.idProofType?.toLowerCase().includes('aadhaar');
+    const idStr = String(stay.idProofNumber);
+    const isAadhaar = stay.idProofType ? String(stay.idProofType).toLowerCase().includes('aadhaar') : false;
     if (isAadhaar) {
-      const clean = stay.idProofNumber.replace(/\D/g, '');
+      const clean = idStr.replace(/\D/g, '');
       if (clean.length >= 4) {
         return `XXXX XXXX ${clean.slice(-4)}`;
       }
       return 'XXXX XXXX 1234';
     }
-    return stay.idProofNumber;
+    return idStr;
   }, [stay?.idProofNumber, stay?.idProofType]);
 
   if (!isOpen || !stay) return null;
@@ -52,14 +53,24 @@ export default function BillInvoiceModal({ stay, isOpen, onClose }: BillInvoiceM
     window.print();
   };
 
-  const invoiceNumber = stay.billNumber || `INV-SPARK-2026-${stay.roomNumber}-${stay.id.slice(-4)}`;
-  const checkInFormatted = new Date(stay.checkInTime).toLocaleString('en-IN', {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-  });
+  const safeId = stay.id ? String(stay.id) : String(Date.now());
+  const safeRoomNumber = stay.roomNumber ? String(stay.roomNumber) : '101';
+  const invoiceNumber =
+    stay.billNumber ||
+    `INV-SPARK-2026-${safeRoomNumber}-${safeId.length >= 4 ? safeId.slice(-4) : safeId.padStart(4, '0')}`;
+
+  const checkInFormatted = stay.checkInTime
+    ? new Date(stay.checkInTime).toLocaleString('en-IN', {
+        dateStyle: 'medium',
+        timeStyle: 'short',
+      })
+    : new Date().toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
+
   const checkOutFormatted = stay.actualCheckoutTime
     ? new Date(stay.actualCheckoutTime).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })
-    : new Date(stay.expectedCheckoutTime).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
+    : stay.expectedCheckoutTime
+    ? new Date(stay.expectedCheckoutTime).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })
+    : new Date().toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
 
   const totalPaid = (stay.advancePaid || 0) + (stay.previousPayments || 0);
   const rawRoomCharges = (stay.nights || 1) * (stay.pricePerNight || 0);
@@ -453,11 +464,11 @@ export default function BillInvoiceModal({ stay, isOpen, onClose }: BillInvoiceM
           open={showAadhaarModal}
           onClose={() => setShowAadhaarModal(false)}
           guest={{
-            id: stay.id,
-            firstName: stay.guestName.split(' ')[0] || 'Guest',
-            lastName: stay.guestName.split(' ').slice(1).join(' ') || '',
-            idProofType: stay.idProofType,
-            idProofNumber: stay.idProofNumber,
+            id: safeId,
+            firstName: (stay.guestName || 'Guest').split(' ')[0] || 'Guest',
+            lastName: (stay.guestName || 'Guest').split(' ').slice(1).join(' ') || '',
+            idProofType: stay.idProofType || 'Aadhaar',
+            idProofNumber: stay.idProofNumber || 'XXXX XXXX 1234',
             idProofFrontUrl: stay.idProofFrontUrl,
             idProofBackUrl: stay.idProofBackUrl,
             stateProvince: stay.state || 'Telangana',

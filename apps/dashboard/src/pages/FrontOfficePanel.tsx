@@ -411,7 +411,7 @@ export default function FrontOfficePanel() {
         <WalkInCheckInModal open={walkInOpen} onClose={() => setWalkInOpen(false)} />
       )}
 
-      {invoiceStay && (
+      {invoiceStay && invoiceStay.id && (
         <BillInvoiceModal
           stay={invoiceStay}
           isOpen={Boolean(invoiceStay)}
@@ -428,7 +428,9 @@ export default function FrontOfficePanel() {
             queryClient.invalidateQueries({ queryKey: ['stays'] });
             queryClient.invalidateQueries({ queryKey: ['rooms'] });
             setCheckoutStay(null);
-            setInvoiceStay(updatedStay);
+            if (updatedStay && updatedStay.id) {
+              setInvoiceStay(updatedStay);
+            }
           }}
         />
       )}
@@ -439,10 +441,10 @@ export default function FrontOfficePanel() {
           onClose={() => setAadhaarStay(null)}
           guest={{
             id: aadhaarStay.id,
-            firstName: aadhaarStay.guestName.split(' ')[0] || 'Guest',
-            lastName: aadhaarStay.guestName.split(' ').slice(1).join(' ') || '',
-            idProofType: aadhaarStay.idProofType,
-            idProofNumber: aadhaarStay.idProofNumber,
+            firstName: (aadhaarStay.guestName || 'Guest').split(' ')[0] || 'Guest',
+            lastName: (aadhaarStay.guestName || 'Guest').split(' ').slice(1).join(' ') || '',
+            idProofType: aadhaarStay.idProofType || 'Aadhaar',
+            idProofNumber: aadhaarStay.idProofNumber || 'XXXX XXXX 1234',
             idProofFrontUrl: aadhaarStay.idProofFrontUrl,
             idProofBackUrl: aadhaarStay.idProofBackUrl,
             stateProvince: aadhaarStay.state || 'Telangana',

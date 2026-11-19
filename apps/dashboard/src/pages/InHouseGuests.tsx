@@ -288,7 +288,7 @@ export default function InHouseGuests() {
                         title="Click to view authorized ID proof"
                       >
                         <ShieldCheck size={13} className={guest.idProofFrontUrl ? 'text-emerald-600' : 'text-gray-400'} />
-                        {guest.idProofType.split(' ')[0]} {guest.idProofFrontUrl ? '✓' : ''}
+                        {(guest.idProofType || 'Aadhaar').split(' ')[0]} {guest.idProofFrontUrl ? '✓' : ''}
                       </button>
                     </td>
 
@@ -355,16 +355,20 @@ export default function InHouseGuests() {
         onClose={() => setCheckoutStay(null)}
         onCheckoutSuccess={(updatedStay) => {
           setCheckoutStay(null);
-          setInvoiceStay(updatedStay);
+          if (updatedStay && updatedStay.id) {
+            setInvoiceStay(updatedStay);
+          }
         }}
       />
 
       {/* Modal 3: Bill / Invoice Modal (Printable) */}
-      <BillInvoiceModal
-        stay={invoiceStay}
-        isOpen={Boolean(invoiceStay)}
-        onClose={() => setInvoiceStay(null)}
-      />
+      {invoiceStay && invoiceStay.id && (
+        <BillInvoiceModal
+          stay={invoiceStay}
+          isOpen={Boolean(invoiceStay)}
+          onClose={() => setInvoiceStay(null)}
+        />
+      )}
 
       {/* Modal 4: View Authorized ID Proof Modal */}
       {idDocStay && (
