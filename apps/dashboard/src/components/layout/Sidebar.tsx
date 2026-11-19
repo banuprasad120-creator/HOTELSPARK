@@ -34,6 +34,7 @@ import {
   XCircle,
   History,
   X,
+  Plus,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../context/AuthContext';
@@ -106,38 +107,12 @@ interface SidebarProps {
   onClose: () => void;
 }
 
-function isItemVisible(
-  item: NavItem,
-  hasPermission: (key: string) => boolean,
-  hasRole: (...roles: string[]) => boolean,
-) {
-  if (item.to === '/booking-requests' && !isBookingRequestsUiEnabled()) return false;
-  if (item.permission) return hasPermission(item.permission);
-  if (item.roles) return hasRole(...item.roles);
-  return true;
-}
-
 export default function Sidebar({ mobileOpen, onClose }: SidebarProps) {
-  const { hasRole, hasPermission } = useAuth();
+  const { user, hasRole, hasPermission } = useAuth();
   const { t } = useTranslation();
   const { propertyId, isPortfolioMode, properties } = useProperty();
   const { activeDepartment, setActiveDepartment } = useDepartment();
   const location = useLocation();
-
-  const isLocal = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
-  const websiteUrl = isLocal
-    ? 'http://localhost:5174/'
-    : typeof window !== 'undefined'
-      ? `${window.location.origin}/`
-      : '/';
-
-  const consoleBadge = location.pathname.includes('/admin-panel')
-    ? 'ADMIN CONSOLE'
-    : location.pathname.includes('/manager-panel')
-    ? 'MANAGER CONSOLE'
-    : location.pathname.includes('/front-office-panel')
-    ? 'FRONT DESK CONSOLE'
-    : 'ADMIN CONSOLE';
 
   const activeProperty = isPortfolioMode
     ? null
@@ -147,16 +122,75 @@ export default function Sidebar({ mobileOpen, onClose }: SidebarProps) {
     ? 'Hotel Spark'
     : (activeProperty?.name || 'Hotel Spark');
   const brandLogo = !isPortfolioMode ? activeProperty?.staffLogoUrl : null;
-  const tagline = 'Admin Console & PMS';
 
-  const allowedRoutes = DEPT_ALLOWED_ROUTES[activeDepartment];
+  const isLocal = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+  const websiteUrl = isLocal
+    ? 'http://localhost:5174/'
+    : typeof window !== 'undefined'
+      ? `${window.location.origin}/`
+      : '/';
 
-  const visibleSections = NAV_SECTIONS.map((section) => ({
-    ...section,
-    items: section.items
-      .filter((item) => isItemVisible(item, hasPermission, hasRole))
-      .filter((item) => !allowedRoutes || allowedRoutes.includes(item.to)),
-  })).filter((section) => section.items.length > 0);
+  const isAdmin = user?.roles.includes('admin') || user?.email === 'admin@sparkhotel.com';
+  const isManager = !isAdmin && (user?.roles.includes('manager') || user?.roles.includes('general_manager'));
+  const isFrontOffice = !isAdmin && !isManager;
+
+  const consoleBadge = isAdmin
+    ? 'SUPER ADMIN'
+    : isManager
+    ? 'HOTEL MANAGER'
+    : `FRONT OFFICE (${user?.employeeId || 'FO'})`;
+
+  // Role-Specific Navigation Menus
+  const roleSections: NavSection[] = isAdmin
+    ? [
+        {
+          sectionKey: 'Admin Management',
+          items: [
+            { to: '/admin', icon: Shield, labelKey: '🛡️ Super Admin Overview' },
+            { to: '/rooms', icon: DoorOpen, labelKey: '🚪 Rooms Rack (28 Rooms)' },
+            { to: '/reservations', icon: CalendarDays, labelKey: '📅 All Bookings' },
+            { to: '/direct-bookings', icon: Globe, labelKey: '🛎️ Website Bookings' },
+            { to: '/tariff-settings', icon: Tags, labelKey: '🏷️ Pricing & Tariffs' },
+            { to: '/guests', icon: Users, labelKey: '👥 Guest Records' },
+            { to: '/front-desk', icon: ConciergeBell, labelKey: '🛎️ Front Desk & Check-In' },
+            { to: '/current-guests', icon: UsersRound, labelKey: '👥 In-House Guests' },
+            { to: '/folios', icon: Receipt, labelKey: '🧾 Billing & Invoices' },
+            { to: '/cashier', icon: Banknote, labelKey: '💳 Payments & Refunds' },
+            { to: '/staff', icon: Briefcase, labelKey: '👔 Employees & Credentials' },
+            { to: '/reports', icon: BarChart3, labelKey: '📊 Reports & Analytics' },
+            { to: '/settings', icon: Settings, labelKey: '⚙️ Hotel Settings' },
+          ],
+        },
+      ]
+    : isManager
+    ? [
+        {
+          sectionKey: 'Manager Dashboard',
+          items: [
+            { to: '/manager', icon: Briefcase, labelKey: '👔 Manager Overview' },
+            { to: '/rooms', icon: DoorOpen, labelKey: '🚪 Rooms Availability' },
+            { to: '/reservations', icon: CalendarDays, labelKey: '📅 All Hotel Bookings' },
+            { to: '/direct-bookings', icon: Globe, labelKey: '🛎️ Website Bookings' },
+            { to: '/front-desk', icon: ConciergeBell, labelKey: '🛎️ Front Desk Check-in' },
+            { to: '/current-guests', icon: Users, labelKey: '👥 In-House & Checkout' },
+            { to: '/folios', icon: Receipt, labelKey: '🧾 Folios & Billing' },
+            { to: '/reports', icon: BarChart3, labelKey: '📊 Occupancy & Revenue' },
+          ],
+        },
+      ]
+    : [
+        {
+          sectionKey: 'Front Office Desk',
+          items: [
+            { to: '/front-office', icon: ConciergeBell, labelKey: '🛎️ Front Office Overview' },
+            { to: '/direct-bookings', icon: Globe, labelKey: '🛎️ Today\'s Website Bookings' },
+            { to: '/front-desk', icon: Plus, labelKey: '➕ Walk-In Guest & Check-In' },
+            { to: '/rooms', icon: DoorOpen, labelKey: '🚪 Available Rooms Rack' },
+            { to: '/current-guests', icon: Users, labelKey: '👥 In-House Guests' },
+            { to: '/guest-history', icon: History, labelKey: '🧾 Checkout & Past Bills' },
+          ],
+        },
+      ];
 
   return (
     <>
@@ -226,7 +260,7 @@ export default function Sidebar({ mobileOpen, onClose }: SidebarProps) {
         )}
 
         <nav className="flex-1 overflow-y-auto py-3" role="navigation" aria-label={t('nav.mainNavigation')}>
-          {visibleSections.map((section, sectionIdx) => (
+          {roleSections.map((section, sectionIdx) => (
             <div key={section.sectionKey ?? `section-${sectionIdx}`}>
               {section.sectionKey && (
                 <p className="px-6 pt-4 pb-1 text-[10px] font-semibold uppercase tracking-wider text-white/40">

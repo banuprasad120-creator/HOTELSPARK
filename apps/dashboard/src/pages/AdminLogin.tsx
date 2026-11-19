@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Lock,
   Mail,
@@ -16,11 +17,22 @@ import { useAuth, SPARK_CREDENTIAL_USERS } from '../context/AuthContext';
 
 export default function AdminLogin() {
   const { login } = useAuth();
+  const navigate = useNavigate();
   const [email, setEmail] = useState('admin@sparkhotel.com');
   const [password, setPassword] = useState('SparkHotel@2026');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  const redirectByRole = (user: any) => {
+    if (user?.roles.includes('admin') || user?.email === 'admin@sparkhotel.com') {
+      navigate('/admin');
+    } else if (user?.roles.includes('manager')) {
+      navigate('/manager');
+    } else {
+      navigate('/front-office');
+    }
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -32,6 +44,8 @@ export default function AdminLogin() {
       if (!res.success) {
         setError(res.error || 'Invalid credentials');
         setLoading(false);
+      } else {
+        redirectByRole(res.user);
       }
     }, 250);
   };
@@ -40,7 +54,10 @@ export default function AdminLogin() {
     setEmail(uEmail);
     setPassword('SparkHotel@2026');
     setError(null);
-    login(uEmail, 'SparkHotel@2026');
+    const res = login(uEmail, 'SparkHotel@2026');
+    if (res.success) {
+      redirectByRole(res.user);
+    }
   };
 
   return (
@@ -95,7 +112,7 @@ export default function AdminLogin() {
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="e.g. admin@sparkhotel.com"
+                    placeholder="e.g. FO001 or admin@sparkhotel.com"
                     className="w-full pl-10 pr-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:bg-white focus:outline-none focus:border-teal-600 focus:ring-1 focus:ring-teal-600 transition"
                   />
                 </div>

@@ -45,14 +45,51 @@ export interface AuthUser {
 
 export const SPARK_CREDENTIAL_USERS: AuthUser[] = [
   {
-    sub: 'e0000001-0000-4000-a000-000000000001',
+    sub: '9814bb0a-fd4e-4743-a18a-4cce1dd311a2',
     email: 'admin@sparkhotel.com',
     name: 'Banu Prasad (Owner)',
-    employeeId: 'EMP-SPARK-001',
-    roleTitle: 'Hotel Admin / Owner',
+    employeeId: 'ADM001',
+    roleTitle: 'Hotel Owner & Super Admin',
     department: 'Management',
     roles: ['admin', 'general_manager', 'front_desk', 'front_desk_manager', 'housekeeping_manager', 'accountant'],
   },
+  {
+    sub: 'eaece370-a568-40e2-8e40-cf6787c5fc50',
+    email: 'manager@sparkhotel.com',
+    name: 'Ramesh Rao',
+    employeeId: 'MGR001',
+    roleTitle: 'Hotel General Manager',
+    department: 'Management',
+    roles: ['manager', 'general_manager', 'front_desk_manager', 'front_desk'],
+  },
+  {
+    sub: '368d157c-a3c3-4eca-80d9-b9122d209d95',
+    email: 'fo001@sparkhotel.com',
+    name: 'Priya Sharma (FO1)',
+    employeeId: 'FO001',
+    roleTitle: 'Front Office Executive 1 (Morning)',
+    department: 'Front Office',
+    roles: ['front_office', 'front_desk'],
+  },
+  {
+    sub: 'a758badd-4bf4-492c-a1fe-e31e8ba8daa6',
+    email: 'fo002@sparkhotel.com',
+    name: 'Kiran Varma (FO2)',
+    employeeId: 'FO002',
+    roleTitle: 'Front Office Executive 2 (Evening)',
+    department: 'Front Office',
+    roles: ['front_office', 'front_desk'],
+  },
+  {
+    sub: '80d8b117-3e8d-453a-a6a5-315847ee6f71',
+    email: 'fo003@sparkhotel.com',
+    name: 'Rahul Verma (FO3)',
+    employeeId: 'FO003',
+    roleTitle: 'Front Office Executive 3 (Night)',
+    department: 'Front Office',
+    roles: ['front_office', 'front_desk'],
+  },
+  // Backward-compatible aliases
   {
     sub: 'e0000002-0000-4000-a000-000000000001',
     email: 'frontdesk.mgr@sparkhotel.com',
@@ -60,16 +97,16 @@ export const SPARK_CREDENTIAL_USERS: AuthUser[] = [
     employeeId: 'EMP-SPARK-002',
     roleTitle: 'Front Office Manager',
     department: 'Front Office',
-    roles: ['front_desk', 'front_desk_manager'],
+    roles: ['manager', 'front_desk', 'front_desk_manager'],
   },
   {
     sub: 'e0000003-0000-4000-a000-000000000001',
     email: 'reception1@sparkhotel.com',
     name: 'Priya Sharma',
     employeeId: 'EMP-SPARK-003',
-    roleTitle: 'Senior Receptionist (Day Shift)',
+    roleTitle: 'Senior Receptionist',
     department: 'Front Office',
-    roles: ['front_desk'],
+    roles: ['front_office', 'front_desk'],
   },
   {
     sub: 'e0000004-0000-4000-a000-000000000001',
@@ -78,7 +115,7 @@ export const SPARK_CREDENTIAL_USERS: AuthUser[] = [
     employeeId: 'EMP-SPARK-004',
     roleTitle: 'Night Front Desk Executive',
     department: 'Front Office',
-    roles: ['front_desk', 'night_auditor'],
+    roles: ['front_office', 'front_desk', 'night_auditor'],
   },
   {
     sub: 'e0000005-0000-4000-a000-000000000001',
@@ -125,7 +162,7 @@ export interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   authEnabled: boolean;
-  login: (email: string, password?: string) => { success: boolean; error?: string };
+  login: (email: string, password?: string) => { success: boolean; user?: AuthUser; error?: string };
   logout: () => void;
   switchUser: (identifier: string) => boolean;
   hasRole: (...roles: string[]) => boolean;
@@ -277,11 +314,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = useCallback((email: string, password?: string) => {
     const cleanEmail = email.trim().toLowerCase();
+
+    // Check deactivated status
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        const deactivatedList: string[] = JSON.parse(window.localStorage.getItem('hotel_spark_deactivated_users') || '[]');
+        if (deactivatedList.includes(cleanEmail)) {
+          return {
+            success: false,
+            error: `This account (${email}) has been deactivated by the Super Admin. Access is disabled.`,
+          };
+        }
+      }
+    } catch {
+      // ignore
+    }
+
     const matched = SPARK_CREDENTIAL_USERS.find(
       (u) =>
         u.email.toLowerCase() === cleanEmail ||
         u.employeeId?.toLowerCase() === cleanEmail ||
-        (cleanEmail === 'admin' && u.email === 'admin@sparkhotel.com'),
+        (cleanEmail === 'admin' && u.email === 'admin@sparkhotel.com') ||
+        (cleanEmail === 'manager' && u.email === 'manager@sparkhotel.com') ||
+        (cleanEmail === 'fo001' && u.employeeId === 'FO001') ||
+        (cleanEmail === 'fo002' && u.employeeId === 'FO002') ||
+        (cleanEmail === 'fo003' && u.employeeId === 'FO003'),
     );
     if (!matched) {
       return { success: false, error: `Staff account not found for "${email}". Check credentials list.` };
@@ -290,9 +347,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (password && password.trim()) {
       const allowedPasswords: Record<string, string[]> = {
         'admin@sparkhotel.com': ['SparkAdmin@2026', 'SparkHotel@2026'],
+        'manager@sparkhotel.com': ['ManagerSpark@2026', 'SparkHotel@2026'],
         'frontdesk.mgr@sparkhotel.com': ['RameshSpark@2026', 'SparkHotel@2026'],
+        'fo001@sparkhotel.com': ['FrontOffice1@2026', 'SparkHotel@2026', 'PriyaSpark@2026'],
         'reception1@sparkhotel.com': ['PriyaSpark@2026', 'SparkHotel@2026'],
+        'fo002@sparkhotel.com': ['FrontOffice2@2026', 'SparkHotel@2026', 'KiranSpark@2026'],
         'reception2@sparkhotel.com': ['KiranSpark@2026', 'SparkHotel@2026'],
+        'fo003@sparkhotel.com': ['FrontOffice3@2026', 'SparkHotel@2026'],
       };
       const allowed = allowedPasswords[matched.email.toLowerCase()] || ['SparkHotel@2026'];
       if (!allowed.includes(password.trim())) {
@@ -303,8 +364,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(matched);
     if (typeof window !== 'undefined' && window.localStorage) {
       window.localStorage.setItem('hotel_spark_active_user', JSON.stringify(matched));
+      window.localStorage.setItem(`hotel_spark_last_login_${matched.sub}`, new Date().toISOString());
     }
-    return { success: true };
+
+    return { success: true, user: matched };
   }, []);
 
   const logout = useCallback(() => {
@@ -341,20 +404,55 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const hasRole = useCallback(
     (...requiredRoles: string[]) => {
       if (!user) return false;
-      if (roles.includes('admin') || roles.includes('general_manager') || user.email === 'admin@sparkhotel.com') {
+      // Super Admin has all roles
+      if (roles.includes('admin') || user.email === 'admin@sparkhotel.com') {
         return true;
+      }
+      // If admin role is strictly required, non-admins return false
+      if (requiredRoles.includes('admin') && !roles.includes('admin')) {
+        return false;
+      }
+      // Manager role checks
+      if (roles.includes('manager') || roles.includes('general_manager')) {
+        if (requiredRoles.includes('manager') || requiredRoles.includes('general_manager') || requiredRoles.includes('front_office') || requiredRoles.includes('front_desk')) {
+          return true;
+        }
+      }
+      // Front Office role checks
+      if (roles.includes('front_office') || roles.includes('front_desk')) {
+        // Front office users do NOT have admin, manager, or general_manager roles
+        if (requiredRoles.includes('admin') || requiredRoles.includes('manager') || requiredRoles.includes('general_manager')) {
+          return false;
+        }
+        if (requiredRoles.includes('front_office') || requiredRoles.includes('front_desk')) {
+          return true;
+        }
       }
       return requiredRoles.some((role) => roles.includes(role));
     },
     [user, roles],
   );
 
-  // Permission-based gating. When auth is disabled (demo), admin has full permissions.
+  // Permission-based gating
   const hasPermission = useCallback(
     (...required: string[]) => {
       if (!user) return false;
-      if (roles.includes('admin') || roles.includes('general_manager') || user.email === 'admin@sparkhotel.com') {
+      if (roles.includes('admin') || user.email === 'admin@sparkhotel.com') {
         return true;
+      }
+      // Front office cannot manage master rates or users
+      if (roles.includes('front_office')) {
+        const forbiddenForFO = ['admin.users.manage', 'rates.manage', 'settings.manage', 'system.admin'];
+        if (required.some((p) => forbiddenForFO.includes(p))) {
+          return false;
+        }
+      }
+      // Manager cannot manage super admin users or system settings
+      if (roles.includes('manager') && !roles.includes('admin')) {
+        const forbiddenForMgr = ['admin.credentials.change', 'system.admin'];
+        if (required.some((p) => forbiddenForMgr.includes(p))) {
+          return false;
+        }
       }
       if (!AUTH_ENABLED) return true;
       return required.every((p) => permissions.includes(p));

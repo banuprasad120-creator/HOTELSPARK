@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react';
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import { SpeedInsights } from '@vercel/speed-insights/react';
 import AppLayout from './components/layout/AppLayout';
 import PropertyScopeBoundary from './components/layout/PropertyScopeBoundary';
@@ -44,6 +44,48 @@ const ManagerPanel = lazy(() => import('./pages/ManagerPanel'));
 const FrontOfficePanel = lazy(() => import('./pages/FrontOfficePanel'));
 const RoomTariffSettings = lazy(() => import('./pages/RoomTariffSettings'));
 
+/**
+ * RoleGuard: Enforces strict route authorization across Admin, Manager, and Front Office.
+ * Prevents non-authorized users from manually opening protected routes in the URL bar.
+ */
+function RoleGuard({
+  allowedRoles,
+  children,
+}: {
+  allowedRoles: string[];
+  children: React.ReactNode;
+}) {
+  const { user } = useAuth();
+  if (!user) return <Navigate to="/" replace />;
+
+  // Super Admin has universal access
+  if (user.roles.includes('admin') || user.email === 'admin@sparkhotel.com') {
+    return <>{children}</>;
+  }
+
+  const isAllowed = allowedRoles.some((r) => user.roles.includes(r));
+  if (!isAllowed) {
+    if (user.roles.includes('manager')) {
+      return <Navigate to="/manager" replace />;
+    }
+    return <Navigate to="/front-office" replace />;
+  }
+
+  return <>{children}</>;
+}
+
+function RootRedirect() {
+  const { user } = useAuth();
+  if (!user) return <Dashboard />;
+  if (user.roles.includes('admin') || user.email === 'admin@sparkhotel.com') {
+    return <AdminPanel />;
+  }
+  if (user.roles.includes('manager')) {
+    return <Navigate to="/manager" replace />;
+  }
+  return <Navigate to="/front-office" replace />;
+}
+
 export default function App() {
   useRealtimeInvalidation();
   const { isAuthenticated } = useAuth();
@@ -65,22 +107,100 @@ export default function App() {
         <Suspense fallback={<SkeletonPage />}>
           <PropertyScopeBoundary>
             <Routes>
-              <Route path="/" element={<Dashboard />} />
-              <Route path="/admin-panel" element={<AdminPanel />} />
-              <Route path="/panel" element={<AdminPanel />} />
-              <Route path="/manager-panel" element={<ManagerPanel />} />
-              <Route path="/manager" element={<ManagerPanel />} />
-              <Route path="/front-office-panel" element={<FrontOfficePanel />} />
-              <Route path="/front-office" element={<FrontOfficePanel />} />
+              <Route path="/" element={<RootRedirect />} />
+              <Route
+                path="/admin"
+                element={
+                  <RoleGuard allowedRoles={['admin']}>
+                    <AdminPanel />
+                  </RoleGuard>
+                }
+              />
+              <Route
+                path="/admin-panel"
+                element={
+                  <RoleGuard allowedRoles={['admin']}>
+                    <AdminPanel />
+                  </RoleGuard>
+                }
+              />
+              <Route
+                path="/panel"
+                element={
+                  <RoleGuard allowedRoles={['admin']}>
+                    <AdminPanel />
+                  </RoleGuard>
+                }
+              />
+              <Route
+                path="/manager"
+                element={
+                  <RoleGuard allowedRoles={['admin', 'manager', 'general_manager']}>
+                    <ManagerPanel />
+                  </RoleGuard>
+                }
+              />
+              <Route
+                path="/manager-panel"
+                element={
+                  <RoleGuard allowedRoles={['admin', 'manager', 'general_manager']}>
+                    <ManagerPanel />
+                  </RoleGuard>
+                }
+              />
+              <Route
+                path="/front-office"
+                element={
+                  <RoleGuard allowedRoles={['admin', 'manager', 'front_office', 'front_desk']}>
+                    <FrontOfficePanel />
+                  </RoleGuard>
+                }
+              />
+              <Route
+                path="/front-office-panel"
+                element={
+                  <RoleGuard allowedRoles={['admin', 'manager', 'front_office', 'front_desk']}>
+                    <FrontOfficePanel />
+                  </RoleGuard>
+                }
+              />
               <Route path="/in-house" element={<InHouseGuests />} />
-              <Route path="/tariff-settings" element={<RoomTariffSettings />} />
-              <Route path="/rooms/tariff" element={<RoomTariffSettings />} />
-              <Route path="/rooms/types" element={<RoomTariffSettings />} />
+              <Route
+                path="/tariff-settings"
+                element={
+                  <RoleGuard allowedRoles={['admin']}>
+                    <RoomTariffSettings />
+                  </RoleGuard>
+                }
+              />
+              <Route
+                path="/rooms/tariff"
+                element={
+                  <RoleGuard allowedRoles={['admin']}>
+                    <RoomTariffSettings />
+                  </RoleGuard>
+                }
+              />
+              <Route
+                path="/rooms/types"
+                element={
+                  <RoleGuard allowedRoles={['admin']}>
+                    <RoomTariffSettings />
+                  </RoleGuard>
+                }
+              />
               <Route path="/departments" element={<DepartmentPanels />} />
               <Route path="/current-guests" element={<InHouseGuests />} />
               <Route path="/guest-history" element={<GuestHistory />} />
               <Route path="/front-desk" element={<FrontDesk />} />
-              <Route path="/staff/*" element={<StaffManagement />} />
+              <Route
+                path="/staff/*"
+                element={
+                  <RoleGuard allowedRoles={['admin']}>
+                    <StaffManagement />
+                  </RoleGuard>
+                }
+              />
               <Route path="/direct-bookings/*" element={<DirectBookings />} />
               {isBookingRequestsUiEnabled() && (
                 <Route path="/booking-requests/*" element={<BookingRequests />} />
@@ -95,7 +215,14 @@ export default function App() {
               <Route path="/cashier/*" element={<Cashier />} />
               <Route path="/house-accounts/*" element={<HouseAccounts />} />
               <Route path="/accounting/*" element={<Accounting />} />
-              <Route path="/tax/*" element={<TaxSettings />} />
+              <Route
+                path="/tax/*"
+                element={
+                  <RoleGuard allowedRoles={['admin']}>
+                    <TaxSettings />
+                  </RoleGuard>
+                }
+              />
               <Route path="/rate-plans/*" element={<RatePlans />} />
               <Route path="/revenue/*" element={<Revenue />} />
               <Route path="/night-audit" element={<NightAudit />} />
@@ -104,7 +231,14 @@ export default function App() {
               <Route path="/integrations" element={<Integrations />} />
               <Route path="/communications" element={<Communications />} />
               <Route path="/reviews" element={<Reviews />} />
-              <Route path="/settings/*" element={<Settings />} />
+              <Route
+                path="/settings/*"
+                element={
+                  <RoleGuard allowedRoles={['admin']}>
+                    <Settings />
+                  </RoleGuard>
+                }
+              />
               <Route path="/import" element={<Import />} />
             </Routes>
           </PropertyScopeBoundary>

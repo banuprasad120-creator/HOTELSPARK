@@ -23,6 +23,7 @@ import {
   ArrowRight,
   Layers,
   CheckCircle2,
+  KeyRound,
 } from 'lucide-react';
 import { api } from '../lib/api';
 import { useProperty } from '../context/PropertyContext';
@@ -520,13 +521,15 @@ export default function AdminPanel() {
             </p>
           </div>
 
-          <button
-            type="button"
-            onClick={() => navigate('/staff')}
-            className="px-3.5 py-1.5 bg-purple-700 hover:bg-purple-800 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5"
-          >
-            <Users size={14} /> Open 3-Shift Staff Module →
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => navigate('/staff')}
+              className="px-3.5 py-1.5 bg-purple-700 hover:bg-purple-800 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-xs"
+            >
+              <KeyRound size={14} /> Manage Employee Credentials & Roles →
+            </button>
+          </div>
         </div>
 
         <div className="overflow-x-auto">
