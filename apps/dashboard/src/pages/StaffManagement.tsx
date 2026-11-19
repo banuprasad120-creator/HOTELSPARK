@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Users,
@@ -25,6 +25,13 @@ import {
 } from 'lucide-react';
 import { api } from '../lib/api';
 import { useProperty } from '../context/PropertyContext';
+import { useToast } from '../components/ui/Toast';
+import {
+  getAllAuthUsers,
+  saveCustomAuthUser,
+  savePasswordOverride,
+  type AuthUser,
+} from '../context/AuthContext';
 import { formatMoney } from '../lib/money';
 import Modal from '../components/ui/Modal';
 
@@ -99,9 +106,11 @@ const ROLES_LIST = [
 export default function StaffManagement() {
   const { propertyId, currencyCode } = useProperty();
   const queryClient = useQueryClient();
+  const { toast } = useToast();
   const [activeTab, setActiveTab] = useState<'employees' | 'departments' | 'credentials'>('employees');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedShiftFilter, setSelectedShiftFilter] = useState<'all' | ShiftType>('all');
+  const [credVersion, setCredVersion] = useState(0);
 
   // Credential Management State
   const [credModalOpen, setCredModalOpen] = useState(false);
@@ -124,6 +133,106 @@ export default function StaffManagement() {
     }
     return [];
   });
+
+  const allCredUsers = useMemo(() => {
+    const list = getAllAuthUsers();
+    const map = new Map<string, any>();
+    for (const u of list) {
+      const emailLower = u.email.toLowerCase();
+      if (!map.has(emailLower)) {
+        map.set(emailLower, {
+          id: u.sub,
+          employeeId: u.employeeId || 'STAFF',
+          name: u.name,
+          email: u.email,
+          role: u.roles.includes('admin') ? 'admin' : u.roles.includes('manager') ? 'manager' : 'front_office',
+          roleTitle:
+            u.roleTitle ||
+            (u.roles.includes('admin')
+              ? 'Hotel Owner & Super Admin'
+              : u.roles.includes('manager')
+                ? 'Hotel General Manager'
+                : 'Front Office Executive'),
+          dashboardRoute: u.roles.includes('admin') ? '/admin' : u.roles.includes('manager') ? '/manager' : '/front-office',
+          department: u.department || (u.roles.includes('admin') || u.roles.includes('manager') ? 'Management' : 'Front Office'),
+        });
+      }
+    }
+    return Array.from(map.values());
+  }, [credModalOpen, resetModalOpen, deactivatedUsers, credVersion]);
+
+  const handleCreateCredential = async () => {
+    if (!newCredName.trim() || !newCredEmail.trim()) {
+      toast('error', 'Please enter employee name and valid email.');
+      return;
+    }
+    setCredActionLoading(true);
+    try {
+      const cleanEmail = newCredEmail.trim().toLowerCase();
+      const empIdentifier = newCredEmpId.trim().toUpperCase() || `EMP-${Date.now().toString().slice(-4)}`;
+      const roleTitle =
+        newCredRole === 'admin'
+          ? 'Hotel Owner & Super Admin'
+          : newCredRole === 'manager'
+            ? 'Hotel General Manager'
+            : 'Front Office Executive';
+
+      saveCustomAuthUser(
+        {
+          sub: `usr-${Date.now()}`,
+          email: cleanEmail,
+          name: newCredName.trim(),
+          employeeId: empIdentifier,
+          roleTitle,
+          department: newCredRole === 'admin' || newCredRole === 'manager' ? 'Management' : 'Front Office',
+          roles: [
+            newCredRole,
+            ...(newCredRole === 'admin' ? ['general_manager', 'front_desk'] : newCredRole === 'manager' ? ['front_desk'] : []),
+          ],
+        },
+        newCredPassword.trim() || 'SparkHotel@2026'
+      );
+
+      // Also create employee record so they show in both tabs
+      await api.post('/v1/employees', {
+        propertyId,
+        employeeId: empIdentifier,
+        name: newCredName.trim(),
+        mobile: '9876543210',
+        email: cleanEmail,
+        departmentName: newCredRole === 'admin' || newCredRole === 'manager' ? 'Management' : 'Front Office',
+        designation: roleTitle,
+        salary: newCredRole === 'admin' ? 100000 : newCredRole === 'manager' ? 60000 : 35000,
+        role: roleTitle,
+        shift: 'morning',
+        status: 'active',
+        joiningDate: new Date().toISOString().split('T')[0],
+      });
+
+      setCredVersion((v) => v + 1);
+      queryClient.invalidateQueries({ queryKey: ['employees'] });
+      toast('success', `Staff credential for ${newCredName} (${empIdentifier}) created successfully!`);
+      setCredModalOpen(false);
+      setNewCredName('');
+      setNewCredEmail('');
+    } catch (e: any) {
+      toast('error', 'Failed to create employee credential.');
+    } finally {
+      setCredActionLoading(false);
+    }
+  };
+
+  const handleResetPassword = () => {
+    if (!selectedCredUser || !newResetPassword.trim()) {
+      toast('error', 'Please enter a valid password.');
+      return;
+    }
+    savePasswordOverride(selectedCredUser.email, newResetPassword.trim());
+    toast('success', `Password for ${selectedCredUser.name} (${selectedCredUser.email}) updated successfully!`);
+    setCredVersion((v) => v + 1);
+    setResetModalOpen(false);
+    setSelectedCredUser(null);
+  };
 
   // Modals
   const [employeeModalOpen, setEmployeeModalOpen] = useState(false);
@@ -193,10 +302,39 @@ export default function StaffManagement() {
       } else {
         await api.post('/v1/employees', payload);
       }
+
+      if (empEmail.trim()) {
+        const cleanEmail = empEmail.trim().toLowerCase();
+        const role = empRole.toLowerCase();
+        const assignedRole: 'admin' | 'manager' | 'front_office' =
+          role.includes('admin') || role.includes('owner')
+            ? 'admin'
+            : role.includes('manager')
+              ? 'manager'
+              : 'front_office';
+
+        saveCustomAuthUser(
+          {
+            sub: editingEmployee?.id || `usr-${Date.now()}`,
+            email: cleanEmail,
+            name: empName.trim(),
+            employeeId: empId || `EMP-${Date.now().toString().slice(-4)}`,
+            roleTitle: empRole,
+            department: departments.find((d) => d.id === empDepartmentId)?.name || 'Front Office',
+            roles: [
+              assignedRole,
+              ...(assignedRole === 'admin' ? ['general_manager', 'front_desk'] : assignedRole === 'manager' ? ['front_desk'] : []),
+            ],
+          },
+          'SparkHotel@2026'
+        );
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['employees'] });
       queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
+      toast('success', `Employee ${empName} saved successfully!`);
+      setCredVersion((v) => v + 1);
       setEmployeeModalOpen(false);
       resetEmployeeForm();
     },
@@ -210,6 +348,8 @@ export default function StaffManagement() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['employees'] });
       queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
+      toast('success', 'Employee deleted successfully.');
+      setCredVersion((v) => v + 1);
     },
   });
 
@@ -621,7 +761,7 @@ export default function StaffManagement() {
 
             <div className="flex items-center gap-2">
               <span className="px-2.5 py-1 bg-emerald-100 text-emerald-800 text-xs font-bold rounded-lg border border-emerald-300">
-                ● 5 Active Accounts
+                ● {allCredUsers.length} Active Accounts
               </span>
             </div>
           </div>
@@ -640,58 +780,7 @@ export default function StaffManagement() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
-                  {[
-                    {
-                      id: '9814bb0a-fd4e-4743-a18a-4cce1dd311a2',
-                      employeeId: 'ADM001',
-                      name: 'Banu Prasad (Owner)',
-                      email: 'admin@sparkhotel.com',
-                      role: 'admin',
-                      roleTitle: 'Hotel Owner & Super Admin',
-                      dashboardRoute: '/admin',
-                      department: 'Management',
-                    },
-                    {
-                      id: 'eaece370-a568-40e2-8e40-cf6787c5fc50',
-                      employeeId: 'MGR001',
-                      name: 'Ramesh Rao',
-                      email: 'manager@sparkhotel.com',
-                      role: 'manager',
-                      roleTitle: 'Hotel General Manager',
-                      dashboardRoute: '/manager',
-                      department: 'Management',
-                    },
-                    {
-                      id: '368d157c-a3c3-4eca-80d9-b9122d209d95',
-                      employeeId: 'FO001',
-                      name: 'Priya Sharma (FO1)',
-                      email: 'fo001@sparkhotel.com',
-                      role: 'front_office',
-                      roleTitle: 'Front Office Executive 1 (Morning)',
-                      dashboardRoute: '/front-office',
-                      department: 'Front Office',
-                    },
-                    {
-                      id: 'a758badd-4bf4-492c-a1fe-e31e8ba8daa6',
-                      employeeId: 'FO002',
-                      name: 'Kiran Varma (FO2)',
-                      email: 'fo002@sparkhotel.com',
-                      role: 'front_office',
-                      roleTitle: 'Front Office Executive 2 (Evening)',
-                      dashboardRoute: '/front-office',
-                      department: 'Front Office',
-                    },
-                    {
-                      id: '80d8b117-3e8d-453a-a6a5-315847ee6f71',
-                      employeeId: 'FO003',
-                      name: 'Rahul Verma (FO3)',
-                      email: 'fo003@sparkhotel.com',
-                      role: 'front_office',
-                      roleTitle: 'Front Office Executive 3 (Night)',
-                      dashboardRoute: '/front-office',
-                      department: 'Front Office',
-                    },
-                  ].map((staff) => {
+                  {allCredUsers.map((staff: any) => {
                     const isDeactivated = deactivatedUsers.includes(staff.email.toLowerCase());
                     const lastLogin =
                       typeof window !== 'undefined'
@@ -847,10 +936,7 @@ export default function StaffManagement() {
             <button
               type="button"
               disabled={!newResetPassword.trim() || credActionLoading}
-              onClick={() => {
-                setResetModalOpen(false);
-                setSelectedCredUser(null);
-              }}
+              onClick={handleResetPassword}
               className="px-4 py-2 bg-purple-700 hover:bg-purple-800 text-white text-xs font-bold rounded-lg shadow-sm"
             >
               Update Password
@@ -942,12 +1028,10 @@ export default function StaffManagement() {
             <button
               type="button"
               disabled={!newCredName.trim() || !newCredEmail.trim() || credActionLoading}
-              onClick={() => {
-                setCredModalOpen(false);
-              }}
+              onClick={handleCreateCredential}
               className="px-4 py-2 bg-purple-700 hover:bg-purple-800 text-white text-xs font-bold rounded-lg shadow-sm"
             >
-              Create Staff Credential
+              {credActionLoading ? 'Creating…' : 'Create Staff Credential'}
             </button>
           </div>
         </div>

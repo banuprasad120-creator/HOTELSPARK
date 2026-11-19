@@ -224,12 +224,12 @@ export default function FrontOfficePanel() {
             const catShort = room.roomTypeName?.includes('Budget')
               ? 'Budget'
               : room.roomTypeName?.includes('Deluxe')
-              ? 'Deluxe'
-              : room.roomTypeName?.includes('Executive')
-              ? 'Executive'
-              : room.roomTypeName?.includes('Suite')
-              ? 'Suite'
-              : 'Room';
+                ? 'Deluxe'
+                : room.roomTypeName?.includes('Executive')
+                  ? 'Executive'
+                  : room.roomTypeName?.includes('Suite')
+                    ? 'Suite'
+                    : 'Room';
 
             return (
               <div
@@ -239,15 +239,14 @@ export default function FrontOfficePanel() {
                     setWalkInOpen(true);
                   }
                 }}
-                className={`p-2.5 rounded-xl border text-center transition-all ${
-                  isAvail
-                    ? 'border-emerald-300 bg-emerald-50/70 hover:bg-emerald-100 cursor-pointer shadow-2xs hover:scale-102'
-                    : isOcc
+                className={`p-2.5 rounded-xl border text-center transition-all ${isAvail
+                  ? 'border-emerald-300 bg-emerald-50/70 hover:bg-emerald-100 cursor-pointer shadow-2xs hover:scale-102'
+                  : isOcc
                     ? 'border-teal-300 bg-teal-50/60'
                     : isBooked
-                    ? 'border-purple-300 bg-purple-50/60'
-                    : 'border-amber-300 bg-amber-50/60'
-                }`}
+                      ? 'border-purple-300 bg-purple-50/60'
+                      : 'border-amber-300 bg-amber-50/60'
+                  }`}
                 title={`Room ${room.number} (${catShort}) - Floor ${room.floor || '1'}`}
               >
                 <div className="font-bold text-xs text-telivity-navy">Room {room.number}</div>
@@ -255,15 +254,14 @@ export default function FrontOfficePanel() {
                   {catShort} • F{room.floor || (room.number.startsWith('2') ? '2' : '1')}
                 </div>
                 <span
-                  className={`inline-block px-1.5 py-0.2 rounded text-[9px] font-bold mt-1 uppercase ${
-                    isAvail
-                      ? 'bg-emerald-200 text-emerald-900'
-                      : isOcc
+                  className={`inline-block px-1.5 py-0.2 rounded text-[9px] font-bold mt-1 uppercase ${isAvail
+                    ? 'bg-emerald-200 text-emerald-900'
+                    : isOcc
                       ? 'bg-teal-200 text-teal-900'
                       : isBooked
-                      ? 'bg-purple-200 text-purple-900'
-                      : 'bg-amber-200 text-amber-900'
-                  }`}
+                        ? 'bg-purple-200 text-purple-900'
+                        : 'bg-amber-200 text-amber-900'
+                    }`}
                 >
                   {isAvail ? 'Ready' : isOcc ? 'Occupied' : isBooked ? 'Booked' : 'Dirty'}
                 </span>
@@ -358,9 +356,8 @@ export default function FrontOfficePanel() {
                   </td>
                   <td className="py-3 px-3 text-right">
                     <span
-                      className={`font-bold ${
-                        (stay.balance || 0) > 0 ? 'text-amber-700' : 'text-emerald-700'
-                      }`}
+                      className={`font-bold ${(stay.balance || 0) > 0 ? 'text-amber-700' : 'text-emerald-700'
+                        }`}
                     >
                       ₹{stay.balance?.toLocaleString('en-IN')}
                     </span>

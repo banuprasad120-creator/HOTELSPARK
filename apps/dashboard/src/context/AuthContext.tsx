@@ -155,6 +155,76 @@ export const SPARK_CREDENTIAL_USERS: AuthUser[] = [
   },
 ];
 
+export function getCustomAuthUsers(): AuthUser[] {
+  try {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      const saved = window.localStorage.getItem('hotel_spark_custom_users');
+      return saved ? JSON.parse(saved) : [];
+    }
+  } catch {
+    // ignore
+  }
+  return [];
+}
+
+export function getPasswordOverrides(): Record<string, string> {
+  try {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      const saved = window.localStorage.getItem('hotel_spark_password_overrides');
+      return saved ? JSON.parse(saved) : {};
+    }
+  } catch {
+    // ignore
+  }
+  return {};
+}
+
+export function savePasswordOverride(email: string, newPassword: string) {
+  try {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      const overrides = getPasswordOverrides();
+      overrides[email.toLowerCase().trim()] = newPassword;
+      window.localStorage.setItem('hotel_spark_password_overrides', JSON.stringify(overrides));
+    }
+  } catch {
+    // ignore
+  }
+}
+
+export function saveCustomAuthUser(user: AuthUser, initialPassword?: string) {
+  try {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      const list = getCustomAuthUsers();
+      const cleanEmail = user.email.toLowerCase().trim();
+      const filtered = list.filter(
+        (u) =>
+          u.email.toLowerCase().trim() !== cleanEmail &&
+          u.employeeId?.toLowerCase() !== user.employeeId?.toLowerCase()
+      );
+      filtered.push(user);
+      window.localStorage.setItem('hotel_spark_custom_users', JSON.stringify(filtered));
+
+      if (initialPassword) {
+        savePasswordOverride(cleanEmail, initialPassword);
+      }
+    }
+  } catch {
+    // ignore
+  }
+}
+
+export function getAllAuthUsers(): AuthUser[] {
+  const custom = getCustomAuthUsers();
+  const map = new Map<string, AuthUser>();
+  for (const u of SPARK_CREDENTIAL_USERS) {
+    map.set(u.email.toLowerCase(), u);
+  }
+  for (const u of custom) {
+    map.set(u.email.toLowerCase(), u);
+  }
+  return Array.from(map.values());
+}
+
 export interface AuthContextType {
   user: AuthUser | null;
   roles: string[];
@@ -330,7 +400,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // ignore
     }
 
-    const matched = SPARK_CREDENTIAL_USERS.find(
+    const allUsers = getAllAuthUsers();
+    const matched = allUsers.find(
       (u) =>
         u.email.toLowerCase() === cleanEmail ||
         u.employeeId?.toLowerCase() === cleanEmail ||
@@ -345,19 +416,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     if (password && password.trim()) {
-      const allowedPasswords: Record<string, string[]> = {
-        'admin@sparkhotel.com': ['SparkAdmin@2026', 'SparkHotel@2026'],
-        'manager@sparkhotel.com': ['ManagerSpark@2026', 'SparkHotel@2026'],
-        'frontdesk.mgr@sparkhotel.com': ['RameshSpark@2026', 'SparkHotel@2026'],
-        'fo001@sparkhotel.com': ['FrontOffice1@2026', 'SparkHotel@2026', 'PriyaSpark@2026'],
-        'reception1@sparkhotel.com': ['PriyaSpark@2026', 'SparkHotel@2026'],
-        'fo002@sparkhotel.com': ['FrontOffice2@2026', 'SparkHotel@2026', 'KiranSpark@2026'],
-        'reception2@sparkhotel.com': ['KiranSpark@2026', 'SparkHotel@2026'],
-        'fo003@sparkhotel.com': ['FrontOffice3@2026', 'SparkHotel@2026'],
-      };
-      const allowed = allowedPasswords[matched.email.toLowerCase()] || ['SparkHotel@2026'];
-      if (!allowed.includes(password.trim())) {
-        return { success: false, error: `Invalid password for ${matched.name}. Please check your credentials.` };
+      const overrides = getPasswordOverrides();
+      const customPass = overrides[matched.email.toLowerCase()];
+      if (customPass) {
+        if (customPass !== password.trim()) {
+          return { success: false, error: `Invalid password for ${matched.name}. Please check your credentials.` };
+        }
+      } else {
+        const allowedPasswords: Record<string, string[]> = {
+          'admin@sparkhotel.com': ['SparkAdmin@2026', 'SparkHotel@2026'],
+          'manager@sparkhotel.com': ['ManagerSpark@2026', 'SparkHotel@2026'],
+          'frontdesk.mgr@sparkhotel.com': ['RameshSpark@2026', 'SparkHotel@2026'],
+          'fo001@sparkhotel.com': ['FrontOffice1@2026', 'SparkHotel@2026', 'PriyaSpark@2026'],
+          'reception1@sparkhotel.com': ['PriyaSpark@2026', 'SparkHotel@2026'],
+          'fo002@sparkhotel.com': ['FrontOffice2@2026', 'SparkHotel@2026', 'KiranSpark@2026'],
+          'reception2@sparkhotel.com': ['KiranSpark@2026', 'SparkHotel@2026'],
+          'fo003@sparkhotel.com': ['FrontOffice3@2026', 'SparkHotel@2026'],
+        };
+        const allowed = allowedPasswords[matched.email.toLowerCase()] || ['SparkHotel@2026'];
+        if (!allowed.includes(password.trim())) {
+          return { success: false, error: `Invalid password for ${matched.name}. Please check your credentials.` };
+        }
       }
     }
 
@@ -383,7 +462,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const switchUser = useCallback((identifier: string) => {
     const clean = identifier.trim().toLowerCase();
-    const matched = SPARK_CREDENTIAL_USERS.find(
+    const matched = getAllAuthUsers().find(
       (u) =>
         u.email.toLowerCase() === clean ||
         u.employeeId?.toLowerCase() === clean ||

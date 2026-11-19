@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Lock,
@@ -13,7 +13,7 @@ import {
   Building2,
   KeyRound,
 } from 'lucide-react';
-import { useAuth, SPARK_CREDENTIAL_USERS } from '../context/AuthContext';
+import { useAuth, SPARK_CREDENTIAL_USERS, getAllAuthUsers, getPasswordOverrides } from '../context/AuthContext';
 
 export default function AdminLogin() {
   const { login } = useAuth();
@@ -23,6 +23,12 @@ export default function AdminLogin() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  const displayUsers = useMemo(() => {
+    return getAllAuthUsers()
+      .filter((u, i, arr) => arr.findIndex((x) => x.email.toLowerCase() === u.email.toLowerCase()) === i)
+      .slice(0, 7);
+  }, []);
 
   const redirectByRole = (user: any) => {
     if (user?.roles.includes('admin') || user?.email === 'admin@sparkhotel.com') {
@@ -52,9 +58,11 @@ export default function AdminLogin() {
 
   const handleQuickLogin = (uEmail: string) => {
     setEmail(uEmail);
-    setPassword('SparkHotel@2026');
+    const overrides = getPasswordOverrides();
+    const pass = overrides[uEmail.toLowerCase()] || 'SparkHotel@2026';
+    setPassword(pass);
     setError(null);
-    const res = login(uEmail, 'SparkHotel@2026');
+    const res = login(uEmail, pass);
     if (res.success) {
       redirectByRole(res.user);
     }
@@ -180,7 +188,7 @@ export default function AdminLogin() {
             </p>
 
             <div className="space-y-2.5">
-              {SPARK_CREDENTIAL_USERS.slice(0, 5).map((u) => {
+              {displayUsers.map((u) => {
                 const isSelected = email.toLowerCase() === u.email.toLowerCase();
                 return (
                   <button
