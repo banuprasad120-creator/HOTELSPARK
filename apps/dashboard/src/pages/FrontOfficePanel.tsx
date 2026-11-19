@@ -24,6 +24,7 @@ import {
   Shield,
   Briefcase,
   Layers,
+  Globe,
 } from 'lucide-react';
 import { api } from '../lib/api';
 import { useProperty } from '../context/PropertyContext';
@@ -374,14 +375,20 @@ export default function FrontOfficePanel() {
                       >
                         <FileText size={12} /> Folio
                       </button>
-                      <button
-                        type="button"
-                        onClick={() => setCheckoutStay(stay)}
-                        className="px-2.5 py-1 bg-amber-50 hover:bg-amber-600 text-amber-800 hover:text-white border border-amber-200 rounded-lg font-bold text-[11px] transition flex items-center gap-1"
-                        title="Complete Checkout"
-                      >
-                        <LogOut size={12} /> Checkout
-                      </button>
+                      {stay.stayStatus === 'checked_out' ? (
+                        <span className="px-2.5 py-1 bg-gray-100 text-gray-600 rounded-lg font-bold text-[11px] border border-gray-200">
+                          Checked Out
+                        </span>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setCheckoutStay(stay)}
+                          className="px-2.5 py-1 bg-amber-50 hover:bg-amber-600 text-amber-800 hover:text-white border border-amber-200 rounded-lg font-bold text-[11px] transition flex items-center gap-1 cursor-pointer"
+                          title="Complete Checkout"
+                        >
+                          <LogOut size={12} /> Checkout
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -417,10 +424,11 @@ export default function FrontOfficePanel() {
           stay={checkoutStay}
           isOpen={Boolean(checkoutStay)}
           onClose={() => setCheckoutStay(null)}
-          onCheckoutSuccess={() => {
+          onCheckoutSuccess={(updatedStay) => {
             queryClient.invalidateQueries({ queryKey: ['stays'] });
             queryClient.invalidateQueries({ queryKey: ['rooms'] });
             setCheckoutStay(null);
+            setInvoiceStay(updatedStay);
           }}
         />
       )}

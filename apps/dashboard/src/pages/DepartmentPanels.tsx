@@ -965,10 +965,11 @@ export default function DepartmentPanels() {
           stay={checkoutStay}
           isOpen={Boolean(checkoutStay)}
           onClose={() => setCheckoutStay(null)}
-          onCheckoutSuccess={() => {
+          onCheckoutSuccess={(updatedStay) => {
             queryClient.invalidateQueries({ queryKey: ['stays'] });
             queryClient.invalidateQueries({ queryKey: ['rooms'] });
             setCheckoutStay(null);
+            setInvoiceStay(updatedStay);
           }}
         />
       )}

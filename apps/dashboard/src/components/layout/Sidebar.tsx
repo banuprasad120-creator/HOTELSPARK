@@ -73,6 +73,7 @@ const NAV_SECTIONS: NavSection[] = [
       { to: '/departments', icon: Building2, labelKey: 'All Departments (Hub)' },
       { to: '/current-guests', icon: Users, labelKey: 'In-House Guests', permission: 'frontdesk.access' },
       { to: '/front-desk', icon: ConciergeBell, labelKey: 'Front Desk', permission: 'frontdesk.access' },
+      { to: '/direct-bookings', icon: Globe, labelKey: '🛎️ Website Bookings (Live)' },
       { to: '/reservations', icon: CalendarDays, labelKey: 'Booking Management', permission: 'reservations.read' },
       { to: '/guests', icon: Users, labelKey: 'Guest Management', permission: 'guests.read' },
       { to: '/rooms', icon: DoorOpen, labelKey: 'All Rooms Rack (28 Rooms)', permission: 'rooms.read' },

@@ -41,11 +41,12 @@ const DEFAULT_DEPARTMENTS = [
 const DEFAULT_EMPLOYEES = [
   { id: 'e0000001-0000-4000-a000-000000000001', employeeId: 'EMP-SPARK-001', name: 'Banu Prasad (Owner)', mobile: '+91 98765 43210', email: 'admin@sparkhotel.com', designation: 'Hotel Owner / Managing Director', role: 'Hotel Admin / Owner', departmentName: 'Management', salary: 150000, status: 'active', joiningDate: '2025-01-01', shift: 'morning' },
   { id: 'e0000002-0000-4000-a000-000000000001', employeeId: 'EMP-SPARK-002', name: 'Ramesh Rao', mobile: '+91 98765 43211', email: 'frontdesk.mgr@sparkhotel.com', designation: 'Front Office Manager', role: 'Front Office Manager', departmentName: 'Front Office', salary: 60000, status: 'active', joiningDate: '2025-02-01', shift: 'morning' },
-  { id: 'e0000003-0000-4000-a000-000000000001', employeeId: 'EMP-SPARK-003', name: 'Priya Sharma', mobile: '+91 98765 43212', email: 'reception1@sparkhotel.com', designation: 'Senior Receptionist', role: 'Receptionist', departmentName: 'Front Office', salary: 35000, status: 'active', joiningDate: '2025-03-15', shift: 'evening' },
-  { id: 'e0000004-0000-4000-a000-000000000001', employeeId: 'EMP-SPARK-004', name: 'Kavitha Devi', mobile: '+91 98765 43213', email: 'hk.mgr@sparkhotel.com', designation: 'Housekeeping Manager', role: 'Housekeeping Manager', departmentName: 'Housekeeping', salary: 45000, status: 'active', joiningDate: '2025-02-10', shift: 'morning' },
-  { id: 'e0000005-0000-4000-a000-000000000001', employeeId: 'EMP-SPARK-005', name: 'Sunil Kumar', mobile: '+91 98765 43214', email: 'accounts@sparkhotel.com', designation: 'Hotel Accountant', role: 'Accountant', departmentName: 'Accounts', salary: 50000, status: 'active', joiningDate: '2025-01-15', shift: 'general' },
-  { id: 'e0000006-0000-4000-a000-000000000001', employeeId: 'EMP-SPARK-006', name: 'Raju Nayak', mobile: '+91 98765 43215', email: 'hk.staff1@sparkhotel.com', designation: 'Housekeeping Supervisor', role: 'Housekeeping Staff', departmentName: 'Housekeeping', salary: 25000, status: 'active', joiningDate: '2025-04-01', shift: 'night' },
-  { id: 'e0000007-0000-4000-a000-000000000001', employeeId: 'EMP-SPARK-007', name: 'Satish Reddy', mobile: '+91 98765 43216', email: 'maintenance@sparkhotel.com', designation: 'Chief Maintenance Technician', role: 'Maintenance Staff', departmentName: 'Maintenance', salary: 32000, status: 'active', joiningDate: '2025-02-01', shift: 'evening' },
+  { id: 'e0000003-0000-4000-a000-000000000001', employeeId: 'EMP-SPARK-003', name: 'Priya Sharma', mobile: '+91 98765 43212', email: 'reception1@sparkhotel.com', designation: 'Senior Receptionist (Day Shift)', role: 'Receptionist', departmentName: 'Front Office', salary: 35000, status: 'active', joiningDate: '2025-03-15', shift: 'morning' },
+  { id: 'e0000004-0000-4000-a000-000000000001', employeeId: 'EMP-SPARK-004', name: 'Kiran Varma', mobile: '+91 98765 43217', email: 'reception2@sparkhotel.com', designation: 'Night Front Desk Executive', role: 'Receptionist', departmentName: 'Front Office', salary: 36000, status: 'active', joiningDate: '2025-04-01', shift: 'night' },
+  { id: 'e0000005-0000-4000-a000-000000000001', employeeId: 'EMP-SPARK-005', name: 'Kavitha Devi', mobile: '+91 98765 43213', email: 'hk.mgr@sparkhotel.com', designation: 'Housekeeping Manager', role: 'Housekeeping Manager', departmentName: 'Housekeeping', salary: 45000, status: 'active', joiningDate: '2025-02-10', shift: 'morning' },
+  { id: 'e0000006-0000-4000-a000-000000000001', employeeId: 'EMP-SPARK-006', name: 'Sunil Kumar', mobile: '+91 98765 43214', email: 'accounts@sparkhotel.com', designation: 'Hotel Accountant', role: 'Accountant', departmentName: 'Accounts', salary: 50000, status: 'active', joiningDate: '2025-01-15', shift: 'general' },
+  { id: 'e0000007-0000-4000-a000-000000000001', employeeId: 'EMP-SPARK-007', name: 'Raju Nayak', mobile: '+91 98765 43215', email: 'hk.staff1@sparkhotel.com', designation: 'Housekeeping Supervisor', role: 'Housekeeping Staff', departmentName: 'Housekeeping', salary: 25000, status: 'active', joiningDate: '2025-04-01', shift: 'night' },
+  { id: 'e0000008-0000-4000-a000-000000000001', employeeId: 'EMP-SPARK-008', name: 'Satish Reddy', mobile: '+91 98765 43216', email: 'maintenance@sparkhotel.com', designation: 'Chief Maintenance Technician', role: 'Maintenance Staff', departmentName: 'Maintenance', salary: 32000, status: 'active', joiningDate: '2025-02-01', shift: 'evening' },
 ];
 
 const RATE_STORAGE_KEY = 'hotel_spark_rates_cache';
@@ -2835,12 +2836,36 @@ export async function handleSupabaseAdapter(config: AxiosRequestConfig): Promise
       const stayIdx = stays.findIndex((s) => s.id === stayId);
       if (stayIdx >= 0) {
         const stay = stays[stayIdx];
+
+        // Prevent duplicate checkout and billing
+        if (stay.stayStatus === 'checked_out') {
+          return ok({
+            success: false,
+            message: `Stay for ${stay.guestName} in Room ${stay.roomNumber} has already been checked out and settled.`,
+            stay: stay,
+            alreadyCheckedOut: true,
+          });
+        }
+
+        const nights = typeof body.nights === 'number' && body.nights > 0 ? body.nights : (stay.nights || 1);
+        const pricePerNight = typeof body.pricePerNight === 'number' ? body.pricePerNight : (stay.pricePerNight || 0);
+        const extraCharges = typeof body.extraCharges === 'number' ? body.extraCharges : (stay.extraCharges || 0);
+        const discount = typeof body.discount === 'number' ? body.discount : (stay.discount || 0);
+        const totalAmount = typeof body.totalAmount === 'number' ? body.totalAmount : Math.max(0, (nights * pricePerNight) + extraCharges - discount);
+
         const prev = stay.previousPayments || 0;
         const newPrev = prev + finalPayment;
-        const newBalance = Math.max(0, stay.totalAmount - stay.advancePaid - newPrev);
+        const newBalance = Math.max(0, totalAmount - stay.advancePaid - newPrev);
+        const billNumber = stay.billNumber || body.billNumber || `INV-SPARK-2026-${stay.roomNumber}-${String(Math.floor(1000 + Math.random() * 9000))}`;
 
         stays[stayIdx] = {
           ...stay,
+          nights,
+          pricePerNight,
+          extraCharges,
+          discount,
+          totalAmount,
+          billNumber,
           actualCheckoutTime: new Date().toISOString(),
           previousPayments: newPrev,
           balance: newBalance,
@@ -2850,7 +2875,7 @@ export async function handleSupabaseAdapter(config: AxiosRequestConfig): Promise
         };
         saveStoredStays(stays);
 
-        // Mark Room as VACANT DIRTY and clear guest
+        // Mark Room as VACANT DIRTY (Cleaning Required) and clear guest
         const roomIdx = rooms.findIndex((r) => r.id === stay.roomId || r.number === stay.roomNumber);
         if (roomIdx >= 0) {
           rooms[roomIdx].status = 'vacant_dirty';
@@ -2863,10 +2888,28 @@ export async function handleSupabaseAdapter(config: AxiosRequestConfig): Promise
           }).catch(() => { });
         }
 
-        // Trigger Admin Notification
+        // Sync stay record to Supabase
+        supabaseFetch(`stays?id=eq.${stay.id}`, {
+          method: 'PATCH',
+          body: JSON.stringify({
+            stayStatus: 'checked_out',
+            actualCheckoutTime: stays[stayIdx].actualCheckoutTime,
+            previousPayments: newPrev,
+            balance: newBalance,
+            paymentStatus: stays[stayIdx].paymentStatus,
+            totalAmount,
+            extraCharges,
+            discount,
+            nights,
+            pricePerNight,
+            billNumber,
+          }),
+        }).catch(() => { });
+
+        // Trigger Notifications for Front Desk & Housekeeping
         addNotification(
           `Guest Checked Out: Room ${stay.roomNumber}`,
-          `${stay.guestName} checked out of Room ${stay.roomNumber}. Final payment: ₹${finalPayment.toLocaleString('en-IN')} via ${paymentMethod}. Room is now marked DIRTY for housekeeping.`,
+          `${stay.guestName} checked out of Room ${stay.roomNumber}. Final payment: ₹${finalPayment.toLocaleString('en-IN')} via ${paymentMethod}. Bill: ${billNumber}. Room is now marked DIRTY for housekeeping.`,
           'info',
           'check_out'
         );

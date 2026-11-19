@@ -3,9 +3,9 @@ import { useTranslation } from 'react-i18next';
 import { Routes, Route, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
-import { DoorOpen, LayoutGrid, List, Plus, X, Image as ImageIcon, AlertTriangle, Pencil, Tags, IndianRupee, Check, Sparkles, Globe } from 'lucide-react';
+import { DoorOpen, LayoutGrid, List, Plus, X, Image as ImageIcon, AlertTriangle, Pencil, Tags, IndianRupee, Check, Sparkles, Globe, LogOut } from 'lucide-react';
 import { api } from '../lib/api';
-import { getStoredRooms, DEFAULT_ROOMS } from '../lib/supabaseAdapter';
+import { getStoredRooms, DEFAULT_ROOMS, getStoredStays, type StoredStay } from '../lib/supabaseAdapter';
 import { moneyString, requirePropertyId } from '../lib/api-helpers';
 import { useProperty } from '../context/PropertyContext';
 import { useAuth } from '../context/AuthContext';
@@ -14,6 +14,8 @@ import { useMediaList } from '../hooks/useMedia';
 import StatusBadge from '../components/ui/StatusBadge';
 import Modal from '../components/ui/Modal';
 import MediaGallery from '../components/media/MediaGallery';
+import CheckoutModal from '../components/front-desk/CheckOutModal';
+import BillInvoiceModal from '../components/billing/BillInvoiceModal';
 
 interface Room {
   id: string;
@@ -85,6 +87,7 @@ function RoomDetailPanel({
   onClose,
   onTransition,
   transitioning,
+  onCheckOutRoom,
 }: {
   room: Room;
   propertyId: string;
@@ -92,6 +95,7 @@ function RoomDetailPanel({
   onClose: () => void;
   onTransition: (newStatus: string) => void;
   transitioning: boolean;
+  onCheckOutRoom?: (room: Room) => void;
 }) {
   const { t } = useTranslation();
   const { hasRole } = useAuth();
@@ -223,6 +227,26 @@ function RoomDetailPanel({
               </div>
             )}
           </div>
+
+          {/* Occupied Room: Check Out & Settle Folio Action */}
+          {room.status === 'occupied' && onCheckOutRoom && (
+            <div className="bg-rose-50 border border-rose-200 rounded-xl p-3.5 space-y-2">
+              <div className="flex items-center justify-between text-xs font-bold text-rose-900">
+                <span>Guest: {diary?.guestName ?? room.guestName ?? 'Occupied Room'}</span>
+                <span className="px-2 py-0.5 rounded bg-rose-200 text-rose-800 text-[10px] uppercase font-bold">Occupied</span>
+              </div>
+              <p className="text-[11px] text-rose-700">
+                Calculate stay charges, add extras, deduct advance, collect settlement, and print invoice.
+              </p>
+              <button
+                type="button"
+                onClick={() => onCheckOutRoom(room)}
+                className="w-full py-2.5 px-4 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold shadow-md transition flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <LogOut size={15} /> Check Out & Settle Final Bill
+              </button>
+            </div>
+          )}
 
           {/* Status Transitions */}
           <div>
@@ -413,10 +437,62 @@ function RoomList() {
   const today = format(new Date(), 'yyyy-MM-dd');
   const [view, setView] = useState<'rack' | 'list'>('rack');
   const [detailRoom, setDetailRoom] = useState<Room | null>(null);
+  const [checkoutStay, setCheckoutStay] = useState<StoredStay | null>(null);
+  const [invoiceStay, setInvoiceStay] = useState<StoredStay | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [newRoomNumber, setNewRoomNumber] = useState('');
   const [newRoomType, setNewRoomType] = useState('');
   const [newFloor, setNewFloor] = useState('1');
+
+  const { data: staysData } = useQuery({
+    queryKey: ['stays', propertyId],
+    queryFn: () => api.get('/v1/stays', { params: { propertyId } }).then((r) => r.data),
+    enabled: !!propertyId,
+  });
+  const allStays: StoredStay[] = useMemo(() => {
+    const raw = staysData?.data ?? staysData;
+    if (Array.isArray(raw) && raw.length > 0) return raw;
+    return getStoredStays();
+  }, [staysData]);
+
+  const handleCheckOutRoom = (r: Room) => {
+    const foundStay = allStays.find(
+      (s) => (s.roomId === r.id || s.roomNumber === r.number) && s.stayStatus !== 'checked_out'
+    );
+    if (foundStay) {
+      setCheckoutStay(foundStay);
+    } else {
+      const synthStay: StoredStay = {
+        id: `stay-${r.id}-${Date.now()}`,
+        propertyId: propertyId || '',
+        guestName: r.guestName || 'In-House Guest',
+        mobile: '9876543210',
+        idProofType: 'Aadhaar',
+        idProofNumber: 'XXXX XXXX 1234',
+        adults: 2,
+        children: 0,
+        roomId: r.id,
+        roomNumber: r.number,
+        roomTypeName: r.roomTypeName || 'Deluxe Room',
+        checkInTime: new Date(Date.now() - 86400000).toISOString(),
+        expectedCheckoutTime: new Date().toISOString(),
+        nights: 1,
+        pricePerNight: 2099,
+        extraCharges: 0,
+        discount: 0,
+        totalAmount: 2099,
+        advancePaid: 1000,
+        previousPayments: 0,
+        balance: 1099,
+        paymentMethod: 'Cash',
+        paymentStatus: 'partially_paid',
+        stayStatus: 'in_house',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      setCheckoutStay(synthStay);
+    }
+  };
 
   const { data: discrepanciesData } = useQuery({
     queryKey: ['rooms', 'discrepancies', propertyId, today],
@@ -728,6 +804,7 @@ function RoomList() {
           onClose={() => setDetailRoom(null)}
           onTransition={(s) => statusMutation.mutate({ roomId: detailRoom.id, newStatus: s })}
           transitioning={statusMutation.isPending}
+          onCheckOutRoom={handleCheckOutRoom}
         />
       )}
 
@@ -789,6 +866,30 @@ function RoomList() {
           </button>
         </div>
       </Modal>
+
+      {/* Checkout Modal */}
+      {checkoutStay && (
+        <CheckoutModal
+          stay={checkoutStay}
+          isOpen={Boolean(checkoutStay)}
+          onClose={() => setCheckoutStay(null)}
+          onCheckoutSuccess={(updatedStay) => {
+            queryClient.invalidateQueries({ queryKey: ['stays'] });
+            queryClient.invalidateQueries({ queryKey: ['rooms'] });
+            setCheckoutStay(null);
+            setInvoiceStay(updatedStay);
+          }}
+        />
+      )}
+
+      {/* Bill / Invoice Modal (Printable) */}
+      {invoiceStay && (
+        <BillInvoiceModal
+          stay={invoiceStay}
+          isOpen={Boolean(invoiceStay)}
+          onClose={() => setInvoiceStay(null)}
+        />
+      )}
     </div>
   );
 }

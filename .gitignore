@@ -74,4 +74,5 @@ tools/redis5.zip
 data/
 dump.rdb
 scratch/
+audit_screenshots/
 apps/**/.env*

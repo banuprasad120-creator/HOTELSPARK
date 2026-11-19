@@ -14,6 +14,7 @@ import { CheckIn } from './pages/CheckIn';
 import { RequestApplication } from './pages/RequestApplication';
 import { RequestPayment } from './pages/RequestPayment';
 import { RequestReceived } from './pages/RequestReceived';
+import { DownloadApp } from './pages/DownloadApp';
 import { isBookingRequestsUiEnabled } from './lib/bookingRequestsFeature';
 
 function AdminGateway() {

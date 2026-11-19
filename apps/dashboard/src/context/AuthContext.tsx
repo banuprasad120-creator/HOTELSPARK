@@ -67,42 +67,51 @@ export const SPARK_CREDENTIAL_USERS: AuthUser[] = [
     email: 'reception1@sparkhotel.com',
     name: 'Priya Sharma',
     employeeId: 'EMP-SPARK-003',
-    roleTitle: 'Receptionist',
+    roleTitle: 'Senior Receptionist (Day Shift)',
     department: 'Front Office',
     roles: ['front_desk'],
   },
   {
     sub: 'e0000004-0000-4000-a000-000000000001',
+    email: 'reception2@sparkhotel.com',
+    name: 'Kiran Varma',
+    employeeId: 'EMP-SPARK-004',
+    roleTitle: 'Night Front Desk Executive',
+    department: 'Front Office',
+    roles: ['front_desk', 'night_auditor'],
+  },
+  {
+    sub: 'e0000005-0000-4000-a000-000000000001',
     email: 'hk.mgr@sparkhotel.com',
     name: 'Kavitha Devi',
-    employeeId: 'EMP-SPARK-004',
+    employeeId: 'EMP-SPARK-005',
     roleTitle: 'Housekeeping Manager',
     department: 'Housekeeping',
     roles: ['housekeeping_manager', 'housekeeping'],
   },
   {
-    sub: 'e0000005-0000-4000-a000-000000000001',
+    sub: 'e0000006-0000-4000-a000-000000000001',
     email: 'accounts@sparkhotel.com',
     name: 'Sunil Kumar',
-    employeeId: 'EMP-SPARK-005',
+    employeeId: 'EMP-SPARK-006',
     roleTitle: 'Accountant',
     department: 'Accounts',
     roles: ['accountant', 'night_auditor'],
   },
   {
-    sub: 'e0000006-0000-4000-a000-000000000001',
+    sub: 'e0000007-0000-4000-a000-000000000001',
     email: 'hk.staff1@sparkhotel.com',
     name: 'Raju Nayak',
-    employeeId: 'EMP-SPARK-006',
+    employeeId: 'EMP-SPARK-007',
     roleTitle: 'Housekeeping Staff',
     department: 'Housekeeping',
     roles: ['housekeeping'],
   },
   {
-    sub: 'e0000007-0000-4000-a000-000000000001',
+    sub: 'e0000008-0000-4000-a000-000000000001',
     email: 'maintenance@sparkhotel.com',
     name: 'Satish Reddy',
-    employeeId: 'EMP-SPARK-007',
+    employeeId: 'EMP-SPARK-008',
     roleTitle: 'Maintenance Staff',
     department: 'Maintenance',
     roles: ['maintenance'],
@@ -266,7 +275,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, [toast, t]);
 
-  const login = useCallback((email: string, _password?: string) => {
+  const login = useCallback((email: string, password?: string) => {
     const cleanEmail = email.trim().toLowerCase();
     const matched = SPARK_CREDENTIAL_USERS.find(
       (u) =>
@@ -277,6 +286,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!matched) {
       return { success: false, error: `Staff account not found for "${email}". Check credentials list.` };
     }
+
+    if (password && password.trim()) {
+      const allowedPasswords: Record<string, string[]> = {
+        'admin@sparkhotel.com': ['SparkAdmin@2026', 'SparkHotel@2026'],
+        'frontdesk.mgr@sparkhotel.com': ['RameshSpark@2026', 'SparkHotel@2026'],
+        'reception1@sparkhotel.com': ['PriyaSpark@2026', 'SparkHotel@2026'],
+        'reception2@sparkhotel.com': ['KiranSpark@2026', 'SparkHotel@2026'],
+      };
+      const allowed = allowedPasswords[matched.email.toLowerCase()] || ['SparkHotel@2026'];
+      if (!allowed.includes(password.trim())) {
+        return { success: false, error: `Invalid password for ${matched.name}. Please check your credentials.` };
+      }
+    }
+
     setUser(matched);
     if (typeof window !== 'undefined' && window.localStorage) {
       window.localStorage.setItem('hotel_spark_active_user', JSON.stringify(matched));
