@@ -641,7 +641,7 @@ export default function StaffManagement() {
                         <td className="py-3 px-4">
                           <div className="font-mono text-gray-900 text-xs font-semibold flex items-center gap-1.5">
                             <KeyRound size={13} className="text-teal-600" />
-                            <span>SparkHotel@2026</span>
+                            <span className="text-gray-400 font-mono tracking-widest">••••••••</span>
                           </div>
                           <div className="text-[11px] text-teal-700 font-medium truncate max-w-[170px]" title={emp.email}>
                             {emp.email}
@@ -1186,8 +1186,8 @@ export default function StaffManagement() {
                 <p className="font-mono font-bold text-gray-800">{empEmail || `${empName.toLowerCase().replace(/\s+/g, '') || 'staff'}@sparkhotel.com`}</p>
               </div>
               <div>
-                <span className="text-gray-500 font-medium">Default Password:</span>
-                <p className="font-mono font-bold text-gray-800">SparkHotel@2026</p>
+                <span className="text-gray-500 font-medium">Initial Password:</span>
+                <p className="font-mono font-bold text-gray-800">•••••••• (Standard Secure Token)</p>
               </div>
             </div>
           </div>

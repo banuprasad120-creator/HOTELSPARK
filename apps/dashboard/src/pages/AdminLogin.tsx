@@ -152,8 +152,8 @@ export default function AdminLogin() {
                   <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider">
                     Password
                   </label>
-                  <span className="text-[11px] text-teal-700 font-semibold cursor-pointer" onClick={() => setPassword('SparkHotel@2026')}>
-                    Default: SparkHotel@2026
+                  <span className="text-[11px] text-gray-400 font-medium flex items-center gap-1">
+                    <ShieldCheck size={12} className="text-teal-600" /> Authorized Access
                   </span>
                 </div>
                 <div className="relative">
@@ -165,7 +165,7 @@ export default function AdminLogin() {
                     required
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Enter password"
+                    placeholder="Enter staff password"
                     className="w-full pl-10 pr-10 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:bg-white focus:outline-none focus:border-teal-600 focus:ring-1 focus:ring-teal-600 transition"
                   />
                   <button
@@ -201,11 +201,11 @@ export default function AdminLogin() {
         <div className="lg:col-span-6 bg-white/10 backdrop-blur-md rounded-3xl p-6 sm:p-8 border border-white/15 flex flex-col justify-between">
           <div>
             <div className="flex items-center gap-2 mb-2">
-              <KeyRound size={18} className="text-teal-300" />
-              <h2 className="text-lg font-bold text-white">Official Hotel Credentials</h2>
+              <ShieldCheck size={18} className="text-teal-300" />
+              <h2 className="text-lg font-bold text-white">Select Staff Account</h2>
             </div>
             <p className="text-xs text-gray-300 mb-4">
-              Click any role card below to instantly sign in with pre-configured staff credentials:
+              Click your staff account below for 1-click authorized dashboard access:
             </p>
 
             <div className="space-y-2.5">
@@ -236,7 +236,7 @@ export default function AdminLogin() {
                           </span>
                         </div>
                         <div className="text-[11px] text-gray-300 font-mono mt-0.5">
-                          {u.email} · <span className="text-teal-300">Password: SparkHotel@2026</span>
+                          {u.email} · Staff ID: <span className="font-semibold text-teal-300">{u.employeeId || 'STAFF'}</span>
                         </div>
                       </div>
                     </div>
