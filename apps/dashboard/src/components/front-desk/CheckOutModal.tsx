@@ -55,7 +55,7 @@ export default function CheckoutModal({ stay, isOpen, onClose, onCheckoutSuccess
 
       const rawRoomCharges = initNights * initRate;
       const netBase = Math.max(0, rawRoomCharges + initExtras - initDiscount);
-      const gross = taxMode === 'inclusive' ? netBase : netBase + Math.round(netBase * 0.12);
+      const gross = taxMode === 'inclusive' ? netBase : netBase + Math.round(netBase * 0.05);
       const paidSoFar = (stay.advancePaid || 0) + (stay.previousPayments || 0);
       const initialBalance = Math.max(0, gross - paidSoFar);
 
@@ -63,7 +63,7 @@ export default function CheckoutModal({ stay, isOpen, onClose, onCheckoutSuccess
     }
   }, [stay, isOpen]);
 
-  // Derived calculations
+  // Derived calculations (Hotel Spark: 5% Total GST = 2.5% CGST + 2.5% SGST)
   const rawRoomCharges = nights * ratePerNight;
   const netBeforeTax = Math.max(0, rawRoomCharges + extraCharges - discount);
 
@@ -74,14 +74,14 @@ export default function CheckoutModal({ stay, isOpen, onClose, onCheckoutSuccess
 
   if (taxMode === 'inclusive') {
     grandTotal = netBeforeTax;
-    subtotalTaxable = Math.round(grandTotal / 1.12);
+    subtotalTaxable = Math.round((grandTotal / 1.05) * 100) / 100;
     const totalGst = grandTotal - subtotalTaxable;
-    cgstAmount = Math.round(totalGst / 2);
-    sgstAmount = totalGst - cgstAmount;
+    cgstAmount = Math.round((totalGst / 2) * 100) / 100;
+    sgstAmount = Math.round((totalGst - cgstAmount) * 100) / 100;
   } else {
     subtotalTaxable = netBeforeTax;
-    cgstAmount = Math.round(subtotalTaxable * 0.06);
-    sgstAmount = Math.round(subtotalTaxable * 0.06);
+    cgstAmount = Math.round((subtotalTaxable * 0.025) * 100) / 100;
+    sgstAmount = cgstAmount;
     grandTotal = subtotalTaxable + cgstAmount + sgstAmount;
   }
 
@@ -310,11 +310,11 @@ export default function CheckoutModal({ stay, isOpen, onClose, onCheckoutSuccess
             </div>
           )}
 
-          {/* GST Tax Mode Selector */}
+          {/* GST Tax Mode Selector (Hotel Spark 5% GST: 2.5% CGST + 2.5% SGST) */}
           <div className="flex items-center justify-between p-2.5 rounded-xl bg-teal-50/70 border border-teal-200 text-xs">
             <div className="flex items-center gap-1.5 font-semibold text-teal-900">
               <Settings2 size={14} className="text-teal-700" />
-              <span>GST Calculation Mode (12%):</span>
+              <span>GST Calculation Mode (5% GST):</span>
             </div>
             <div className="inline-flex rounded-lg border border-teal-300 p-0.5 bg-white">
               <button
@@ -324,7 +324,7 @@ export default function CheckoutModal({ stay, isOpen, onClose, onCheckoutSuccess
                   taxMode === 'inclusive' ? 'bg-telivity-teal text-white' : 'text-gray-600 hover:text-teal-800'
                 }`}
               >
-                Tax-Inclusive (12%)
+                Tax-Inclusive (5%)
               </button>
               <button
                 type="button"
@@ -333,7 +333,7 @@ export default function CheckoutModal({ stay, isOpen, onClose, onCheckoutSuccess
                   taxMode === 'exclusive' ? 'bg-telivity-teal text-white' : 'text-gray-600 hover:text-teal-800'
                 }`}
               >
-                Tax-Exclusive (+12%)
+                Tax-Exclusive (+5%)
               </button>
             </div>
           </div>
@@ -342,7 +342,7 @@ export default function CheckoutModal({ stay, isOpen, onClose, onCheckoutSuccess
           <div className="border border-gray-200 rounded-xl p-4 space-y-1.5 text-xs bg-white">
             <h3 className="font-bold uppercase tracking-wider text-telivity-slate text-[11px] mb-2 flex items-center justify-between">
               <span>Itemized Folio Summary</span>
-              <span className="font-mono text-gray-400 font-normal">GSTIN: 36AAAAA0000A1Z5</span>
+              <span className="font-mono text-gray-500 font-bold">GSTIN: 36MOTPS2621J2Z3</span>
             </h3>
 
             <div className="flex justify-between text-telivity-slate">
@@ -372,12 +372,12 @@ export default function CheckoutModal({ stay, isOpen, onClose, onCheckoutSuccess
             </div>
 
             <div className="flex justify-between text-gray-500 text-[11px]">
-              <span>CGST (6%):</span>
+              <span>CGST (2.5%):</span>
               <span>₹{cgstAmount.toLocaleString('en-IN')}</span>
             </div>
 
             <div className="flex justify-between text-gray-500 text-[11px]">
-              <span>SGST (6%):</span>
+              <span>SGST (2.5%):</span>
               <span>₹{sgstAmount.toLocaleString('en-IN')}</span>
             </div>
 

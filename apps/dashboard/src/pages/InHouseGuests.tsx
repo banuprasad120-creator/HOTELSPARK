@@ -296,6 +296,15 @@ export default function InHouseGuests() {
                     <td className="py-3 px-4 text-center">
                       <div className="flex items-center justify-center gap-1.5">
                         <button
+                          onClick={() => setInvoiceStay(guest)}
+                          className="flex items-center gap-1 px-2 py-1.5 rounded-lg bg-teal-50 hover:bg-teal-100 text-teal-800 font-bold text-xs border border-teal-200 transition"
+                          title="View & Download Official Hotel Spark GST Invoice"
+                        >
+                          <FileText size={13} />
+                          <span>Bill</span>
+                        </button>
+
+                        <button
                           onClick={() => setDetailsStay(guest)}
                           className="p-1.5 rounded-lg border border-gray-200 text-telivity-slate hover:bg-gray-100 transition"
                           title="View Guest & Stay Details"
