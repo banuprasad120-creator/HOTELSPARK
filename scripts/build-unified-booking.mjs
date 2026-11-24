@@ -106,6 +106,18 @@ fs.writeFileSync(
   'utf8'
 );
 
+// 6. Also mirror entire dist to root dist for Vercel root deployments
+const rootDist = path.join(rootDir, 'dist');
+try {
+  if (fs.existsSync(rootDist)) {
+    fs.rmSync(rootDist, { recursive: true, force: true });
+  }
+  fs.cpSync(bookingDist, rootDist, { recursive: true });
+  console.log(`\n📁 Mirrored production dist to root ${rootDist}`);
+} catch (err) {
+  console.warn('Warning: Could not mirror to root dist:', err.message);
+}
+
 console.log('\n✅ Unified Booking & Admin build complete!');
 console.log(`  - Root / -> ${bookingDist}/index.html`);
 console.log(`  - Admin /admin -> ${targetAdminDir}/index.html`);

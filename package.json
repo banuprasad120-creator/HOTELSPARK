@@ -10,7 +10,8 @@
   },
   "packageManager": "pnpm@9.15.4",
   "scripts": {
-    "build": "pnpm -r run build && node scripts/build-unified-booking.mjs",
+    "build": "node scripts/build-unified-booking.mjs",
+    "build:all": "pnpm -r run build",
     "dev": "pnpm --filter @telivityhaip/api run dev",
     "dev:admin": "pnpm --filter @telivityhaip/dashboard run dev",
     "dev:site": "pnpm --filter @telivityhaip/booking run dev",
