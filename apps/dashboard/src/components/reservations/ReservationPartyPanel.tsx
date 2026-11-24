@@ -93,7 +93,10 @@ export default function ReservationPartyPanel({
     queryFn: () =>
       api
         .get(`/v1/reservations/${reservationId}/guests`, { params: { propertyId } })
-        .then((r) => (r.data?.data ?? r.data ?? []) as Occupant[]),
+        .then((r) => {
+          const raw = r.data?.guests ?? r.data?.data ?? r.data ?? [];
+          return (Array.isArray(raw) ? raw : []) as Occupant[];
+        }),
     enabled: !!reservationId && !!propertyId,
   });
 
@@ -102,7 +105,10 @@ export default function ReservationPartyPanel({
     queryFn: () =>
       api
         .get(`/v1/reservations/${reservationId}/booking-siblings`, { params: { propertyId } })
-        .then((r) => (r.data?.data ?? r.data ?? []) as SiblingReservation[]),
+        .then((r) => {
+          const raw = r.data?.siblings ?? r.data?.data ?? r.data ?? [];
+          return (Array.isArray(raw) ? raw : []) as SiblingReservation[];
+        }),
     enabled: !!reservationId && !!propertyId,
   });
 
@@ -213,9 +219,14 @@ export default function ReservationPartyPanel({
     },
   });
 
-  const otherSiblings = siblings.filter((s) => s.id !== reservationId);
-  const guestLabel = (o: Occupant) =>
-    `${o.firstName ?? ''} ${o.lastName ?? ''}`.trim() || o.guestId.slice(0, 8);
+  const safeSiblings = Array.isArray(siblings) ? siblings : [];
+  const otherSiblings = safeSiblings.filter((s) => s.id !== reservationId);
+  const guestLabel = (o: Occupant) => {
+    const name = `${o.firstName ?? ''} ${o.lastName ?? ''}`.trim();
+    if (name) return name;
+    if (o.guestId) return o.guestId.slice(0, 8);
+    return 'Guest';
+  };
 
   const toggleSplitGuest = (guestId: string) => {
     setSplitGuestIds((prev) =>
