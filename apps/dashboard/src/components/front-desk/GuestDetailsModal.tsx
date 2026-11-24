@@ -123,7 +123,8 @@ export default function GuestDetailsModal({
     queryKey: ['folio-charges-preview', folio?.id],
     queryFn: async () => {
       const r = await api.get(`/v1/folios/${folio!.id}/charges`);
-      return (r.data?.data ?? r.data ?? []) as ChargeRow[];
+      const raw = r.data?.charges ?? r.data?.data ?? r.data ?? [];
+      return (Array.isArray(raw) ? raw : []) as ChargeRow[];
     },
     enabled: open && !!folio?.id,
   });
@@ -132,7 +133,8 @@ export default function GuestDetailsModal({
     queryKey: ['folio-payments-preview', folio?.id],
     queryFn: async () => {
       const r = await api.get('/v1/payments', { params: { folioId: folio!.id } });
-      return (r.data?.data ?? r.data ?? []) as PaymentRow[];
+      const raw = r.data?.payments ?? r.data?.data ?? r.data ?? [];
+      return (Array.isArray(raw) ? raw : []) as PaymentRow[];
     },
     enabled: open && !!folio?.id,
   });
@@ -148,8 +150,10 @@ export default function GuestDetailsModal({
   const nationality = profile?.nationality ?? reservation.guest?.nationality;
   const loyalty = profile?.loyaltyNumber ?? reservation.guest?.loyaltyNumber;
   const balance = folio?.balance ?? reservation.balance ?? 0;
-  const recentCharges = charges.filter((c) => !c.isReversed).slice(0, 5);
-  const recentPayments = payments.slice(0, 5);
+  const safeCharges = Array.isArray(charges) ? charges : [];
+  const safePayments = Array.isArray(payments) ? payments : [];
+  const recentCharges = safeCharges.filter((c) => !c.isReversed).slice(0, 5);
+  const recentPayments = safePayments.slice(0, 5);
 
   return (
     <Modal open={open} onClose={onClose} title={t('frontDesk.guestDetails')} wide>

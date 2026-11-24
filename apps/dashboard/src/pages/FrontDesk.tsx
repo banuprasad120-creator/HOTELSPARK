@@ -755,11 +755,18 @@ export default function FrontDesk() {
     );
   };
 
-  const arrList: Reservation[] = arrivals?.data ?? arrivals ?? [];
-  const ihList: Reservation[] = inHouse?.data ?? inHouse ?? [];
-  const depList: Reservation[] = departureData?.data ?? departureData ?? [];
+  const arrList: Reservation[] = Array.isArray(arrivals?.data)
+    ? arrivals.data
+    : (Array.isArray(arrivals) ? arrivals : (Array.isArray(arrivals?.items) ? arrivals.items : []));
+  const ihList: Reservation[] = Array.isArray(inHouse?.data)
+    ? inHouse.data
+    : (Array.isArray(inHouse) ? inHouse : (Array.isArray(inHouse?.items) ? inHouse.items : []));
+  const depList: Reservation[] = Array.isArray(departureData?.data)
+    ? departureData.data
+    : (Array.isArray(departureData) ? departureData : (Array.isArray(departureData?.items) ? departureData.items : []));
   const doorPinByReservation = useMemo(() => {
-    const rows: DoorLockCredential[] = doorCredentials?.data ?? [];
+    const raw = doorCredentials?.data ?? doorCredentials ?? [];
+    const rows: DoorLockCredential[] = Array.isArray(raw) ? raw : [];
     return new Map(rows.map((c) => [c.reservationId, c]));
   }, [doorCredentials]);
   const roomList: Room[] = useMemo(() => {
@@ -769,11 +776,19 @@ export default function FrontDesk() {
   const unassignedCount = Array.isArray(unassigned)
     ? unassigned.length
     : (unassigned?.data?.length ?? unassigned?.total ?? 0);
-  const noteList: NoteRow[] = notesData?.notes ?? notesData?.data ?? (Array.isArray(notesData) ? notesData : []);
-  const activeNoteCount = notesData?.activeCount ?? noteList.filter((n) => n.isActive).length;
+  const noteList: NoteRow[] = Array.isArray(notesData?.notes)
+    ? notesData.notes
+    : (Array.isArray(notesData?.data)
+      ? notesData.data
+      : (Array.isArray(notesData) ? notesData : []));
+  const activeNoteCount = notesData?.activeCount ?? (Array.isArray(noteList) ? noteList.filter((n) => n.isActive).length : 0);
 
-  const rtList: any[] = Array.isArray(roomTypes) ? roomTypes : roomTypes?.data ?? [];
-  const rpList: any[] = Array.isArray(ratePlans) ? ratePlans : ratePlans?.data ?? [];
+  const rtList: any[] = Array.isArray(roomTypes)
+    ? roomTypes
+    : (Array.isArray(roomTypes?.data) ? roomTypes.data : []);
+  const rpList: any[] = Array.isArray(ratePlans)
+    ? ratePlans
+    : (Array.isArray(ratePlans?.data) ? ratePlans.data : []);
   const maxOccupancyFor = (roomTypeId: string): number | undefined =>
     rtList.find((rt) => rt.id === roomTypeId)?.maxOccupancy ?? undefined;
   const filteredPlans = wiRoomTypeId
