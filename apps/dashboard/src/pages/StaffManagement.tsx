@@ -22,6 +22,10 @@ import {
   Sun,
   Sunset,
   Moon,
+  CalendarCheck,
+  Download,
+  UserCheck,
+  Timer,
 } from 'lucide-react';
 import { api } from '../lib/api';
 import { useProperty } from '../context/PropertyContext';
@@ -103,14 +107,180 @@ const ROLES_LIST = [
   'Other Employees',
 ];
 
+export interface AttendanceRecord {
+  id: string;
+  employeeId: string;
+  name: string;
+  role: string;
+  department: string;
+  shift: ShiftType;
+  clockInTime: string;
+  clockOutTime?: string;
+  workingHours: number;
+  status: 'present' | 'on_duty' | 'completed' | 'absent';
+}
+
 export default function StaffManagement() {
   const { propertyId, currencyCode } = useProperty();
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  const [activeTab, setActiveTab] = useState<'employees' | 'departments' | 'credentials'>('employees');
+  const [activeTab, setActiveTab] = useState<'employees' | 'departments' | 'credentials' | 'attendance'>('employees');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedShiftFilter, setSelectedShiftFilter] = useState<'all' | ShiftType>('all');
   const [credVersion, setCredVersion] = useState(0);
+
+  // Daily Attendance State
+  const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>(() => {
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        const saved = window.localStorage.getItem('hotel_spark_daily_attendance');
+        if (saved) return JSON.parse(saved);
+      }
+    } catch {
+      // ignore
+    }
+    return [
+      {
+        id: 'att-1',
+        employeeId: 'ADM001',
+        name: 'Banu Prasad (Owner)',
+        role: 'Hotel Owner & Super Admin',
+        department: 'Management',
+        shift: 'morning',
+        clockInTime: '08:30 AM',
+        clockOutTime: undefined,
+        workingHours: 7.2,
+        status: 'on_duty',
+      },
+      {
+        id: 'att-2',
+        employeeId: 'MGR001',
+        name: 'Ramesh Rao',
+        role: 'Hotel General Manager',
+        department: 'Management',
+        shift: 'morning',
+        clockInTime: '07:00 AM',
+        clockOutTime: undefined,
+        workingHours: 8.5,
+        status: 'on_duty',
+      },
+      {
+        id: 'att-3',
+        employeeId: 'FO001',
+        name: 'Priya Sharma (FO1)',
+        role: 'Front Office Executive 1 (Morning)',
+        department: 'Front Office',
+        shift: 'morning',
+        clockInTime: '06:55 AM',
+        clockOutTime: '03:05 PM',
+        workingHours: 8.1,
+        status: 'completed',
+      },
+      {
+        id: 'att-4',
+        employeeId: 'FO002',
+        name: 'Kiran Varma (FO2)',
+        role: 'Front Office Executive 2 (Evening)',
+        department: 'Front Office',
+        shift: 'evening',
+        clockInTime: '02:50 PM',
+        clockOutTime: undefined,
+        workingHours: 3.5,
+        status: 'on_duty',
+      },
+      {
+        id: 'att-5',
+        employeeId: 'FO003',
+        name: 'Rahul Verma (FO3)',
+        role: 'Front Office Executive 3 (Night)',
+        department: 'Front Office',
+        shift: 'night',
+        clockInTime: 'Scheduled 11:00 PM',
+        clockOutTime: undefined,
+        workingHours: 0,
+        status: 'absent',
+      },
+      {
+        id: 'att-6',
+        employeeId: 'EMP-SPARK-005',
+        name: 'Kavitha Devi',
+        role: 'Housekeeping Manager',
+        department: 'Housekeeping',
+        shift: 'morning',
+        clockInTime: '07:30 AM',
+        clockOutTime: '04:00 PM',
+        workingHours: 8.5,
+        status: 'completed',
+      },
+      {
+        id: 'att-7',
+        employeeId: 'EMP-SPARK-006',
+        name: 'Sunil Kumar',
+        role: 'Hotel Accountant',
+        department: 'Accounts',
+        shift: 'general',
+        clockInTime: '09:00 AM',
+        clockOutTime: '06:00 PM',
+        workingHours: 9.0,
+        status: 'completed',
+      },
+    ];
+  });
+
+  const downloadAttendanceCSV = () => {
+    const todayStr = new Date().toISOString().split('T')[0];
+    const headers = ['Date', 'Employee ID', 'Staff Name', 'Role', 'Department', 'Shift', 'Clock In', 'Clock Out', 'Working Hours', 'Status'];
+    const rows = attendanceRecords.map((r) => [
+      todayStr,
+      `"${r.employeeId}"`,
+      `"${r.name}"`,
+      `"${r.role}"`,
+      `"${r.department}"`,
+      `"${SHIFT_DETAILS[r.shift]?.name || r.shift}"`,
+      `"${r.clockInTime}"`,
+      `"${r.clockOutTime || 'Active On Duty'}"`,
+      r.workingHours,
+      `"${r.status.toUpperCase()}"`,
+    ]);
+    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map((e) => e.join(','))].join('\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `Hotel_Spark_Attendance_${todayStr}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast('success', 'Attendance CSV report downloaded successfully.');
+  };
+
+  const toggleAttendanceStatus = (id: string) => {
+    const updated = attendanceRecords.map((r) => {
+      if (r.id === id) {
+        if (r.status === 'on_duty' || r.status === 'present') {
+          const nowTime = new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+          return {
+            ...r,
+            clockOutTime: nowTime,
+            status: 'completed' as const,
+          };
+        } else {
+          const nowTime = new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+          return {
+            ...r,
+            clockInTime: nowTime,
+            clockOutTime: undefined,
+            status: 'on_duty' as const,
+          };
+        }
+      }
+      return r;
+    });
+    setAttendanceRecords(updated);
+    if (typeof window !== 'undefined' && window.localStorage) {
+      window.localStorage.setItem('hotel_spark_daily_attendance', JSON.stringify(updated));
+    }
+    toast('success', 'Staff attendance updated successfully.');
+  };
 
   // Credential Management State
   const [credModalOpen, setCredModalOpen] = useState(false);
@@ -447,7 +617,16 @@ export default function StaffManagement() {
         </div>
 
         <div className="flex items-center gap-2">
-          {activeTab === 'credentials' ? (
+          {activeTab === 'attendance' ? (
+            <button
+              type="button"
+              onClick={downloadAttendanceCSV}
+              className="inline-flex items-center gap-2 px-4 py-2.5 bg-telivity-teal hover:bg-teal-600 text-white text-xs font-bold rounded-xl shadow-xs transition"
+            >
+              <Download size={15} />
+              <span>Export Attendance CSV</span>
+            </button>
+          ) : activeTab === 'credentials' ? (
             <button
               type="button"
               onClick={() => {
@@ -492,11 +671,11 @@ export default function StaffManagement() {
       </div>
 
       {/* TABS */}
-      <div className="flex border-b border-gray-200">
+      <div className="flex border-b border-gray-200 overflow-x-auto">
         <button
           type="button"
           onClick={() => setActiveTab('employees')}
-          className={`flex items-center gap-2 px-5 py-3 text-sm font-bold border-b-2 transition ${activeTab === 'employees'
+          className={`flex items-center gap-2 px-5 py-3 text-sm font-bold border-b-2 transition shrink-0 ${activeTab === 'employees'
             ? 'border-telivity-teal text-telivity-teal'
             : 'border-transparent text-gray-500 hover:text-gray-900'
             }`}
@@ -508,7 +687,7 @@ export default function StaffManagement() {
         <button
           type="button"
           onClick={() => setActiveTab('credentials')}
-          className={`flex items-center gap-2 px-5 py-3 text-sm font-bold border-b-2 transition ${activeTab === 'credentials'
+          className={`flex items-center gap-2 px-5 py-3 text-sm font-bold border-b-2 transition shrink-0 ${activeTab === 'credentials'
             ? 'border-telivity-teal text-telivity-teal'
             : 'border-transparent text-gray-500 hover:text-gray-900'
             }`}
@@ -519,8 +698,20 @@ export default function StaffManagement() {
 
         <button
           type="button"
+          onClick={() => setActiveTab('attendance')}
+          className={`flex items-center gap-2 px-5 py-3 text-sm font-bold border-b-2 transition shrink-0 ${activeTab === 'attendance'
+            ? 'border-telivity-teal text-telivity-teal'
+            : 'border-transparent text-gray-500 hover:text-gray-900'
+            }`}
+        >
+          <CalendarCheck size={17} />
+          <span>📅 Daily Attendance & Shifts ({attendanceRecords.length})</span>
+        </button>
+
+        <button
+          type="button"
           onClick={() => setActiveTab('departments')}
-          className={`flex items-center gap-2 px-5 py-3 text-sm font-bold border-b-2 transition ${activeTab === 'departments'
+          className={`flex items-center gap-2 px-5 py-3 text-sm font-bold border-b-2 transition shrink-0 ${activeTab === 'departments'
             ? 'border-telivity-teal text-telivity-teal'
             : 'border-transparent text-gray-500 hover:text-gray-900'
             }`}
@@ -803,13 +994,12 @@ export default function StaffManagement() {
                         <td className="py-3 px-4">
                           <div className="flex items-center gap-1.5">
                             <span
-                              className={`px-2 py-0.5 rounded text-[11px] font-bold ${
-                                staff.role === 'admin'
-                                  ? 'bg-purple-100 text-purple-900 border border-purple-200'
-                                  : staff.role === 'manager'
+                              className={`px-2 py-0.5 rounded text-[11px] font-bold ${staff.role === 'admin'
+                                ? 'bg-purple-100 text-purple-900 border border-purple-200'
+                                : staff.role === 'manager'
                                   ? 'bg-blue-100 text-blue-900 border border-blue-200'
                                   : 'bg-teal-100 text-teal-900 border border-teal-200'
-                              }`}
+                                }`}
                             >
                               {staff.roleTitle}
                             </span>
@@ -821,16 +1011,14 @@ export default function StaffManagement() {
 
                         <td className="py-3 px-4">
                           <span
-                            className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
-                              !isDeactivated
-                                ? 'bg-emerald-100 text-emerald-800'
-                                : 'bg-red-100 text-red-800'
-                            }`}
+                            className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold ${!isDeactivated
+                              ? 'bg-emerald-100 text-emerald-800'
+                              : 'bg-red-100 text-red-800'
+                              }`}
                           >
                             <span
-                              className={`w-1.5 h-1.5 rounded-full ${
-                                !isDeactivated ? 'bg-emerald-500' : 'bg-red-500'
-                              }`}
+                              className={`w-1.5 h-1.5 rounded-full ${!isDeactivated ? 'bg-emerald-500' : 'bg-red-500'
+                                }`}
                             />
                             {!isDeactivated ? 'Active & Permitted' : 'Deactivated'}
                           </span>
@@ -839,9 +1027,9 @@ export default function StaffManagement() {
                         <td className="py-3 px-4 text-telivity-slate text-[11px]">
                           {lastLogin
                             ? new Date(lastLogin).toLocaleString('en-IN', {
-                                dateStyle: 'short',
-                                timeStyle: 'short',
-                              })
+                              dateStyle: 'short',
+                              timeStyle: 'short',
+                            })
                             : 'Active (Session Live)'}
                         </td>
 
@@ -883,16 +1071,186 @@ export default function StaffManagement() {
                                     }
                                   }
                                 }}
-                                className={`px-2.5 py-1 rounded-lg font-bold text-[11px] transition ${
-                                  !isDeactivated
-                                    ? 'bg-red-50 text-red-700 hover:bg-red-600 hover:text-white border border-red-200'
-                                    : 'bg-emerald-50 text-emerald-800 hover:bg-emerald-600 hover:text-white border border-emerald-200'
-                                }`}
+                                className={`px-2.5 py-1 rounded-lg font-bold text-[11px] transition ${!isDeactivated
+                                  ? 'bg-red-50 text-red-700 hover:bg-red-600 hover:text-white border border-red-200'
+                                  : 'bg-emerald-50 text-emerald-800 hover:bg-emerald-600 hover:text-white border border-emerald-200'
+                                  }`}
                               >
                                 {!isDeactivated ? 'Deactivate' : 'Activate Account'}
                               </button>
                             )}
                           </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* DAILY ATTENDANCE & SHIFTS TAB */}
+      {activeTab === 'attendance' && (
+        <div className="space-y-4">
+          {/* Attendance KPI Cards */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div className="bg-white rounded-xl p-4 border border-gray-200 shadow-2xs">
+              <div className="flex items-center justify-between text-gray-500 mb-1">
+                <span className="text-xs font-semibold">Total Staff</span>
+                <Users size={18} className="text-telivity-teal" />
+              </div>
+              <div className="text-2xl font-bold text-telivity-navy">{attendanceRecords.length}</div>
+              <p className="text-[11px] text-gray-400 mt-1">Across 3 daily shifts</p>
+            </div>
+
+            <div className="bg-white rounded-xl p-4 border border-gray-200 shadow-2xs">
+              <div className="flex items-center justify-between text-gray-500 mb-1">
+                <span className="text-xs font-semibold">Present Today</span>
+                <UserCheck size={18} className="text-emerald-600" />
+              </div>
+              <div className="text-2xl font-bold text-emerald-700">
+                {attendanceRecords.filter((r) => r.status !== 'absent').length}
+              </div>
+              <p className="text-[11px] text-emerald-600 mt-1">Clocked in today</p>
+            </div>
+
+            <div className="bg-white rounded-xl p-4 border border-gray-200 shadow-2xs">
+              <div className="flex items-center justify-between text-gray-500 mb-1">
+                <span className="text-xs font-semibold">Currently On Duty</span>
+                <Timer size={18} className="text-purple-600" />
+              </div>
+              <div className="text-2xl font-bold text-purple-700">
+                {attendanceRecords.filter((r) => r.status === 'on_duty' || r.status === 'present').length}
+              </div>
+              <p className="text-[11px] text-purple-600 mt-1">Active shift station</p>
+            </div>
+
+            <div className="bg-white rounded-xl p-4 border border-gray-200 shadow-2xs">
+              <div className="flex items-center justify-between text-gray-500 mb-1">
+                <span className="text-xs font-semibold">Completed Shift</span>
+                <CheckCircle2 size={18} className="text-blue-600" />
+              </div>
+              <div className="text-2xl font-bold text-blue-700">
+                {attendanceRecords.filter((r) => r.status === 'completed').length}
+              </div>
+              <p className="text-[11px] text-blue-600 mt-1">Clocked out</p>
+            </div>
+          </div>
+
+          {/* Action Header Banner */}
+          <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <h3 className="font-bold text-sm text-telivity-navy flex items-center gap-2">
+                <span>Daily Staff Attendance & Working Hours Log</span>
+                <span className="text-xs px-2 py-0.5 rounded-md bg-teal-50 text-telivity-teal border border-teal-200 font-mono">
+                  {new Date().toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}
+                </span>
+              </h3>
+              <p className="text-xs text-gray-500 mt-0.5">
+                Real-time clock-in/out records, working hours tracking, and shift allocations.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={downloadAttendanceCSV}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-telivity-teal hover:bg-teal-600 text-white font-bold text-xs shadow-xs transition"
+              >
+                <Download size={14} />
+                <span>Export CSV Report</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Attendance Table */}
+          <div className="bg-white rounded-xl border border-gray-200 shadow-2xs overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead className="bg-teal-50/70 border-b border-gray-200 text-telivity-navy uppercase font-bold tracking-wider">
+                  <tr>
+                    <th className="py-3 px-4">Staff Member & ID</th>
+                    <th className="py-3 px-4">Role & Department</th>
+                    <th className="py-3 px-4">Assigned Shift</th>
+                    <th className="py-3 px-4">Clock In</th>
+                    <th className="py-3 px-4">Clock Out</th>
+                    <th className="py-3 px-4 text-center">Hours Logged</th>
+                    <th className="py-3 px-4 text-center">Attendance Status</th>
+                    <th className="py-3 px-4 text-right">Duty Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100 text-gray-700">
+                  {attendanceRecords.map((att) => {
+                    const shiftInfo = SHIFT_DETAILS[att.shift] || SHIFT_DETAILS.morning;
+                    const isOnDuty = att.status === 'on_duty' || att.status === 'present';
+                    const isCompleted = att.status === 'completed';
+
+                    return (
+                      <tr key={att.id} className="hover:bg-gray-50 transition">
+                        <td className="py-3 px-4">
+                          <div className="font-bold text-telivity-navy">{att.name}</div>
+                          <div className="text-[11px] font-mono text-telivity-teal">{att.employeeId}</div>
+                        </td>
+
+                        <td className="py-3 px-4">
+                          <div className="font-semibold text-gray-800">{att.role}</div>
+                          <div className="text-[11px] text-gray-400">{att.department}</div>
+                        </td>
+
+                        <td className="py-3 px-4">
+                          <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-bold ${shiftInfo.badge}`}>
+                            {shiftInfo.name}
+                          </span>
+                          <span className="block text-[10px] text-gray-400 mt-0.5">{shiftInfo.hours}</span>
+                        </td>
+
+                        <td className="py-3 px-4 font-mono font-medium">
+                          {att.clockInTime}
+                        </td>
+
+                        <td className="py-3 px-4 font-mono">
+                          {att.clockOutTime ? (
+                            <span className="text-gray-700">{att.clockOutTime}</span>
+                          ) : isOnDuty ? (
+                            <span className="text-purple-600 font-bold italic animate-pulse">On Active Duty</span>
+                          ) : (
+                            <span className="text-gray-400">—</span>
+                          )}
+                        </td>
+
+                        <td className="py-3 px-4 text-center font-bold">
+                          {att.workingHours > 0 ? `${att.workingHours.toFixed(1)} hrs` : '—'}
+                        </td>
+
+                        <td className="py-3 px-4 text-center">
+                          <span
+                            className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold ${
+                              isOnDuty
+                                ? 'bg-purple-100 text-purple-800'
+                                : isCompleted
+                                ? 'bg-emerald-100 text-emerald-800'
+                                : 'bg-gray-100 text-gray-600'
+                            }`}
+                          >
+                            <span className={`w-1.5 h-1.5 rounded-full ${isOnDuty ? 'bg-purple-600 animate-ping' : isCompleted ? 'bg-emerald-600' : 'bg-gray-400'}`} />
+                            {isOnDuty ? 'On Duty' : isCompleted ? 'Shift Done' : 'Scheduled'}
+                          </span>
+                        </td>
+
+                        <td className="py-3 px-4 text-right">
+                          <button
+                            type="button"
+                            onClick={() => toggleAttendanceStatus(att.id)}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition shadow-2xs cursor-pointer ${
+                              isOnDuty
+                                ? 'bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300'
+                                : 'bg-teal-50 hover:bg-teal-100 text-teal-800 border border-teal-300'
+                            }`}
+                          >
+                            {isOnDuty ? 'Clock Out' : 'Clock In / Mark Present'}
+                          </button>
                         </td>
                       </tr>
                     );

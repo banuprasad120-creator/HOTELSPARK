@@ -278,7 +278,12 @@ export default function WhatsAppLiveChat() {
           {convsLoading ? (
             <div className="p-6 text-center text-xs text-gray-400">Loading conversations...</div>
           ) : filteredConversations.length === 0 ? (
-            <div className="p-6 text-center text-xs text-gray-400">No conversations found.</div>
+            <div className="p-6 text-center text-xs text-gray-500">
+              <div className="font-semibold text-gray-700 mb-1">Integration Setup Required</div>
+              <p className="text-[11px] text-gray-400">
+                Meta WhatsApp Business API is not linked yet. Guest messages will appear here once connected.
+              </p>
+            </div>
           ) : (
             filteredConversations.map((c) => {
               const isSelected = c.id === selectedId;
@@ -547,10 +552,12 @@ export default function WhatsAppLiveChat() {
         </div>
       ) : (
         <div className="flex-1 flex flex-col items-center justify-center p-8 text-center text-gray-400 bg-gray-50/30">
-          <MessageSquare size={36} className="text-gray-300 mb-2" />
-          <h3 className="text-sm font-semibold text-telivity-navy">No conversation selected</h3>
-          <p className="text-xs text-gray-500 max-w-sm mt-1">
-            Select a guest conversation on the left to review the AI dialogue or take over the chat.
+          <div className="w-12 h-12 rounded-2xl bg-amber-50 border border-amber-200 text-amber-600 flex items-center justify-center mb-3">
+            <MessageSquare size={24} />
+          </div>
+          <h3 className="text-sm font-bold text-telivity-navy">Integration Setup Required</h3>
+          <p className="text-xs text-gray-500 max-w-sm mt-1.5 leading-relaxed">
+            WhatsApp Business API (Meta Cloud / Twilio) credentials have not been configured for Hotel Spark yet. Once connected, automated guest notifications and 2-way front desk chats will sync here.
           </p>
         </div>
       )}

@@ -416,28 +416,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return { success: false, error: `Staff account not found for "${email}". Check credentials list.` };
     }
 
-    if (password && password.trim()) {
-      const overrides = getPasswordOverrides();
-      const customPass = overrides[matched.email.toLowerCase()];
-      if (customPass) {
-        if (customPass !== password.trim()) {
-          return { success: false, error: `Invalid password for ${matched.name}. Please check your credentials.` };
-        }
-      } else {
-        const allowedPasswords: Record<string, string[]> = {
-          'admin@sparkhotel.com': ['SparkAdmin@2026', 'SparkHotel@2026'],
-          'manager@sparkhotel.com': ['ManagerSpark@2026', 'SparkHotel@2026'],
-          'frontdesk.mgr@sparkhotel.com': ['RameshSpark@2026', 'SparkHotel@2026'],
-          'fo001@sparkhotel.com': ['FrontOffice1@2026', 'SparkHotel@2026', 'PriyaSpark@2026'],
-          'reception1@sparkhotel.com': ['PriyaSpark@2026', 'SparkHotel@2026'],
-          'fo002@sparkhotel.com': ['FrontOffice2@2026', 'SparkHotel@2026', 'KiranSpark@2026'],
-          'reception2@sparkhotel.com': ['KiranSpark@2026', 'SparkHotel@2026'],
-          'fo003@sparkhotel.com': ['FrontOffice3@2026', 'SparkHotel@2026'],
-        };
-        const allowed = allowedPasswords[matched.email.toLowerCase()] || ['SparkHotel@2026'];
-        if (!allowed.includes(password.trim())) {
-          return { success: false, error: `Invalid password for ${matched.name}. Please check your credentials.` };
-        }
+    if (!password || !password.trim()) {
+      return { success: false, error: 'Password is required to sign in to Hotel Spark.' };
+    }
+
+    const overrides = getPasswordOverrides();
+    const customPass = overrides[matched.email.toLowerCase()];
+    if (customPass) {
+      if (customPass !== password.trim()) {
+        return { success: false, error: `Invalid password for ${matched.name}. Please check your credentials.` };
+      }
+    } else {
+      const allowedPasswords: Record<string, string[]> = {
+        'admin@sparkhotel.com': ['SparkAdmin@2026', 'SparkHotel@2026'],
+        'manager@sparkhotel.com': ['ManagerSpark@2026', 'SparkHotel@2026'],
+        'frontdesk.mgr@sparkhotel.com': ['RameshSpark@2026', 'SparkHotel@2026'],
+        'fo001@sparkhotel.com': ['FrontOffice1@2026', 'SparkHotel@2026', 'PriyaSpark@2026'],
+        'reception1@sparkhotel.com': ['PriyaSpark@2026', 'SparkHotel@2026'],
+        'fo002@sparkhotel.com': ['FrontOffice2@2026', 'SparkHotel@2026', 'KiranSpark@2026'],
+        'reception2@sparkhotel.com': ['KiranSpark@2026', 'SparkHotel@2026'],
+        'fo003@sparkhotel.com': ['FrontOffice3@2026', 'SparkHotel@2026'],
+      };
+      const allowed = allowedPasswords[matched.email.toLowerCase()] || ['SparkHotel@2026'];
+      if (!allowed.includes(password.trim())) {
+        return { success: false, error: `Invalid password for ${matched.name}. Please check your credentials.` };
       }
     }
 

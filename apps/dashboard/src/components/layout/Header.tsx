@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { useProperty } from '../../context/PropertyContext';
 import { PORTFOLIO_MODE_ID } from '../../lib/property-types';
 import { getDateLocale } from '../../lib/date-locale';
-import { useAuth, SPARK_CREDENTIAL_USERS } from '../../context/AuthContext';
+import { useAuth } from '../../context/AuthContext';
 import { useSocket } from '../../hooks/useSocket';
 import { SUPPORTED_LANGUAGES } from '../../i18n';
 import CommandPalette, { useCommandPaletteShortcut } from '../search/CommandPalette';
@@ -13,7 +13,6 @@ import NotificationBell from '../notifications/NotificationBell';
 import HelpPanel from '../help/HelpPanel';
 import WalkInCheckInModal from '../front-desk/WalkInCheckInModal';
 import AddGuestModal from '../front-desk/AddGuestModal';
-import DepartmentSwitcher from './DepartmentSwitcher';
 
 interface HeaderProps {
   onMenuClick: () => void;
@@ -71,7 +70,20 @@ export default function Header({ onMenuClick }: HeaderProps) {
             <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-teal-50 text-teal-700 border border-teal-200 hidden md:inline">
               PMS
             </span>
-            <DepartmentSwitcher variant="pills" />
+            {/* Role indicator badge (strict single-role display, no department switcher) */}
+            {user?.roles?.includes('admin') || user?.email === 'admin@sparkhotel.com' ? (
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold bg-amber-500/10 text-amber-800 border border-amber-300">
+                🛡️ Super Admin
+              </span>
+            ) : user?.roles?.includes('manager') || user?.roles?.includes('general_manager') ? (
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold bg-purple-500/10 text-purple-800 border border-purple-300">
+                👔 General Manager
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold bg-teal-500/10 text-teal-800 border border-teal-300">
+                🛎️ Front Office ({user?.employeeId || 'FO'})
+              </span>
+            )}
           </div>
 
           <button
@@ -196,31 +208,6 @@ export default function Header({ onMenuClick }: HeaderProps) {
                         {user.roleTitle || 'Hotel Staff'}
                       </span>
                       <span className="text-[10px] text-gray-400 font-mono">{user.employeeId || 'ID: EMP-001'}</span>
-                    </div>
-                  </div>
-
-                  {/* Switch Role Fast Selection */}
-                  <div>
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 px-1 mb-1.5">
-                      Switch Staff Account
-                    </p>
-                    <div className="grid grid-cols-1 gap-1">
-                      {SPARK_CREDENTIAL_USERS.slice(0, 5).map((u) => (
-                        <button
-                          key={u.email}
-                          type="button"
-                          onClick={() => {
-                            switchUser(u.email);
-                            setUserMenuOpen(false);
-                          }}
-                          className={`w-full text-left px-2.5 py-1.5 rounded-lg text-xs flex items-center justify-between transition ${
-                            user.email === u.email ? 'bg-teal-50 text-teal-900 font-bold' : 'hover:bg-gray-100 text-gray-700'
-                          }`}
-                        >
-                          <span>{u.name}</span>
-                          <span className="text-[10px] text-gray-400">{u.roleTitle?.split(' ')[0]}</span>
-                        </button>
-                      ))}
                     </div>
                   </div>
 

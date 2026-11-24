@@ -218,7 +218,7 @@ export default function App() {
                   </RoleGuard>
                 }
               />
-              <Route path="/departments" element={<DepartmentPanels />} />
+              <Route path="/departments" element={<RootRedirect />} />
               <Route path="/current-guests" element={<InHouseGuests />} />
               <Route path="/guest-history" element={<GuestHistory />} />
               <Route path="/front-desk" element={<FrontDesk />} />
@@ -241,7 +241,14 @@ export default function App() {
               <Route path="/folios/*" element={<Folios />} />
               <Route path="/groups/*" element={<Groups />} />
               <Route path="/commercial/*" element={<Commercial />} />
-              <Route path="/cashier/*" element={<Cashier />} />
+              <Route
+                path="/cashier/*"
+                element={
+                  <RoleGuard allowedRoles={['admin', 'manager', 'general_manager']}>
+                    <Cashier />
+                  </RoleGuard>
+                }
+              />
               <Route path="/house-accounts/*" element={<HouseAccounts />} />
               <Route path="/accounting/*" element={<Accounting />} />
               <Route
@@ -253,9 +260,30 @@ export default function App() {
                 }
               />
               <Route path="/rate-plans/*" element={<RatePlans />} />
-              <Route path="/revenue/*" element={<Revenue />} />
-              <Route path="/night-audit" element={<NightAudit />} />
-              <Route path="/reports/*" element={<Reports />} />
+              <Route
+                path="/revenue/*"
+                element={
+                  <RoleGuard allowedRoles={['admin', 'manager', 'general_manager']}>
+                    <Revenue />
+                  </RoleGuard>
+                }
+              />
+              <Route
+                path="/night-audit"
+                element={
+                  <RoleGuard allowedRoles={['admin', 'manager', 'general_manager']}>
+                    <NightAudit />
+                  </RoleGuard>
+                }
+              />
+              <Route
+                path="/reports/*"
+                element={
+                  <RoleGuard allowedRoles={['admin', 'manager', 'general_manager']}>
+                    <Reports />
+                  </RoleGuard>
+                }
+              />
               <Route path="/channels/*" element={<Channels />} />
               <Route path="/integrations" element={<Integrations />} />
               <Route path="/communications" element={<Communications />} />

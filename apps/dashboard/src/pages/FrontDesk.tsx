@@ -906,8 +906,8 @@ export default function FrontDesk() {
             key={tb.key}
             onClick={() => setTab(tb.key)}
             className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium transition-colors ${tab === tb.key
-                ? 'bg-telivity-teal text-white'
-                : 'text-telivity-slate hover:bg-telivity-light-grey'
+              ? 'bg-telivity-teal text-white'
+              : 'text-telivity-slate hover:bg-telivity-light-grey'
               }`}
           >
             <tb.icon size={16} />
@@ -933,7 +933,7 @@ export default function FrontDesk() {
                     checked={
                       selectedForGroup.length > 0 &&
                       selectedForGroup.length ===
-                        Math.min(arrList.length, MAX_FRONT_DESK_PARTY_ROOMS)
+                      Math.min(arrList.length, MAX_FRONT_DESK_PARTY_ROOMS)
                     }
                     onChange={(e) =>
                       setSelectedForGroup(
@@ -1046,185 +1046,185 @@ export default function FrontDesk() {
               )
             ) : (
               partyGroups.map((group) => {
-              const showPartyHeader = group.members.length > 1;
-              return (
-                <Fragment key={group.key}>
-                  {showPartyHeader && (
-                    <tr className="bg-telivity-teal/5 border-b border-telivity-teal/10">
-                      <td
-                        colSpan={10}
-                        className="px-4 py-2"
-                      >
-                        <div className="flex flex-wrap items-center gap-3">
-                          <span className="text-xs font-semibold uppercase tracking-wider text-telivity-teal">
-                            {t('frontDesk.party')}
-                          </span>
-                          <span className="text-sm font-medium text-telivity-navy">
-                            {group.confirmationNumber}
-                          </span>
-                          <span className="text-xs text-telivity-mid-grey">
-                            {t('frontDesk.partyRooms', { count: group.members.length })}
-                            {group.members.length > MAX_FRONT_DESK_PARTY_ROOMS
-                              ? ` · ${t('frontDesk.partyRoomLimit', { count: MAX_FRONT_DESK_PARTY_ROOMS })}`
-                              : ''}
-                          </span>
-                          {tab === 'arrivals' && (
-                            <button
-                              type="button"
-                              onClick={() => openCheckIn(group.members[0], group.members)}
-                              className="ml-auto inline-flex items-center gap-1.5 bg-telivity-deep-blue text-white rounded-lg px-3 py-1.5 text-xs font-semibold hover:bg-telivity-deep-blue/90"
-                            >
-                              <UsersRound size={12} />
-                              {t('frontDesk.partyCheckIn', {
-                                count: Math.min(group.members.length, MAX_FRONT_DESK_PARTY_ROOMS),
-                              })}
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  )}
-                  {group.members.map((r, i) => (
-                    <tr
-                      key={r.id}
-                      className={`border-b border-gray-50 ${i % 2 === 1 ? 'bg-gray-50/50' : ''} hover:bg-telivity-light-grey/50 transition-colors ${showPartyHeader ? 'border-l-2 border-l-telivity-teal/40' : ''}`}
-                    >
-                      {tab === 'arrivals' && (
-                        <td className="px-4 py-3">
-                          <input
-                            type="checkbox"
-                            checked={selectedForGroup.includes(r.id)}
-                            onChange={(e) => {
-                              if (e.target.checked) {
-                                if (selectedForGroup.length >= MAX_FRONT_DESK_PARTY_ROOMS) return;
-                                setSelectedForGroup([...selectedForGroup, r.id]);
-                              } else {
-                                setSelectedForGroup(selectedForGroup.filter((id) => id !== r.id));
-                              }
-                            }}
-                            className="rounded border-gray-300"
-                          />
-                        </td>
-                      )}
-                      <td className="px-4 py-3 text-sm font-medium text-telivity-navy">
-                        <div>{guestName(r)}</div>
-                        {(tab === 'arrivals' || tab === 'in-house') && guestRecognition(r)}
-                      </td>
-                      <td className="px-4 py-3 text-sm text-telivity-slate">{r.confirmationNumber}</td>
-                      {tab === 'arrivals' && (
-                        <td className="px-4 py-3 text-sm text-telivity-slate">{r.roomTypeName ?? '—'}</td>
-                      )}
-                      <td className="px-4 py-3 text-sm text-telivity-slate">
-                        {r.roomNumber ?? (
-                          <span className="text-telivity-orange font-medium">{t('frontDesk.notAssigned')}</span>
-                        )}
-                        {r.doNotMove && (
-                          <span className="ml-2 text-[10px] uppercase tracking-wide text-telivity-mid-grey">
-                            {t('frontDesk.dnm')}
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-sm text-telivity-slate">
-                        {tab === 'departures' ? r.departureDate : r.arrivalDate}
-                      </td>
-                      {tab === 'in-house' && (
-                        <td className="px-4 py-3 text-sm text-telivity-slate">{r.departureDate}</td>
-                      )}
-                      {tab === 'in-house' && (
-                        <td className="px-4 py-3 text-sm font-mono text-telivity-navy">
-                          {doorPinByReservation.get(r.id)?.accessCode ?? (
-                            <span className="text-telivity-mid-grey font-sans">{t('frontDesk.doorPinNone')}</span>
-                          )}
-                        </td>
-                      )}
-                      <td className="px-4 py-3">
-                        <StatusBadge status={r.status} />
-                      </td>
-                      {(tab === 'in-house' || tab === 'departures') && (
-                        <td className="px-4 py-3 text-sm text-right font-medium">
-                          {formatMoney(r.balance ?? 0, currencyCode)}
-                        </td>
-                      )}
-                      <td className="px-4 py-3 text-right">
-                        <div className="flex gap-2 justify-end flex-wrap">
-                          <button
-                            onClick={() => {
-                              setNotesModal(r);
-                              setNoteBody('');
-                            }}
-                            className="text-telivity-slate hover:text-telivity-teal p-1"
-                            title={t('frontDesk.notes')}
-                          >
-                            <StickyNote size={16} />
-                          </button>
-                          {(tab === 'arrivals' || tab === 'in-house') && (
-                            <button
-                              onClick={() => setDetailsModal(r)}
-                              className="border border-gray-200 text-telivity-slate rounded-lg px-2 py-1.5 text-xs font-semibold hover:bg-telivity-light-grey inline-flex items-center gap-1"
-                            >
-                              <UserRound size={12} />
-                              {t('frontDesk.guestDetails')}
-                            </button>
-                          )}
-                          {tab === 'arrivals' && (
-                            <button
-                              onClick={() => openCheckIn(r)}
-                              className="bg-telivity-teal text-white rounded-lg px-3 py-1.5 text-xs font-semibold hover:bg-telivity-light-teal transition-colors"
-                            >
-                              {t('frontDesk.checkIn')}
-                            </button>
-                          )}
-                          {tab === 'in-house' && (
-                            <>
+                const showPartyHeader = group.members.length > 1;
+                return (
+                  <Fragment key={group.key}>
+                    {showPartyHeader && (
+                      <tr className="bg-telivity-teal/5 border-b border-telivity-teal/10">
+                        <td
+                          colSpan={10}
+                          className="px-4 py-2"
+                        >
+                          <div className="flex flex-wrap items-center gap-3">
+                            <span className="text-xs font-semibold uppercase tracking-wider text-telivity-teal">
+                              {t('frontDesk.party')}
+                            </span>
+                            <span className="text-sm font-medium text-telivity-navy">
+                              {group.confirmationNumber}
+                            </span>
+                            <span className="text-xs text-telivity-mid-grey">
+                              {t('frontDesk.partyRooms', { count: group.members.length })}
+                              {group.members.length > MAX_FRONT_DESK_PARTY_ROOMS
+                                ? ` · ${t('frontDesk.partyRoomLimit', { count: MAX_FRONT_DESK_PARTY_ROOMS })}`
+                                : ''}
+                            </span>
+                            {tab === 'arrivals' && (
                               <button
-                                onClick={() => {
-                                  setMoveModal(r);
-                                  setMoveRoomId('');
-                                  setOverrideDoNotMove(false);
-                                  setMoveReason('');
-                                }}
+                                type="button"
+                                onClick={() => openCheckIn(group.members[0], group.members)}
+                                className="ml-auto inline-flex items-center gap-1.5 bg-telivity-deep-blue text-white rounded-lg px-3 py-1.5 text-xs font-semibold hover:bg-telivity-deep-blue/90"
+                              >
+                                <UsersRound size={12} />
+                                {t('frontDesk.partyCheckIn', {
+                                  count: Math.min(group.members.length, MAX_FRONT_DESK_PARTY_ROOMS),
+                                })}
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                    {group.members.map((r, i) => (
+                      <tr
+                        key={r.id}
+                        className={`border-b border-gray-50 ${i % 2 === 1 ? 'bg-gray-50/50' : ''} hover:bg-telivity-light-grey/50 transition-colors ${showPartyHeader ? 'border-l-2 border-l-telivity-teal/40' : ''}`}
+                      >
+                        {tab === 'arrivals' && (
+                          <td className="px-4 py-3">
+                            <input
+                              type="checkbox"
+                              checked={selectedForGroup.includes(r.id)}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  if (selectedForGroup.length >= MAX_FRONT_DESK_PARTY_ROOMS) return;
+                                  setSelectedForGroup([...selectedForGroup, r.id]);
+                                } else {
+                                  setSelectedForGroup(selectedForGroup.filter((id) => id !== r.id));
+                                }
+                              }}
+                              className="rounded border-gray-300"
+                            />
+                          </td>
+                        )}
+                        <td className="px-4 py-3 text-sm font-medium text-telivity-navy">
+                          <div>{guestName(r)}</div>
+                          {(tab === 'arrivals' || tab === 'in-house') && guestRecognition(r)}
+                        </td>
+                        <td className="px-4 py-3 text-sm text-telivity-slate">{r.confirmationNumber}</td>
+                        {tab === 'arrivals' && (
+                          <td className="px-4 py-3 text-sm text-telivity-slate">{r.roomTypeName ?? '—'}</td>
+                        )}
+                        <td className="px-4 py-3 text-sm text-telivity-slate">
+                          {r.roomNumber ?? (
+                            <span className="text-telivity-orange font-medium">{t('frontDesk.notAssigned')}</span>
+                          )}
+                          {r.doNotMove && (
+                            <span className="ml-2 text-[10px] uppercase tracking-wide text-telivity-mid-grey">
+                              {t('frontDesk.dnm')}
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-sm text-telivity-slate">
+                          {tab === 'departures' ? r.departureDate : r.arrivalDate}
+                        </td>
+                        {tab === 'in-house' && (
+                          <td className="px-4 py-3 text-sm text-telivity-slate">{r.departureDate}</td>
+                        )}
+                        {tab === 'in-house' && (
+                          <td className="px-4 py-3 text-sm font-mono text-telivity-navy">
+                            {doorPinByReservation.get(r.id)?.accessCode ?? (
+                              <span className="text-telivity-mid-grey font-sans">{t('frontDesk.doorPinNone')}</span>
+                            )}
+                          </td>
+                        )}
+                        <td className="px-4 py-3">
+                          <StatusBadge status={r.status} />
+                        </td>
+                        {(tab === 'in-house' || tab === 'departures') && (
+                          <td className="px-4 py-3 text-sm text-right font-medium">
+                            {formatMoney(r.balance ?? 0, currencyCode)}
+                          </td>
+                        )}
+                        <td className="px-4 py-3 text-right">
+                          <div className="flex gap-2 justify-end flex-wrap">
+                            <button
+                              onClick={() => {
+                                setNotesModal(r);
+                                setNoteBody('');
+                              }}
+                              className="text-telivity-slate hover:text-telivity-teal p-1"
+                              title={t('frontDesk.notes')}
+                            >
+                              <StickyNote size={16} />
+                            </button>
+                            {(tab === 'arrivals' || tab === 'in-house') && (
+                              <button
+                                onClick={() => setDetailsModal(r)}
                                 className="border border-gray-200 text-telivity-slate rounded-lg px-2 py-1.5 text-xs font-semibold hover:bg-telivity-light-grey inline-flex items-center gap-1"
                               >
-                                <ArrowRightLeft size={12} />
-                                {t('frontDesk.moveRoom')}
+                                <UserRound size={12} />
+                                {t('frontDesk.guestDetails')}
                               </button>
-                              <a
-                                href={`/folios?reservationId=${r.id}`}
-                                className="text-telivity-teal text-xs font-medium hover:underline self-center"
-                              >
-                                {t('frontDesk.viewFolio')}
-                              </a>
-                            </>
-                          )}
-                          {tab === 'departures' && (
-                            <>
+                            )}
+                            {tab === 'arrivals' && (
                               <button
-                                onClick={() => setCheckOutModal(r)}
+                                onClick={() => openCheckIn(r)}
                                 className="bg-telivity-teal text-white rounded-lg px-3 py-1.5 text-xs font-semibold hover:bg-telivity-light-teal transition-colors"
                               >
-                                {t('frontDesk.checkOut')}
+                                {t('frontDesk.checkIn')}
                               </button>
-                              <button
-                                onClick={() => {
-                                  if (confirm(t('frontDesk.expressCheckoutConfirm'))) {
-                                    expressCheckoutMutation.mutate(r.id);
-                                  }
-                                }}
-                                disabled={expressCheckoutMutation.isPending}
-                                className="bg-telivity-orange text-white rounded-lg px-3 py-1.5 text-xs font-semibold hover:bg-telivity-orange-lt transition-colors disabled:opacity-50"
-                              >
-                                {t('frontDesk.express')}
-                              </button>
-                            </>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </Fragment>
-              );
-            })
-          )}
+                            )}
+                            {tab === 'in-house' && (
+                              <>
+                                <button
+                                  onClick={() => {
+                                    setMoveModal(r);
+                                    setMoveRoomId('');
+                                    setOverrideDoNotMove(false);
+                                    setMoveReason('');
+                                  }}
+                                  className="border border-gray-200 text-telivity-slate rounded-lg px-2 py-1.5 text-xs font-semibold hover:bg-telivity-light-grey inline-flex items-center gap-1"
+                                >
+                                  <ArrowRightLeft size={12} />
+                                  {t('frontDesk.moveRoom')}
+                                </button>
+                                <a
+                                  href={`/folios?reservationId=${r.id}`}
+                                  className="text-telivity-teal text-xs font-medium hover:underline self-center"
+                                >
+                                  {t('frontDesk.viewFolio')}
+                                </a>
+                              </>
+                            )}
+                            {tab === 'departures' && (
+                              <>
+                                <button
+                                  onClick={() => setCheckOutModal(r)}
+                                  className="bg-telivity-teal text-white rounded-lg px-3 py-1.5 text-xs font-semibold hover:bg-telivity-light-teal transition-colors"
+                                >
+                                  {t('frontDesk.checkOut')}
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    if (confirm(t('frontDesk.expressCheckoutConfirm'))) {
+                                      expressCheckoutMutation.mutate(r.id);
+                                    }
+                                  }}
+                                  disabled={expressCheckoutMutation.isPending}
+                                  className="bg-telivity-orange text-white rounded-lg px-3 py-1.5 text-xs font-semibold hover:bg-telivity-orange-lt transition-colors disabled:opacity-50"
+                                >
+                                  {t('frontDesk.express')}
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </Fragment>
+                );
+              })
+            )}
             {tab !== 'online' && currentList.length === 0 && (
               <tr>
                 <td colSpan={10} className="px-4 py-8 text-center text-sm text-telivity-mid-grey">
@@ -1608,8 +1608,8 @@ export default function FrontDesk() {
                   ? t('frontDesk.checkingIn')
                   : checkInIncludeIds.length > 0
                     ? t('frontDesk.confirmCheckInParty', {
-                        count: 1 + checkInIncludeIds.length,
-                      })
+                      count: 1 + checkInIncludeIds.length,
+                    })
                     : t('frontDesk.confirmCheckIn')}
               </button>
             </div>
@@ -1772,11 +1772,10 @@ export default function FrontDesk() {
                       prev.map((r) => (r.roomId === next ? { ...r, roomId: '' } : r)),
                     );
                   }}
-                  className={`w-full border rounded-lg px-3 py-2 text-sm ${
-                    walkInMutation.isError && !wiRoomId
-                      ? 'border-telivity-orange ring-1 ring-telivity-orange'
-                      : 'border-gray-200'
-                  }`}
+                  className={`w-full border rounded-lg px-3 py-2 text-sm ${walkInMutation.isError && !wiRoomId
+                    ? 'border-telivity-orange ring-1 ring-telivity-orange'
+                    : 'border-gray-200'
+                    }`}
                 >
                   <option value="">{t('frontDesk.selectRoom')}</option>
                   {walkInRooms
@@ -1876,11 +1875,10 @@ export default function FrontDesk() {
                     <select
                       value={extra.roomId}
                       onChange={(e) => updateExtraRoom(extra.key, { roomId: e.target.value })}
-                      className={`w-full border rounded-lg px-3 py-2 text-sm ${
-                        walkInMutation.isError && !extra.roomId
-                          ? 'border-telivity-orange ring-1 ring-telivity-orange'
-                          : 'border-gray-200'
-                      }`}
+                      className={`w-full border rounded-lg px-3 py-2 text-sm ${walkInMutation.isError && !extra.roomId
+                        ? 'border-telivity-orange ring-1 ring-telivity-orange'
+                        : 'border-gray-200'
+                        }`}
                     >
                       <option value="">{t('frontDesk.selectRoom')}</option>
                       {rooms.map((room) => (

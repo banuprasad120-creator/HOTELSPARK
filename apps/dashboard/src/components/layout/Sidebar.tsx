@@ -41,7 +41,6 @@ import { useAuth } from '../../context/AuthContext';
 import { useProperty } from '../../context/PropertyContext';
 import { useDepartment, DEPARTMENTS_INFO } from '../../context/DepartmentContext';
 import { isBookingRequestsUiEnabled } from '../../lib/bookingRequestsFeature';
-import DepartmentSwitcher from './DepartmentSwitcher';
 
 type NavItem = {
   to: string;
@@ -240,24 +239,6 @@ export default function Sidebar({ mobileOpen, onClose }: SidebarProps) {
             <X size={18} />
           </button>
         </div>
-
-        {/* Department Switcher */}
-        <DepartmentSwitcher variant="sidebar" />
-
-        {activeDepartment !== 'all' && (
-          <div className="px-4 py-1.5 bg-white/5 border-b border-white/5 flex items-center justify-between text-[11px]">
-            <span className="text-teal-300 font-semibold truncate">
-              Filtered to {DEPARTMENTS_INFO[activeDepartment]?.shortName}
-            </span>
-            <button
-              type="button"
-              onClick={() => setActiveDepartment('all')}
-              className="text-white/60 hover:text-white underline text-[10px]"
-            >
-              Show All
-            </button>
-          </div>
-        )}
 
         <nav className="flex-1 overflow-y-auto py-3" role="navigation" aria-label={t('nav.mainNavigation')}>
           {roleSections.map((section, sectionIdx) => (

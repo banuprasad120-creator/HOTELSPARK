@@ -97,8 +97,8 @@ function renderStatusBadge(status: string) {
     case 'not_registered':
     default:
       return (
-        <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-gray-100 text-gray-700 flex items-center gap-1">
-          <AlertCircle size={12} /> Not Registered
+        <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-amber-50 text-amber-800 border border-amber-200 flex items-center gap-1">
+          <AlertCircle size={12} /> Integration Setup Required
         </span>
       );
   }
@@ -277,7 +277,7 @@ function ConnectionList() {
       const match = connections.find(c => c.channelCode === item.code || c.adapterType === item.code);
       if (match) return match;
       return {
-        id: `mock-${item.code}`,
+        id: `unconfigured-${item.code}`,
         channelCode: item.code,
         channelName: item.name,
         adapterType: item.code,

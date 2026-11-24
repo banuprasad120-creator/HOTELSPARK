@@ -44,7 +44,7 @@ export default function BookingAlertCard() {
         const guestName =
           data.guestName ||
           (data.guest?.firstName ? `${data.guest.firstName} ${data.guest.lastName || ''}`.trim() : 'Guest');
-        
+
         showAlert({
           id: data.reservationId || String(Date.now()),
           reservationId: data.reservationId,
@@ -109,8 +109,8 @@ export default function BookingAlertCard() {
 
   const formattedAmount = activeAlert.totalAmount
     ? (typeof activeAlert.totalAmount === 'number'
-        ? `₹${activeAlert.totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`
-        : activeAlert.totalAmount.startsWith('₹')
+      ? `₹${activeAlert.totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`
+      : activeAlert.totalAmount.startsWith('₹')
         ? activeAlert.totalAmount
         : `₹${Number(activeAlert.totalAmount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`)
     : null;
