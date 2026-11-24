@@ -21,25 +21,57 @@ export class ErrorBoundary extends Component<Props, State> {
     return { hasError: true, error };
   }
 
+  componentDidCatch(error: Error) {
+    const isChunkError =
+      error?.message?.includes('dynamically imported module') ||
+      error?.message?.includes('Loading chunk') ||
+      error?.message?.includes('Failed to fetch');
+
+    if (isChunkError && typeof window !== 'undefined') {
+      const now = Date.now();
+      const lastReload = Number(sessionStorage.getItem('last_chunk_reload') || '0');
+      // If we haven't auto-reloaded in the last 15 seconds, automatically reload to get fresh bundle
+      if (now - lastReload > 15000) {
+        sessionStorage.setItem('last_chunk_reload', String(now));
+        window.location.reload();
+      }
+    }
+  }
+
   render() {
     if (this.state.hasError) {
       if (this.props.fallback) return this.props.fallback;
+
+      const isChunkError =
+        this.state.error?.message?.includes('dynamically imported module') ||
+        this.state.error?.message?.includes('Loading chunk') ||
+        this.state.error?.message?.includes('Failed to fetch');
 
       return (
         <div className="flex flex-col items-center justify-center py-16 px-4" role="alert">
           <div className="p-3 bg-telivity-orange/10 rounded-full mb-4">
             <AlertTriangle size={24} className="text-telivity-orange" />
           </div>
-          <h2 className="text-lg font-semibold text-telivity-navy mb-2">Something went wrong</h2>
+          <h2 className="text-lg font-semibold text-telivity-navy mb-2">
+            {isChunkError ? 'New Update Available' : 'Something went wrong'}
+          </h2>
           <p className="text-sm text-telivity-mid-grey mb-4 text-center max-w-md">
-            {this.state.error?.message ?? 'An unexpected error occurred.'}
+            {isChunkError
+              ? 'A newer version of Hotel Spark has been deployed. Please reload to load the latest dashboard components.'
+              : (this.state.error?.message ?? 'An unexpected error occurred.')}
           </p>
           <button
-            onClick={() => this.setState({ hasError: false, error: undefined })}
-            className="flex items-center gap-2 bg-telivity-teal text-white rounded-lg px-4 py-2 text-sm font-semibold hover:bg-telivity-light-teal transition-colors"
+            onClick={() => {
+              if (isChunkError || typeof window !== 'undefined') {
+                window.location.reload();
+              } else {
+                this.setState({ hasError: false, error: undefined });
+              }
+            }}
+            className="flex items-center gap-2 bg-telivity-teal text-white rounded-lg px-4 py-2 text-sm font-semibold hover:bg-telivity-light-teal transition-colors cursor-pointer shadow-xs"
           >
             <RefreshCw size={14} />
-            Try Again
+            {isChunkError ? 'Reload Latest Dashboard' : 'Try Again'}
           </button>
         </div>
       );

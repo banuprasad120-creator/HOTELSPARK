@@ -9,40 +9,69 @@ import { useRealtimeInvalidation } from './hooks/useRealtimeInvalidation';
 import { isBookingRequestsUiEnabled } from './lib/bookingRequestsFeature';
 import { useAuth } from './context/AuthContext';
 
-const AdminLogin = lazy(() => import('./pages/AdminLogin'));
-const Dashboard = lazy(() => import('./pages/Dashboard'));
-const FrontDesk = lazy(() => import('./pages/FrontDesk'));
-const Reservations = lazy(() => import('./pages/Reservations'));
-const Guests = lazy(() => import('./pages/Guests'));
-const Rooms = lazy(() => import('./pages/Rooms'));
-const Housekeeping = lazy(() => import('./pages/Housekeeping'));
-const Folios = lazy(() => import('./pages/Folios'));
-const RatePlans = lazy(() => import('./pages/RatePlans'));
-const Revenue = lazy(() => import('./pages/Revenue'));
-const NightAudit = lazy(() => import('./pages/NightAudit'));
-const Reports = lazy(() => import('./pages/Reports'));
-const Channels = lazy(() => import('./pages/Channels'));
-const Communications = lazy(() => import('./pages/Communications'));
-const Reviews = lazy(() => import('./pages/Reviews'));
-const Settings = lazy(() => import('./pages/Settings'));
-const Import = lazy(() => import('./pages/Import'));
-const Integrations = lazy(() => import('./pages/Integrations'));
-const Groups = lazy(() => import('./pages/Groups'));
-const Commercial = lazy(() => import('./pages/Commercial'));
-const Cashier = lazy(() => import('./pages/Cashier'));
-const HouseAccounts = lazy(() => import('./pages/HouseAccounts'));
-const Accounting = lazy(() => import('./pages/Accounting'));
-const TaxSettings = lazy(() => import('./pages/TaxSettings'));
-const BookingRequests = lazy(() => import('./pages/BookingRequests'));
-const DirectBookings = lazy(() => import('./pages/DirectBookings'));
-const StaffManagement = lazy(() => import('./pages/StaffManagement'));
-const InHouseGuests = lazy(() => import('./pages/InHouseGuests'));
-const GuestHistory = lazy(() => import('./pages/GuestHistory'));
-const DepartmentPanels = lazy(() => import('./pages/DepartmentPanels'));
-const AdminPanel = lazy(() => import('./pages/AdminPanel'));
-const ManagerPanel = lazy(() => import('./pages/ManagerPanel'));
-const FrontOfficePanel = lazy(() => import('./pages/FrontOfficePanel'));
-const RoomTariffSettings = lazy(() => import('./pages/RoomTariffSettings'));
+/**
+ * Automatically catches stale Vite dynamic import chunk failures after new deployments
+ * and seamlessly reloads the window to fetch the latest assets.
+ */
+function lazyWithRetry<T extends React.ComponentType<any>>(
+  factory: () => Promise<{ default: T }>
+) {
+  return lazy(async () => {
+    try {
+      return await factory();
+    } catch (error: any) {
+      const isChunkError =
+        error?.message?.includes('dynamically imported module') ||
+        error?.message?.includes('Loading chunk') ||
+        error?.message?.includes('Failed to fetch');
+
+      if (isChunkError && typeof window !== 'undefined') {
+        const lastReload = Number(sessionStorage.getItem('last_chunk_reload') || '0');
+        if (Date.now() - lastReload > 8000) {
+          sessionStorage.setItem('last_chunk_reload', String(Date.now()));
+          window.location.reload();
+          return new Promise<{ default: T }>(() => {});
+        }
+      }
+      throw error;
+    }
+  });
+}
+
+const AdminLogin = lazyWithRetry(() => import('./pages/AdminLogin'));
+const Dashboard = lazyWithRetry(() => import('./pages/Dashboard'));
+const FrontDesk = lazyWithRetry(() => import('./pages/FrontDesk'));
+const Reservations = lazyWithRetry(() => import('./pages/Reservations'));
+const Guests = lazyWithRetry(() => import('./pages/Guests'));
+const Rooms = lazyWithRetry(() => import('./pages/Rooms'));
+const Housekeeping = lazyWithRetry(() => import('./pages/Housekeeping'));
+const Folios = lazyWithRetry(() => import('./pages/Folios'));
+const RatePlans = lazyWithRetry(() => import('./pages/RatePlans'));
+const Revenue = lazyWithRetry(() => import('./pages/Revenue'));
+const NightAudit = lazyWithRetry(() => import('./pages/NightAudit'));
+const Reports = lazyWithRetry(() => import('./pages/Reports'));
+const Channels = lazyWithRetry(() => import('./pages/Channels'));
+const Communications = lazyWithRetry(() => import('./pages/Communications'));
+const Reviews = lazyWithRetry(() => import('./pages/Reviews'));
+const Settings = lazyWithRetry(() => import('./pages/Settings'));
+const Import = lazyWithRetry(() => import('./pages/Import'));
+const Integrations = lazyWithRetry(() => import('./pages/Integrations'));
+const Groups = lazyWithRetry(() => import('./pages/Groups'));
+const Commercial = lazyWithRetry(() => import('./pages/Commercial'));
+const Cashier = lazyWithRetry(() => import('./pages/Cashier'));
+const HouseAccounts = lazyWithRetry(() => import('./pages/HouseAccounts'));
+const Accounting = lazyWithRetry(() => import('./pages/Accounting'));
+const TaxSettings = lazyWithRetry(() => import('./pages/TaxSettings'));
+const BookingRequests = lazyWithRetry(() => import('./pages/BookingRequests'));
+const DirectBookings = lazyWithRetry(() => import('./pages/DirectBookings'));
+const StaffManagement = lazyWithRetry(() => import('./pages/StaffManagement'));
+const InHouseGuests = lazyWithRetry(() => import('./pages/InHouseGuests'));
+const GuestHistory = lazyWithRetry(() => import('./pages/GuestHistory'));
+const DepartmentPanels = lazyWithRetry(() => import('./pages/DepartmentPanels'));
+const AdminPanel = lazyWithRetry(() => import('./pages/AdminPanel'));
+const ManagerPanel = lazyWithRetry(() => import('./pages/ManagerPanel'));
+const FrontOfficePanel = lazyWithRetry(() => import('./pages/FrontOfficePanel'));
+const RoomTariffSettings = lazyWithRetry(() => import('./pages/RoomTariffSettings'));
 
 /**
  * RoleGuard: Enforces strict route authorization across Admin, Manager, and Front Office.

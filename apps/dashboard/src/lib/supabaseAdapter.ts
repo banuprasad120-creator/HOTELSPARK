@@ -259,10 +259,17 @@ export interface StoredStay {
   previousPayments: number;
   balance: number;
   paymentMethod: string;
+  paymentReference?: string;      // e.g. "CARD: ****8005" or UPI ref#
   paymentStatus: 'paid' | 'partially_paid' | 'unpaid';
   stayStatus: 'in_house' | 'checked_out';
   billNumber?: string;
   notes?: string;
+  // Invoice / Folio extra fields (for official Hotel Spark invoice pattern)
+  guestGstin?: string;            // Guest / Corporate GSTIN
+  rateType?: string;              // e.g. Budget / EP / CP
+  source?: string;                // Walk-in / Website / Phone Booking
+  sourceOfSupply?: string;        // e.g. Karimnagar
+  cashierName?: string;           // Cashier (C/O) printed on invoice
   createdAt: string;
   updatedAt: string;
 }
@@ -451,12 +458,12 @@ export function getStoredStays(): StoredStay[] {
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed)) {
-          return parsed.filter((item: StoredStay) => 
-            !item.id.startsWith('stay-00') && 
-            !item.id.startsWith('stay-hist-') && 
-            item.guestName !== 'Rahul Verma' && 
-            item.guestName !== 'Priya Sharma' && 
-            item.guestName !== 'Vikram Malhotra' && 
+          return parsed.filter((item: StoredStay) =>
+            !item.id.startsWith('stay-00') &&
+            !item.id.startsWith('stay-hist-') &&
+            item.guestName !== 'Rahul Verma' &&
+            item.guestName !== 'Priya Sharma' &&
+            item.guestName !== 'Vikram Malhotra' &&
             item.guestName !== 'Sneha Reddy'
           );
         }
@@ -626,10 +633,10 @@ export function getStoredReservations(): any[] {
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed)) {
-          return parsed.filter((r: any) => 
-            !r.id.startsWith('resv-00') && 
-            !r.confirmationNumber?.includes('880') && 
-            r.guestName !== 'Suresh Goud' && 
+          return parsed.filter((r: any) =>
+            !r.id.startsWith('resv-00') &&
+            !r.confirmationNumber?.includes('880') &&
+            r.guestName !== 'Suresh Goud' &&
             r.guestName !== 'Mohammed Rafi'
           );
         }
@@ -773,7 +780,7 @@ export function getStoredDirectBookings(): any[] {
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          return parsed.filter((b: any) => 
+          return parsed.filter((b: any) =>
             b.id !== '2a52aaa6-dd15-4c31-9716-a81c2080288a' &&
             b.id !== 'b744d03d-24fb-4bca-85f0-619f79883db1' &&
             b.id !== 'c287d743-808d-41f1-8034-e9baf96faabc' &&
@@ -1358,7 +1365,7 @@ export async function handleSupabaseAdapter(config: AxiosRequestConfig): Promise
             }
           }
         }
-      } catch {}
+      } catch { }
 
       const auditList: any[] = [];
       for (const b of map.values()) {
@@ -2349,10 +2356,10 @@ export async function handleSupabaseAdapter(config: AxiosRequestConfig): Promise
       const guestId = (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function')
         ? crypto.randomUUID()
         : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
-            const r = (Math.random() * 16) | 0;
-            const v = c === 'x' ? r : (r & 0x3) | 0x8;
-            return v.toString(16);
-          });
+          const r = (Math.random() * 16) | 0;
+          const v = c === 'x' ? r : (r & 0x3) | 0x8;
+          return v.toString(16);
+        });
 
       const validVipLevels = ['none', 'silver', 'gold', 'platinum', 'diamond'];
       const safeVip = validVipLevels.includes(body.vipLevel) ? body.vipLevel : 'none';
@@ -2491,8 +2498,8 @@ export async function handleSupabaseAdapter(config: AxiosRequestConfig): Promise
               updated_at: new Date().toISOString(),
             }),
           });
-        } catch {}
-      })().catch(() => {});
+        } catch { }
+      })().catch(() => { });
 
       return ok({ success: true, id: gid, ...(idx >= 0 ? guests[idx] : body) });
     }
@@ -3003,6 +3010,92 @@ export async function handleSupabaseAdapter(config: AxiosRequestConfig): Promise
         return ok({ success: true, stay: stays[stayIdx] });
       }
       return ok({ success: false, message: 'Stay record not found' });
+    }
+
+    // PATCH /stays/:id: Edit / Update Guest Bill & Charges
+    if (method === 'PATCH' && !url.includes('/checkout') && !url.includes('/payment')) {
+      const stayIdMatch = url.match(/\/stays\/([^/?]+)/);
+      const stayId = stayIdMatch ? stayIdMatch[1] : '';
+      const body = typeof config.data === 'string' ? JSON.parse(config.data || '{}') : (config.data || {});
+
+      const stayIdx = stays.findIndex((s) => s.id === stayId);
+      if (stayIdx >= 0) {
+        const stay = stays[stayIdx];
+        const nights = typeof body.nights === 'number' ? body.nights : stay.nights;
+        const pricePerNight = typeof body.pricePerNight === 'number' ? body.pricePerNight : stay.pricePerNight;
+        const extraCharges = typeof body.extraCharges === 'number' ? body.extraCharges : stay.extraCharges;
+        const discount = typeof body.discount === 'number' ? body.discount : stay.discount;
+        const totalAmount = typeof body.totalAmount === 'number'
+          ? body.totalAmount
+          : Math.max(0, (nights * pricePerNight) + extraCharges - discount);
+
+        const advancePaid = typeof body.advancePaid === 'number' ? body.advancePaid : stay.advancePaid;
+        const previousPayments = typeof body.previousPayments === 'number' ? body.previousPayments : stay.previousPayments;
+        const balance = typeof body.balance === 'number'
+          ? body.balance
+          : Math.max(0, totalAmount - advancePaid - previousPayments);
+
+        stays[stayIdx] = {
+          ...stay,
+          ...body,
+          nights,
+          pricePerNight,
+          extraCharges,
+          discount,
+          totalAmount,
+          advancePaid,
+          previousPayments,
+          balance,
+          paymentStatus: balance <= 0 ? 'paid' : ((advancePaid + previousPayments) > 0 ? 'partially_paid' : 'unpaid'),
+          updatedAt: new Date().toISOString(),
+        };
+        saveStoredStays(stays);
+
+        addNotification(
+          `Bill Updated: Room ${stay.roomNumber}`,
+          `Folio / Bill for ${stay.guestName} (Room ${stay.roomNumber}) was updated. Total: ₹${totalAmount.toLocaleString('en-IN')}, Balance: ₹${balance.toLocaleString('en-IN')}.`,
+          'info',
+          'bill_update'
+        );
+
+        return ok({ success: true, stay: stays[stayIdx] });
+      }
+      return ok({ success: false, message: 'Stay record not found' });
+    }
+  }
+
+  // 17c. Folios & Billing Adapter
+  if (url.includes('/folios')) {
+    const stays = getStoredStays();
+    if (method === 'GET') {
+      const folioIdMatch = url.match(/\/folios\/([^/?]+)/);
+      const folioId = folioIdMatch ? folioIdMatch[1] : '';
+
+      const mappedFolios = stays.map((s) => ({
+        id: s.id,
+        folioNumber: s.billNumber || `INV-SPARK-2026-${s.roomNumber}-${String(s.id).slice(-4)}`,
+        type: 'guest',
+        status: s.stayStatus === 'checked_out' ? 'settled' : 'open',
+        guestName: s.guestName,
+        guestId: s.id,
+        reservationId: s.id,
+        roomNumber: s.roomNumber,
+        roomTypeName: s.roomTypeName,
+        balance: s.balance,
+        totalCharges: s.totalAmount,
+        totalPayments: (s.advancePaid || 0) + (s.previousPayments || 0),
+        currencyCode: 'INR',
+        stay: s,
+        createdAt: s.createdAt,
+      }));
+
+      if (folioId) {
+        const found = mappedFolios.find((f) => f.id === folioId || f.folioNumber === folioId);
+        if (found) {
+          return ok(found);
+        }
+      }
+      return ok({ data: mappedFolios });
     }
   }
 
