@@ -68,6 +68,7 @@ export default function BillInvoiceModal({
         useCORS: true,
         logging: false,
         backgroundColor: '#ffffff',
+        windowWidth: 1024,
       });
       const imgData = canvas.toDataURL('image/png');
       const pdf = new jsPDF({
@@ -471,96 +472,96 @@ export default function BillInvoiceModal({
                 <table className="w-full text-center text-[10px] sm:text-xs border-collapse">
                   <thead>
                     <tr className="border-b border-black font-bold">
-                      <th className="py-1 px-1 border-r border-black w-8">Sr No</th>
-                      <th className="py-1 px-2 border-r border-black text-left">Particular</th>
-                      <th className="py-1 px-1 border-r border-black">HSN/SAC</th>
-                      <th className="py-1 px-1 border-r border-black w-8">Qty</th>
-                      <th className="py-1 px-1.5 border-r border-black text-right">Rate</th>
-                      <th className="py-1 px-1.5 border-r border-black text-right">Total</th>
-                      <th className="py-1 px-1.5 border-r border-black text-right">Discount</th>
-                      <th className="py-1 px-1.5 border-r border-black text-right">Taxable</th>
-                      <th className="py-1 px-1.5 border-r border-black text-right">SGST</th>
-                      <th className="py-1 px-1.5 border-r border-black text-right">CGST</th>
-                      <th className="py-1 px-1.5 border-r border-black text-right">IGST</th>
-                      <th className="py-1 px-1 text-right">CESS</th>
+                      <th className="py-1.5 px-1 border-r border-black w-8">Sr No</th>
+                      <th className="py-1.5 px-2 border-r border-black text-left">Particular</th>
+                      <th className="py-1.5 px-1 border-r border-black">HSN/SAC</th>
+                      <th className="py-1.5 px-1 border-r border-black w-8">Qty</th>
+                      <th className="py-1.5 px-1.5 border-r border-black text-right">Rate</th>
+                      <th className="py-1.5 px-1.5 border-r border-black text-right">Total</th>
+                      <th className="py-1.5 px-1.5 border-r border-black text-right">Discount</th>
+                      <th className="py-1.5 px-1.5 border-r border-black text-right">Taxable</th>
+                      <th className="py-1.5 px-1.5 border-r border-black text-right">SGST</th>
+                      <th className="py-1.5 px-1.5 border-r border-black text-right">CGST</th>
+                      <th className="py-1.5 px-1.5 border-r border-black text-right">IGST</th>
+                      <th className="py-1.5 px-1 text-right">CESS</th>
                     </tr>
                   </thead>
                   <tbody>
                     {/* Row 1: Room Charges */}
                     <tr className="border-b border-black">
-                      <td className="py-1 px-1 border-r border-black">1</td>
-                      <td className="py-1 px-2 border-r border-black text-left font-medium">RoomCharges</td>
-                      <td className="py-1 px-1 border-r border-black font-mono">988457</td>
-                      <td className="py-1 px-1 border-r border-black">{nights}</td>
-                      <td className="py-1 px-1.5 border-r border-black text-right">{taxableRoomCharges.toFixed(2)}</td>
-                      <td className="py-1 px-1.5 border-r border-black text-right">{taxableRoomCharges.toFixed(2)}</td>
-                      <td className="py-1 px-1.5 border-r border-black text-right">{discount.toFixed(2)}</td>
-                      <td className="py-1 px-1.5 border-r border-black text-right">{taxableRoomCharges.toFixed(2)}</td>
-                      <td className="py-1 px-1.5 border-r border-black text-right leading-tight">
+                      <td className="py-1.5 px-1 border-r border-black">1</td>
+                      <td className="py-1.5 px-2 border-r border-black text-left font-medium">RoomCharges</td>
+                      <td className="py-1.5 px-1 border-r border-black font-mono">988457</td>
+                      <td className="py-1.5 px-1 border-r border-black">{nights}</td>
+                      <td className="py-1.5 px-1.5 border-r border-black text-right">{taxableRoomCharges.toFixed(2)}</td>
+                      <td className="py-1.5 px-1.5 border-r border-black text-right">{taxableRoomCharges.toFixed(2)}</td>
+                      <td className="py-1.5 px-1.5 border-r border-black text-right">{discount.toFixed(2)}</td>
+                      <td className="py-1.5 px-1.5 border-r border-black text-right">{taxableRoomCharges.toFixed(2)}</td>
+                      <td className="py-1.5 px-1.5 border-r border-black text-right leading-tight">
                         <div>{roomSgst.toFixed(2)}</div>
                         <div className="text-[9px] text-gray-700">{(gstRate / 2).toFixed(2)}%</div>
                       </td>
-                      <td className="py-1 px-1.5 border-r border-black text-right leading-tight">
+                      <td className="py-1.5 px-1.5 border-r border-black text-right leading-tight">
                         <div>{roomCgst.toFixed(2)}</div>
                         <div className="text-[9px] text-gray-700">{(gstRate / 2).toFixed(2)}%</div>
                       </td>
-                      <td className="py-1 px-1.5 border-r border-black text-right leading-tight">
+                      <td className="py-1.5 px-1.5 border-r border-black text-right leading-tight">
                         <div>0.00</div>
                         <div className="text-[9px] text-gray-700">0.00%</div>
                       </td>
-                      <td className="py-1 px-1 text-right">0.00</td>
+                      <td className="py-1.5 px-1 text-right">0.00</td>
                     </tr>
 
                     {/* Row 2: Extra Charges (if any) */}
                     {extraCharges > 0 && (
                       <tr className="border-b border-black">
-                        <td className="py-1 px-1 border-r border-black">2</td>
-                        <td className="py-1 px-2 border-r border-black text-left font-medium">Extra Charges</td>
-                        <td className="py-1 px-1 border-r border-black font-mono">996331</td>
-                        <td className="py-1 px-1 border-r border-black">1</td>
-                        <td className="py-1 px-1.5 border-r border-black text-right">{taxableExtraCharges.toFixed(2)}</td>
-                        <td className="py-1 px-1.5 border-r border-black text-right">{taxableExtraCharges.toFixed(2)}</td>
-                        <td className="py-1 px-1.5 border-r border-black text-right">0.00</td>
-                        <td className="py-1 px-1.5 border-r border-black text-right">{taxableExtraCharges.toFixed(2)}</td>
-                        <td className="py-1 px-1.5 border-r border-black text-right leading-tight">
+                        <td className="py-1.5 px-1 border-r border-black">2</td>
+                        <td className="py-1.5 px-2 border-r border-black text-left font-medium">Extra Charges</td>
+                        <td className="py-1.5 px-1 border-r border-black font-mono">996331</td>
+                        <td className="py-1.5 px-1 border-r border-black">1</td>
+                        <td className="py-1.5 px-1.5 border-r border-black text-right">{taxableExtraCharges.toFixed(2)}</td>
+                        <td className="py-1.5 px-1.5 border-r border-black text-right">{taxableExtraCharges.toFixed(2)}</td>
+                        <td className="py-1.5 px-1.5 border-r border-black text-right">0.00</td>
+                        <td className="py-1.5 px-1.5 border-r border-black text-right">{taxableExtraCharges.toFixed(2)}</td>
+                        <td className="py-1.5 px-1.5 border-r border-black text-right leading-tight">
                           <div>{extraSgst.toFixed(2)}</div>
                           <div className="text-[9px] text-gray-700">{(gstRate / 2).toFixed(2)}%</div>
                         </td>
-                        <td className="py-1 px-1.5 border-r border-black text-right leading-tight">
+                        <td className="py-1.5 px-1.5 border-r border-black text-right leading-tight">
                           <div>{extraCgst.toFixed(2)}</div>
                           <div className="text-[9px] text-gray-700">{(gstRate / 2).toFixed(2)}%</div>
                         </td>
-                        <td className="py-1 px-1.5 border-r border-black text-right leading-tight">
+                        <td className="py-1.5 px-1.5 border-r border-black text-right leading-tight">
                           <div>0.00</div>
                           <div className="text-[9px] text-gray-700">0.00%</div>
                         </td>
-                        <td className="py-1 px-1 text-right">0.00</td>
+                        <td className="py-1.5 px-1 text-right">0.00</td>
                       </tr>
                     )}
 
                     {/* Totals Row */}
                     <tr className="font-bold border-t border-black">
-                      <td className="py-1 px-1 border-r border-black"></td>
-                      <td className="py-1 px-2 border-r border-black text-left">Total</td>
-                      <td className="py-1 px-1 border-r border-black"></td>
-                      <td className="py-1 px-1 border-r border-black"></td>
-                      <td className="py-1 px-1.5 border-r border-black text-right">{totalCharges.toFixed(2)}</td>
-                      <td className="py-1 px-1.5 border-r border-black text-right">{totalCharges.toFixed(2)}</td>
-                      <td className="py-1 px-1.5 border-r border-black text-right">{discount.toFixed(2)}</td>
-                      <td className="py-1 px-1.5 border-r border-black text-right">{totalCharges.toFixed(2)}</td>
-                      <td className="py-1 px-1.5 border-r border-black text-right">{totalSgst.toFixed(2)}</td>
-                      <td className="py-1 px-1.5 border-r border-black text-right">{totalCgst.toFixed(2)}</td>
-                      <td className="py-1 px-1.5 border-r border-black text-right">0.00</td>
-                      <td className="py-1 px-1 text-right">0.00</td>
+                      <td className="py-1.5 px-1 border-r border-black"></td>
+                      <td className="py-1.5 px-2 border-r border-black text-left">Total</td>
+                      <td className="py-1.5 px-1 border-r border-black"></td>
+                      <td className="py-1.5 px-1 border-r border-black"></td>
+                      <td className="py-1.5 px-1.5 border-r border-black text-right">{totalCharges.toFixed(2)}</td>
+                      <td className="py-1.5 px-1.5 border-r border-black text-right">{totalCharges.toFixed(2)}</td>
+                      <td className="py-1.5 px-1.5 border-r border-black text-right">{discount.toFixed(2)}</td>
+                      <td className="py-1.5 px-1.5 border-r border-black text-right">{totalCharges.toFixed(2)}</td>
+                      <td className="py-1.5 px-1.5 border-r border-black text-right">{totalSgst.toFixed(2)}</td>
+                      <td className="py-1.5 px-1.5 border-r border-black text-right">{totalCgst.toFixed(2)}</td>
+                      <td className="py-1.5 px-1.5 border-r border-black text-right">0.00</td>
+                      <td className="py-1.5 px-1 text-right">0.00</td>
                     </tr>
                   </tbody>
                 </table>
               </div>
 
               {/* Lower Split Section (Left: TotalPayableAmount + Payment Table; Right: Summary Ledger Box) */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 text-xs border border-t-0 border-black">
+              <div className="grid grid-cols-2 text-xs border border-t-0 border-black">
                 {/* Left Half: Words & Payment Breakdown */}
-                <div className="p-2 sm:border-r sm:border-black flex flex-col justify-between">
+                <div className="p-2 border-r border-black flex flex-col justify-between">
                   <div className="border border-black p-2 mb-2">
                     <div className="font-bold text-xs">TotalPayableAmount</div>
                     <div className="text-xs font-medium capitalize mt-1">
@@ -568,91 +569,81 @@ export default function BillInvoiceModal({
                     </div>
                   </div>
 
-                  {/* Payment Breakdown Table */}
-                  <div className="border border-black overflow-hidden mt-1">
-                    <table className="w-full text-xs border-collapse">
-                      <thead>
-                        <tr className="border-b border-black font-bold">
-                          <th className="py-1 px-2 text-left border-r border-black">Payment Date</th>
-                          <th className="py-1 px-2 text-left border-r border-black">Description</th>
-                          <th className="py-1 px-2 text-right">Amount</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        <tr className="border-b border-black">
-                          <td className="py-1 px-2 border-r border-black">{invoiceDateOnly}</td>
-                          <td className="py-1 px-2 border-r border-black font-medium">
-                            {currentStay.paymentReference || currentStay.paymentMethod || 'CASH'}
-                          </td>
-                          <td className="py-1 px-2 text-right font-medium">{totalPaid.toFixed(2)}</td>
-                        </tr>
-                        <tr className="font-bold">
-                          <td colSpan={2} className="py-1 px-2 text-right border-r border-black">Total</td>
-                          <td className="py-1 px-2 text-right">{totalPaid.toFixed(2)}</td>
-                        </tr>
-                      </tbody>
-                    </table>
+                  {/* Payment Breakdown Table (Clean flex/grid layout to eliminate border-collapse bugs) */}
+                  <div className="border border-black overflow-hidden mt-1 text-xs">
+                    <div className="grid grid-cols-[30%_45%_25%] border-b border-black font-bold bg-white min-h-[24px]">
+                      <div className="py-1 px-2 text-left border-r border-black flex items-center">Payment Date</div>
+                      <div className="py-1 px-2 text-left border-r border-black flex items-center">Description</div>
+                      <div className="py-1 px-2 text-right flex items-center justify-end">Amount</div>
+                    </div>
+                    <div className="grid grid-cols-[30%_45%_25%] border-b border-black min-h-[24px]">
+                      <div className="py-1 px-2 border-r border-black flex items-center">{invoiceDateOnly}</div>
+                      <div className="py-1 px-2 border-r border-black font-medium flex items-center">
+                        {currentStay.paymentReference || currentStay.paymentMethod || 'CASH'}
+                      </div>
+                      <div className="py-1 px-2 text-right font-medium flex items-center justify-end">{totalPaid.toFixed(2)}</div>
+                    </div>
+                    <div className="grid grid-cols-[75%_25%] font-bold min-h-[24px]">
+                      <div className="py-1 px-2 text-right border-r border-black flex items-center justify-end">Total</div>
+                      <div className="py-1 px-2 text-right flex items-center justify-end">{totalPaid.toFixed(2)}</div>
+                    </div>
                   </div>
                 </div>
 
-                {/* Right Half: Bordered Ledger Box (Exact lines from photo) */}
-                <div className="text-xs">
-                  <table className="w-full border-collapse">
-                    <tbody>
-                      <tr className="border-b border-black">
-                        <td className="py-0.5 px-2 font-bold border-r border-black">TotalCharges(Rs):</td>
-                        <td className="py-0.5 px-2 text-right font-medium">{totalCharges.toFixed(2)}</td>
-                      </tr>
-                      <tr className="border-b border-black">
-                        <td className="py-0.5 px-2 font-bold border-r border-black">TotalDiscount(Rs):</td>
-                        <td className="py-0.5 px-2 text-right">{discount.toFixed(2)}</td>
-                      </tr>
-                      <tr className="border-b border-black">
-                        <td className="py-0.5 px-2 font-bold border-r border-black">TotalSGST(Rs):</td>
-                        <td className="py-0.5 px-2 text-right">{totalSgst.toFixed(2)}</td>
-                      </tr>
-                      <tr className="border-b border-black">
-                        <td className="py-0.5 px-2 font-bold border-r border-black">TotalCGST(Rs):</td>
-                        <td className="py-0.5 px-2 text-right">{totalCgst.toFixed(2)}</td>
-                      </tr>
-                      <tr className="border-b border-black">
-                        <td className="py-0.5 px-2 font-bold border-r border-black">TotalIGST(Rs):</td>
-                        <td className="py-0.5 px-2 text-right">0.00</td>
-                      </tr>
-                      <tr className="border-b border-black">
-                        <td className="py-0.5 px-2 font-bold border-r border-black">TotalOtherTax(Rs):</td>
-                        <td className="py-0.5 px-2 text-right">0.00</td>
-                      </tr>
-                      <tr className="border-b border-black">
-                        <td className="py-0.5 px-2 font-bold border-r border-black">TotalBalanceTransfer(Rs):</td>
-                        <td className="py-0.5 px-2 text-right">0.00</td>
-                      </tr>
-                      <tr className="border-b border-black font-bold">
-                        <td className="py-0.5 px-2 font-bold border-r border-black">Total(Rs):</td>
-                        <td className="py-0.5 px-2 text-right font-bold">{grandTotal.toFixed(2)}</td>
-                      </tr>
-                      <tr className="border-b border-black">
-                        <td className="py-0.5 px-2 font-bold border-r border-black">FlatDiscount(Rs):</td>
-                        <td className="py-0.5 px-2 text-right">{discount.toFixed(2)}</td>
-                      </tr>
-                      <tr className="border-b border-black">
-                        <td className="py-0.5 px-2 font-bold border-r border-black">Adjustment(Rs):</td>
-                        <td className="py-0.5 px-2 text-right">0.00</td>
-                      </tr>
-                      <tr className="border-b border-black font-bold">
-                        <td className="py-0.5 px-2 font-bold border-r border-black">TotalPayable(Rs):</td>
-                        <td className="py-0.5 px-2 text-right font-bold">{grandTotal.toFixed(2)}</td>
-                      </tr>
-                      <tr className="border-b border-black font-bold">
-                        <td className="py-0.5 px-2 font-bold border-r border-black">TotalPayment(Rs):</td>
-                        <td className="py-0.5 px-2 text-right font-bold">{totalPaid.toFixed(2)}</td>
-                      </tr>
-                      <tr className="font-bold">
-                        <td className="py-0.5 px-2 font-bold border-r border-black">Balance(Rs):</td>
-                        <td className="py-0.5 px-2 text-right font-bold">{balanceDue.toFixed(2)}</td>
-                      </tr>
-                    </tbody>
-                  </table>
+                {/* Right Half: Bordered Ledger Box (Exact lines from photo, clean CSS block rows preventing border-collapse strikethrough) */}
+                <div className="text-xs flex flex-col justify-start">
+                  <div className="grid grid-cols-[60%_40%] border-b border-black min-h-[24px]">
+                    <div className="py-1.5 px-2.5 font-bold border-r border-black flex items-center">TotalCharges(Rs):</div>
+                    <div className="py-1.5 px-2.5 text-right font-medium flex items-center justify-end">{totalCharges.toFixed(2)}</div>
+                  </div>
+                  <div className="grid grid-cols-[60%_40%] border-b border-black min-h-[24px]">
+                    <div className="py-1.5 px-2.5 font-bold border-r border-black flex items-center">TotalDiscount(Rs):</div>
+                    <div className="py-1.5 px-2.5 text-right flex items-center justify-end">{discount.toFixed(2)}</div>
+                  </div>
+                  <div className="grid grid-cols-[60%_40%] border-b border-black min-h-[24px]">
+                    <div className="py-1.5 px-2.5 font-bold border-r border-black flex items-center">TotalSGST(Rs):</div>
+                    <div className="py-1.5 px-2.5 text-right flex items-center justify-end">{totalSgst.toFixed(2)}</div>
+                  </div>
+                  <div className="grid grid-cols-[60%_40%] border-b border-black min-h-[24px]">
+                    <div className="py-1.5 px-2.5 font-bold border-r border-black flex items-center">TotalCGST(Rs):</div>
+                    <div className="py-1.5 px-2.5 text-right flex items-center justify-end">{totalCgst.toFixed(2)}</div>
+                  </div>
+                  <div className="grid grid-cols-[60%_40%] border-b border-black min-h-[24px]">
+                    <div className="py-1.5 px-2.5 font-bold border-r border-black flex items-center">TotalIGST(Rs):</div>
+                    <div className="py-1.5 px-2.5 text-right flex items-center justify-end">0.00</div>
+                  </div>
+                  <div className="grid grid-cols-[60%_40%] border-b border-black min-h-[24px]">
+                    <div className="py-1.5 px-2.5 font-bold border-r border-black flex items-center">TotalOtherTax(Rs):</div>
+                    <div className="py-1.5 px-2.5 text-right flex items-center justify-end">0.00</div>
+                  </div>
+                  <div className="grid grid-cols-[60%_40%] border-b border-black min-h-[24px]">
+                    <div className="py-1.5 px-2.5 font-bold border-r border-black flex items-center">TotalBalanceTransfer(Rs):</div>
+                    <div className="py-1.5 px-2.5 text-right flex items-center justify-end">0.00</div>
+                  </div>
+                  <div className="grid grid-cols-[60%_40%] border-b border-black min-h-[24px] font-bold">
+                    <div className="py-1.5 px-2.5 font-bold border-r border-black flex items-center">Total(Rs):</div>
+                    <div className="py-1.5 px-2.5 text-right font-bold flex items-center justify-end">{grandTotal.toFixed(2)}</div>
+                  </div>
+                  <div className="grid grid-cols-[60%_40%] border-b border-black min-h-[24px]">
+                    <div className="py-1.5 px-2.5 font-bold border-r border-black flex items-center">FlatDiscount(Rs):</div>
+                    <div className="py-1.5 px-2.5 text-right flex items-center justify-end">{discount.toFixed(2)}</div>
+                  </div>
+                  <div className="grid grid-cols-[60%_40%] border-b border-black min-h-[24px]">
+                    <div className="py-1.5 px-2.5 font-bold border-r border-black flex items-center">Adjustment(Rs):</div>
+                    <div className="py-1.5 px-2.5 text-right flex items-center justify-end">0.00</div>
+                  </div>
+                  <div className="grid grid-cols-[60%_40%] border-b border-black min-h-[24px] font-bold">
+                    <div className="py-1.5 px-2.5 font-bold border-r border-black flex items-center">TotalPayable(Rs):</div>
+                    <div className="py-1.5 px-2.5 text-right font-bold flex items-center justify-end">{grandTotal.toFixed(2)}</div>
+                  </div>
+                  <div className="grid grid-cols-[60%_40%] border-b border-black min-h-[24px] font-bold">
+                    <div className="py-1.5 px-2.5 font-bold border-r border-black flex items-center">TotalPayment(Rs):</div>
+                    <div className="py-1.5 px-2.5 text-right font-bold flex items-center justify-end">{totalPaid.toFixed(2)}</div>
+                  </div>
+                  <div className="grid grid-cols-[60%_40%] min-h-[24px] font-bold">
+                    <div className="py-1.5 px-2.5 font-bold border-r border-black flex items-center">Balance(Rs):</div>
+                    <div className="py-1.5 px-2.5 text-right font-bold flex items-center justify-end">{balanceDue.toFixed(2)}</div>
+                  </div>
                 </div>
               </div>
 

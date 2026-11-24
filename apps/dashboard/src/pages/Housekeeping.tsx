@@ -1069,9 +1069,8 @@ export default function Housekeeping() {
           <button
             key={tabName}
             onClick={() => setTab(tabName)}
-            className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${
-              tab === tabName ? 'bg-telivity-teal text-white' : 'text-telivity-slate hover:bg-telivity-light-grey'
-            }`}
+            className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${tab === tabName ? 'bg-telivity-teal text-white' : 'text-telivity-slate hover:bg-telivity-light-grey'
+              }`}
           >
             {tabName === 'lostFound' && <Package size={14} className="inline mr-1" />}
             {tabName === 'serviceRequests' && <ClipboardList size={14} className="inline mr-1" />}
