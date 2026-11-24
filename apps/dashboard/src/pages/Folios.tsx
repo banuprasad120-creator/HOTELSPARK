@@ -1,8 +1,29 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Routes, Route, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Receipt, ChevronLeft, Plus, Lock, RotateCcw, Split, ArrowRightLeft, CreditCard } from 'lucide-react';
+import {
+  Receipt,
+  ChevronLeft,
+  Plus,
+  Lock,
+  RotateCcw,
+  Split,
+  ArrowRightLeft,
+  CreditCard,
+  Printer,
+  Edit3,
+  Search,
+  RefreshCw,
+  FileText,
+  CheckCircle2,
+  AlertCircle,
+  DollarSign,
+  User,
+  Calendar,
+  Home,
+  Check,
+} from 'lucide-react';
 import { api } from '../lib/api';
 import { moneyString, requirePropertyId, requireCurrency } from '../lib/api-helpers';
 import { formatMoney, formatMoneyPlain } from '../lib/money';
@@ -23,6 +44,9 @@ import Modal from '../components/ui/Modal';
 import { StripeProvider } from '../components/payment/StripeProvider';
 import { CardInput } from '../components/payment/CardInput';
 import { WorldlineCard } from '../components/payment/WorldlineCard';
+import { getStoredStays, saveStoredStays, type StoredStay } from '../lib/supabaseAdapter';
+import BillInvoiceModal from '../components/billing/BillInvoiceModal';
+import EditBillModal from '../components/billing/EditBillModal';
 
 interface PaymentClientConfig {
   provider?: string;
@@ -94,73 +118,559 @@ interface Payment {
 
 const REFUNDABLE_STATUSES = new Set(['captured', 'settled', 'partially_refunded']);
 
-// ---- Folio List ----
+// ---- Folio & Billing Console ----
 function FolioList() {
   const { t } = useTranslation();
   const { propertyId } = useProperty();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const [statusFilter, setStatusFilter] = useState('');
 
-  const resId = searchParams.get('reservationId');
+  // Filter & Search states
+  const [statusTab, setStatusTab] = useState<'all' | 'in_house' | 'checked_out' | 'pending'>('all');
+  const [searchQuery, setSearchQuery] = useState('');
 
-  const { data } = useQuery({
-    queryKey: ['folios', propertyId, statusFilter, resId],
-    queryFn: () => api.get('/v1/folios', {
-      params: { propertyId, status: statusFilter || undefined, reservationId: resId || undefined },
-    }).then((r) => r.data),
+  // Modals state
+  const [selectedStayForInvoice, setSelectedStayForInvoice] = useState<StoredStay | null>(null);
+  const [selectedStayForEdit, setSelectedStayForEdit] = useState<StoredStay | null>(null);
+  const [quickSettleStay, setQuickSettleStay] = useState<StoredStay | null>(null);
+  const [settlePaymentMethod, setSettlePaymentMethod] = useState<'CASH' | 'UPI' | 'CARD'>('CASH');
+  const [settling, setSettling] = useState(false);
+
+  // Local fallback storage
+  const [localStays, setLocalStays] = useState<StoredStay[]>(() => getStoredStays());
+
+  const { data, refetch, isFetching } = useQuery({
+    queryKey: ['folios', propertyId],
+    queryFn: async () => {
+      try {
+        const res = await api.get('/v1/folios', { params: { propertyId } });
+        return res.data;
+      } catch {
+        return { data: [] };
+      }
+    },
     enabled: !!propertyId,
   });
 
-  const folios: Folio[] = Array.isArray(data?.data) ? data.data : (Array.isArray(data) ? data : []);
+  const apiFolios: Folio[] = Array.isArray(data?.data) ? data.data : (Array.isArray(data) ? data : []);
+
+  // Consolidate StoredStays and API Folios
+  const staysList = useMemo(() => {
+    const stays = getStoredStays();
+    if (stays && stays.length > 0) return stays;
+
+    // Fallback if stays in localStorage are empty, construct from API folios
+    return apiFolios.map((f: any) => f.stay || {
+      id: f.id,
+      propertyId: propertyId || '',
+      guestName: f.guestName || 'Guest',
+      mobile: f.mobile || '',
+      roomNumber: f.roomNumber || '101',
+      roomTypeName: f.roomTypeName || 'Budget',
+      checkInTime: f.createdAt || new Date().toISOString(),
+      expectedCheckoutTime: new Date(Date.now() + 86400000).toISOString(),
+      nights: 1,
+      pricePerNight: f.totalCharges || 1600,
+      extraCharges: 0,
+      discount: 0,
+      totalAmount: f.totalCharges || 1600,
+      advancePaid: f.totalPayments || 0,
+      previousPayments: 0,
+      balance: f.balance || 0,
+      paymentMethod: 'CASH',
+      paymentStatus: (f.balance || 0) <= 0 ? 'paid' : ((f.totalPayments || 0) > 0 ? 'partially_paid' : 'unpaid'),
+      stayStatus: f.status === 'settled' ? 'checked_out' : 'in_house',
+      billNumber: f.folioNumber,
+      createdAt: f.createdAt || new Date().toISOString(),
+      updatedAt: f.createdAt || new Date().toISOString(),
+    } as StoredStay);
+  }, [data, localStays, propertyId, apiFolios]);
+
+  // KPI Metrics Calculations
+  const stats = useMemo(() => {
+    let totalInvoices = staysList.length;
+    let totalBilled = 0;
+    let totalCollected = 0;
+    let totalBalanceDue = 0;
+
+    for (const s of staysList) {
+      totalBilled += s.totalAmount || 0;
+      totalCollected += (s.advancePaid || 0) + (s.previousPayments || 0);
+      totalBalanceDue += s.balance || 0;
+    }
+
+    return { totalInvoices, totalBilled, totalCollected, totalBalanceDue };
+  }, [staysList]);
+
+  // Filter & Search Logic
+  const filteredStays = useMemo(() => {
+    let list = [...staysList];
+
+    // Status Tab Filter
+    if (statusTab === 'in_house') {
+      list = list.filter((s) => s.stayStatus === 'in_house');
+    } else if (statusTab === 'checked_out') {
+      list = list.filter((s) => s.stayStatus === 'checked_out');
+    } else if (statusTab === 'pending') {
+      list = list.filter((s) => (s.balance || 0) > 0);
+    }
+
+    // Search Query Filter
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim();
+      list = list.filter((s) => {
+        const name = (s.guestName || '').toLowerCase();
+        const room = (s.roomNumber || '').toLowerCase();
+        const bill = (s.billNumber || '').toLowerCase();
+        const mobile = (s.mobile || '').toLowerCase();
+        return name.includes(q) || room.includes(q) || bill.includes(q) || mobile.includes(q);
+      });
+    }
+
+    return list;
+  }, [staysList, statusTab, searchQuery]);
+
+  const handleStayUpdated = (updatedStay: StoredStay) => {
+    const fresh = getStoredStays();
+    setLocalStays(fresh);
+    queryClient.invalidateQueries({ queryKey: ['folios'] });
+    queryClient.invalidateQueries({ queryKey: ['stays'] });
+  };
+
+  const handleQuickSettle = async () => {
+    if (!quickSettleStay) return;
+    try {
+      setSettling(true);
+      const remainingBalance = quickSettleStay.balance || 0;
+      const newPreviousPayments = (quickSettleStay.previousPayments || 0) + remainingBalance;
+
+      const payload: Partial<StoredStay> = {
+        previousPayments: newPreviousPayments,
+        balance: 0,
+        paymentStatus: 'paid',
+        paymentMethod: settlePaymentMethod,
+        updatedAt: new Date().toISOString(),
+      };
+
+      await api.patch(`/v1/stays/${quickSettleStay.id}`, payload);
+      toast('success', `Bill for Room ${quickSettleStay.roomNumber} (${quickSettleStay.guestName}) settled in full!`);
+      const updated = { ...quickSettleStay, ...payload };
+      handleStayUpdated(updated);
+      setQuickSettleStay(null);
+    } catch (err: any) {
+      toast('error', err?.message || 'Failed to settle bill.');
+    } finally {
+      setSettling(false);
+    }
+  };
 
   if (!propertyId) {
-    return <div className="flex items-center justify-center h-64 text-telivity-mid-grey">{t('common.selectProperty')}</div>;
+    return (
+      <div className="flex items-center justify-center h-64 text-telivity-mid-grey">
+        {t('common.selectProperty')}
+      </div>
+    );
   }
 
   return (
-    <div>
-      <div className="flex items-center gap-3 mb-6">
-        <Receipt size={24} className="text-telivity-teal" />
-        <h1 className="text-2xl font-semibold text-telivity-navy">{t('folios.title')}</h1>
+    <div className="space-y-6">
+      {/* Top Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-xl bg-telivity-teal/10 text-telivity-teal">
+              <Receipt size={26} />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight text-telivity-navy">
+                Billing & Invoices
+              </h1>
+              <p className="text-xs text-telivity-mid-grey mt-0.5">
+                Official GST Tax Invoices • Guest Folios • Bill Editing & Ledger Settlements • Karimnagar
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => {
+              refetch();
+              setLocalStays(getStoredStays());
+              toast('success', 'Refreshed all guest billing folios.');
+            }}
+            disabled={isFetching}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white border border-gray-200 hover:bg-gray-50 text-telivity-navy text-xs font-semibold shadow-2xs transition"
+          >
+            <RefreshCw size={14} className={isFetching ? 'animate-spin' : ''} />
+            <span>Refresh</span>
+          </button>
+        </div>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm p-4 mb-4 flex gap-3">
-        <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="border border-gray-200 rounded-lg px-3 py-2 text-sm">
-          <option value="">{t('folios.allStatus')}</option>
-          <option value="open">{t('folios.open')}</option>
-          <option value="settled">{t('folios.settled')}</option>
-          <option value="closed">{t('folios.closed')}</option>
-        </select>
+      {/* KPI Stats Cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-xs">
+          <div className="flex items-center justify-between text-telivity-mid-grey mb-1">
+            <span className="text-xs font-semibold">Total Invoices</span>
+            <FileText size={18} className="text-telivity-teal" />
+          </div>
+          <div className="text-2xl font-black text-telivity-navy">{stats.totalInvoices}</div>
+          <p className="text-[11px] text-gray-400 mt-1">Generated guest folios</p>
+        </div>
+
+        <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-xs">
+          <div className="flex items-center justify-between text-telivity-mid-grey mb-1">
+            <span className="text-xs font-semibold">Total Billed</span>
+            <DollarSign size={18} className="text-blue-500" />
+          </div>
+          <div className="text-2xl font-black text-telivity-navy">₹{stats.totalBilled.toLocaleString('en-IN')}</div>
+          <p className="text-[11px] text-gray-400 mt-1">Gross room charges & taxes</p>
+        </div>
+
+        <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-xs">
+          <div className="flex items-center justify-between text-telivity-mid-grey mb-1">
+            <span className="text-xs font-semibold">Total Collected</span>
+            <CheckCircle2 size={18} className="text-emerald-500" />
+          </div>
+          <div className="text-2xl font-black text-emerald-700">₹{stats.totalCollected.toLocaleString('en-IN')}</div>
+          <p className="text-[11px] text-emerald-600 mt-1">Advance & checkout payments</p>
+        </div>
+
+        <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-xs">
+          <div className="flex items-center justify-between text-telivity-mid-grey mb-1">
+            <span className="text-xs font-semibold">Outstanding Balance</span>
+            <AlertCircle size={18} className="text-amber-500" />
+          </div>
+          <div className={`text-2xl font-black ${stats.totalBalanceDue > 0 ? 'text-amber-600' : 'text-gray-700'}`}>
+            ₹{stats.totalBalanceDue.toLocaleString('en-IN')}
+          </div>
+          <p className="text-[11px] text-amber-600 mt-1">Pending guest settlements</p>
+        </div>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-        <table className="w-full">
-          <thead>
-            <tr className="bg-telivity-teal/5 border-b border-gray-100">
-              <th className="px-4 py-3 text-left text-xs font-semibold text-telivity-slate uppercase">{t('folios.folioNumber')}</th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-telivity-slate uppercase">{t('folios.guest')}</th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-telivity-slate uppercase">{t('folios.type')}</th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-telivity-slate uppercase">{t('common.status')}</th>
-              <th className="px-4 py-3 text-right text-xs font-semibold text-telivity-slate uppercase">{t('folios.balance')}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {folios.map((f, i) => (
-              <tr key={f.id} onClick={() => navigate(`/folios/${f.id}`)} className={`border-b border-gray-50 cursor-pointer hover:bg-telivity-light-grey/50 ${i % 2 === 1 ? 'bg-gray-50/50' : ''}`}>
-                <td className="px-4 py-3 text-sm font-medium text-telivity-navy">{f.folioNumber}</td>
-                <td className="px-4 py-3 text-sm text-telivity-slate">{f.guestName ?? '—'}</td>
-                <td className="px-4 py-3"><StatusBadge status={f.type === 'guest' ? 'info' : 'warning'} label={t(`folios.${f.type}`, { defaultValue: f.type })} /></td>
-                <td className="px-4 py-3"><StatusBadge status={f.status === 'open' ? 'pending' : f.status === 'settled' ? 'success' : 'completed'} label={t(`folios.${f.status}`, { defaultValue: f.status })} /></td>
-                <td className="px-4 py-3 text-sm font-medium text-right">{formatMoney(f.balance ?? 0, f.currencyCode)}</td>
-              </tr>
-            ))}
-            {folios.length === 0 && (
-              <tr><td colSpan={5} className="px-4 py-8 text-center text-sm text-telivity-mid-grey">{t('folios.noFoliosFound')}</td></tr>
+      {/* Main Billing Table & Controls Card */}
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+        {/* Filter Tabs & Search Bar */}
+        <div className="p-4 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-gray-50/50">
+          {/* Tabs */}
+          <div className="flex items-center gap-1 bg-gray-200/70 p-1 rounded-xl text-xs font-bold text-gray-600 overflow-x-auto">
+            <button
+              onClick={() => setStatusTab('all')}
+              className={`px-3 py-1.5 rounded-lg transition shrink-0 ${statusTab === 'all' ? 'bg-white text-telivity-navy shadow-xs' : 'hover:text-telivity-navy'}`}
+            >
+              All Folios ({staysList.length})
+            </button>
+            <button
+              onClick={() => setStatusTab('in_house')}
+              className={`px-3 py-1.5 rounded-lg transition shrink-0 ${statusTab === 'in_house' ? 'bg-white text-telivity-navy shadow-xs' : 'hover:text-telivity-navy'}`}
+            >
+              In-House ({staysList.filter((s) => s.stayStatus === 'in_house').length})
+            </button>
+            <button
+              onClick={() => setStatusTab('checked_out')}
+              className={`px-3 py-1.5 rounded-lg transition shrink-0 ${statusTab === 'checked_out' ? 'bg-white text-telivity-navy shadow-xs' : 'hover:text-telivity-navy'}`}
+            >
+              Checked Out ({staysList.filter((s) => s.stayStatus === 'checked_out').length})
+            </button>
+            <button
+              onClick={() => setStatusTab('pending')}
+              className={`px-3 py-1.5 rounded-lg transition shrink-0 ${statusTab === 'pending' ? 'bg-white text-rose-700 shadow-xs' : 'hover:text-rose-700'}`}
+            >
+              Pending Due ({staysList.filter((s) => (s.balance || 0) > 0).length})
+            </button>
+          </div>
+
+          {/* Search Box */}
+          <div className="relative sm:w-80">
+            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search guest, room #, mobile, invoice..."
+              className="w-full bg-white border border-gray-200 rounded-xl pl-9 pr-3 py-1.5 text-xs text-telivity-navy focus:ring-2 focus:ring-telivity-teal outline-hidden transition"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-xs"
+              >
+                ×
+              </button>
             )}
-          </tbody>
-        </table>
+          </div>
+        </div>
+
+        {/* Data Table */}
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs">
+            <thead>
+              <tr className="bg-telivity-teal/5 border-b border-gray-100 text-telivity-slate font-bold uppercase tracking-wider">
+                <th className="py-3 px-4">Invoice / Folio #</th>
+                <th className="py-3 px-4">Room</th>
+                <th className="py-3 px-4">Guest Information</th>
+                <th className="py-3 px-4">Stay Duration</th>
+                <th className="py-3 px-4 text-right">Total Bill (₹)</th>
+                <th className="py-3 px-4 text-right">Paid (₹)</th>
+                <th className="py-3 px-4 text-right">Balance Due (₹)</th>
+                <th className="py-3 px-4 text-center">Payment Status</th>
+                <th className="py-3 px-4 text-center">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100 text-telivity-navy">
+              {filteredStays.map((stay, index) => {
+                const totalPaid = (stay.advancePaid || 0) + (stay.previousPayments || 0);
+                const isPaid = (stay.balance || 0) <= 0;
+                const invoiceNumber =
+                  stay.billNumber ||
+                  `INV-SPARK-${stay.roomNumber}-${String(stay.id).slice(-4)}`;
+
+                const checkInDate = stay.checkInTime
+                  ? new Date(stay.checkInTime).toLocaleDateString('en-GB')
+                  : '—';
+                const checkOutDate = stay.actualCheckoutTime || stay.expectedCheckoutTime
+                  ? new Date(stay.actualCheckoutTime || stay.expectedCheckoutTime).toLocaleDateString('en-GB')
+                  : '—';
+
+                return (
+                  <tr
+                    key={stay.id || index}
+                    className="hover:bg-teal-50/40 transition group"
+                  >
+                    {/* Invoice Number */}
+                    <td className="py-3 px-4 font-mono font-bold text-telivity-teal">
+                      <div className="flex items-center gap-1.5">
+                        <FileText size={14} className="text-telivity-teal/70 shrink-0" />
+                        <span>{invoiceNumber}</span>
+                      </div>
+                    </td>
+
+                    {/* Room Info */}
+                    <td className="py-3 px-4 font-semibold">
+                      <div className="flex items-center gap-1.5">
+                        <Home size={14} className="text-gray-400 shrink-0" />
+                        <span className="font-bold text-telivity-navy">Room {stay.roomNumber}</span>
+                      </div>
+                      <span className="block text-[11px] text-gray-500 font-normal ml-5">
+                        {stay.roomTypeName || 'Budget'}
+                      </span>
+                    </td>
+
+                    {/* Guest Information */}
+                    <td className="py-3 px-4">
+                      <div className="font-bold text-telivity-navy">{stay.guestName}</div>
+                      <div className="text-[11px] text-gray-500 flex items-center gap-2">
+                        <span>{stay.mobile}</span>
+                        {stay.city && <span>• {stay.city}</span>}
+                      </div>
+                    </td>
+
+                    {/* Duration */}
+                    <td className="py-3 px-4 text-[11px]">
+                      <div>{checkInDate} → {checkOutDate}</div>
+                      <span className="text-gray-500 font-medium">
+                        {stay.nights} Night{stay.nights > 1 ? 's' : ''} • {stay.adults || 1}A / {stay.children || 0}C
+                      </span>
+                    </td>
+
+                    {/* Total Bill */}
+                    <td className="py-3 px-4 text-right font-bold text-sm">
+                      ₹{(stay.totalAmount || 0).toLocaleString('en-IN')}
+                    </td>
+
+                    {/* Total Paid */}
+                    <td className="py-3 px-4 text-right font-semibold text-emerald-700">
+                      ₹{totalPaid.toLocaleString('en-IN')}
+                      <span className="block text-[10px] text-gray-400 font-normal">
+                        via {stay.paymentMethod || 'CASH'}
+                      </span>
+                    </td>
+
+                    {/* Balance */}
+                    <td className="py-3 px-4 text-right font-black text-sm">
+                      <span className={isPaid ? 'text-emerald-700' : 'text-rose-600'}>
+                        ₹{(stay.balance || 0).toLocaleString('en-IN')}
+                      </span>
+                    </td>
+
+                    {/* Status */}
+                    <td className="py-3 px-4 text-center">
+                      <span
+                        className={`inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold ${
+                          isPaid
+                            ? 'bg-emerald-100 text-emerald-800'
+                            : totalPaid > 0
+                            ? 'bg-amber-100 text-amber-800'
+                            : 'bg-rose-100 text-rose-800'
+                        }`}
+                      >
+                        {isPaid ? 'Settled' : totalPaid > 0 ? 'Partially Paid' : 'Unpaid'}
+                      </span>
+                    </td>
+
+                    {/* Actions */}
+                    <td className="py-3 px-4 text-center">
+                      <div className="flex items-center justify-center gap-1.5">
+                        {/* View / Print Full Invoice */}
+                        <button
+                          onClick={() => setSelectedStayForInvoice(stay)}
+                          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-telivity-teal hover:bg-teal-600 text-white font-bold text-[11px] shadow-2xs transition"
+                          title="View & Print Official GST Invoice"
+                        >
+                          <Printer size={13} />
+                          <span>View Invoice</span>
+                        </button>
+
+                        {/* Edit Full Bill */}
+                        <button
+                          onClick={() => setSelectedStayForEdit(stay)}
+                          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-telivity-navy font-bold text-[11px] transition"
+                          title="Edit Full Bill (Nights, Rates, Extra Charges, Discount, Payments, Remarks)"
+                        >
+                          <Edit3 size={13} />
+                          <span>Edit Bill</span>
+                        </button>
+
+                        {/* Quick Settle Balance */}
+                        {!isPaid && (
+                          <button
+                            onClick={() => setQuickSettleStay(stay)}
+                            className="flex items-center gap-1 px-2 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold text-[11px] border border-emerald-200 transition"
+                            title="Collect remaining balance and settle bill"
+                          >
+                            <CreditCard size={13} />
+                            <span>Settle</span>
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+
+              {filteredStays.length === 0 && (
+                <tr>
+                  <td colSpan={9} className="py-12 text-center text-gray-400">
+                    <Receipt size={32} className="mx-auto text-gray-300 mb-2" />
+                    <p className="font-semibold text-sm">No billing records found</p>
+                    <p className="text-xs text-gray-400 mt-0.5">
+                      {searchQuery
+                        ? `No folios matching "${searchQuery}"`
+                        : 'No stays recorded for this filter tab.'}
+                    </p>
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
+
+      {/* Bill Invoice Modal (Official Hotel Spark Pattern) */}
+      {selectedStayForInvoice && (
+        <BillInvoiceModal
+          stay={selectedStayForInvoice}
+          isOpen={Boolean(selectedStayForInvoice)}
+          onClose={() => setSelectedStayForInvoice(null)}
+          onStayUpdated={handleStayUpdated}
+        />
+      )}
+
+      {/* Edit Full Bill Modal */}
+      {selectedStayForEdit && (
+        <EditBillModal
+          stay={selectedStayForEdit}
+          isOpen={Boolean(selectedStayForEdit)}
+          onClose={() => setSelectedStayForEdit(null)}
+          onSave={handleStayUpdated}
+          onSaveAndPrint={(updated) => {
+            handleStayUpdated(updated);
+            setSelectedStayForInvoice(updated);
+          }}
+        />
+      )}
+
+      {/* Quick Settle Modal */}
+      {quickSettleStay && (
+        <Modal
+          open={Boolean(quickSettleStay)}
+          onClose={() => setQuickSettleStay(null)}
+          title={`Settle Bill: Room ${quickSettleStay.roomNumber}`}
+        >
+          <div className="space-y-4 text-xs text-telivity-navy">
+            <div className="p-3 bg-gray-50 rounded-xl border border-gray-200 space-y-1">
+              <div className="flex justify-between">
+                <span className="text-gray-500">Guest Name:</span>
+                <span className="font-bold">{quickSettleStay.guestName}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-500">Total Bill:</span>
+                <span className="font-semibold">₹{(quickSettleStay.totalAmount || 0).toLocaleString('en-IN')}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-500">Already Paid:</span>
+                <span className="font-semibold text-emerald-700">
+                  ₹{((quickSettleStay.advancePaid || 0) + (quickSettleStay.previousPayments || 0)).toLocaleString('en-IN')}
+                </span>
+              </div>
+              <div className="flex justify-between text-sm font-black pt-1 border-t border-gray-200">
+                <span className="text-rose-700">Remaining Balance Due:</span>
+                <span className="text-rose-700">₹{(quickSettleStay.balance || 0).toLocaleString('en-IN')}</span>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-[11px] font-semibold text-gray-700 mb-1">Select Payment Collection Mode</label>
+              <div className="grid grid-cols-3 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setSettlePaymentMethod('CASH')}
+                  className={`py-2 px-3 rounded-lg font-bold border transition ${settlePaymentMethod === 'CASH' ? 'bg-telivity-teal text-white border-telivity-teal' : 'bg-white text-gray-700 border-gray-300'}`}
+                >
+                  CASH
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSettlePaymentMethod('UPI')}
+                  className={`py-2 px-3 rounded-lg font-bold border transition ${settlePaymentMethod === 'UPI' ? 'bg-telivity-teal text-white border-telivity-teal' : 'bg-white text-gray-700 border-gray-300'}`}
+                >
+                  UPI (QR)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSettlePaymentMethod('CARD')}
+                  className={`py-2 px-3 rounded-lg font-bold border transition ${settlePaymentMethod === 'CARD' ? 'bg-telivity-teal text-white border-telivity-teal' : 'bg-white text-gray-700 border-gray-300'}`}
+                >
+                  CARD / POS
+                </button>
+              </div>
+            </div>
+
+            <div className="pt-2 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setQuickSettleStay(null)}
+                disabled={settling}
+                className="px-4 py-2 rounded-xl bg-gray-200 hover:bg-gray-300 font-bold transition"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleQuickSettle}
+                disabled={settling}
+                className="flex items-center gap-1.5 px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold shadow-md transition disabled:opacity-50"
+              >
+                <Check size={14} />
+                <span>{settling ? 'Settling...' : `Collect ₹${(quickSettleStay.balance || 0).toLocaleString('en-IN')} & Mark Paid`}</span>
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 }
