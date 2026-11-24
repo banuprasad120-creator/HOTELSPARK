@@ -1,5 +1,7 @@
 import { useRef, useState, useEffect } from 'react';
-import { X, Printer, Settings2, Eye, Edit3 } from 'lucide-react';
+import { X, Printer, Settings2, Eye, Edit3, Download, Loader2 } from 'lucide-react';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 import type { StoredStay } from '../../lib/supabaseAdapter';
 import AadhaarViewerModal from '../guests/AadhaarViewerModal';
 import EditBillModal from './EditBillModal';
@@ -51,8 +53,82 @@ export default function BillInvoiceModal({
 
   if (!isOpen || !currentStay) return null;
 
+  const [downloading, setDownloading] = useState(false);
+
   const handlePrint = () => {
     window.print();
+  };
+
+  const handleDownloadPdf = async () => {
+    if (!printRef.current) return;
+    setDownloading(true);
+    try {
+      const canvas = await html2canvas(printRef.current, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#ffffff',
+      });
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4',
+      });
+      const imgWidth = 210;
+      const pageHeight = 297;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      let heightLeft = imgHeight;
+      let position = 0;
+
+      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+      heightLeft -= pageHeight;
+
+      while (heightLeft > 0) {
+        position = heightLeft - imgHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
+      }
+
+      pdf.save(`Hotel_Spark_Invoice_${invoiceNumber}.pdf`);
+    } catch (err) {
+      console.error('PDF export failed, falling back to HTML download:', err);
+      handleDownloadHtml();
+    } finally {
+      setDownloading(false);
+    }
+  };
+
+  const handleDownloadHtml = () => {
+    if (!printRef.current) return;
+    const invoiceContent = printRef.current.innerHTML;
+    const fullHtml = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Hotel Spark Invoice - ${invoiceNumber}</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @media print { body { -webkit-print-color-adjust: exact; margin: 0; } }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #fff; padding: 20px; }
+  </style>
+</head>
+<body onload="window.print()">
+  <div style="max-width: 850px; margin: 0 auto;">
+    ${invoiceContent}
+  </div>
+</body>
+</html>`;
+    const blob = new Blob([fullHtml], { type: 'text/html;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `Hotel_Spark_Invoice_${invoiceNumber}.html`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
   const safeId = currentStay.id ? String(currentStay.id) : String(Date.now());
@@ -196,12 +272,21 @@ export default function BillInvoiceModal({
               <span className="hidden sm:inline">Tax & Format</span>
             </button>
             <button
+              onClick={handleDownloadPdf}
+              disabled={downloading}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white text-xs font-bold shadow-xs transition disabled:opacity-50 cursor-pointer"
+              title="Download official Hotel Spark Invoice as a PDF file"
+            >
+              {downloading ? <Loader2 size={15} className="animate-spin" /> : <Download size={15} />}
+              <span>{downloading ? 'Downloading…' : 'Download Invoice (PDF)'}</span>
+            </button>
+            <button
               onClick={handlePrint}
-              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-white hover:bg-gray-100 text-telivity-navy text-xs font-extrabold shadow-xs transition"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white hover:bg-gray-100 text-telivity-navy text-xs font-extrabold shadow-xs transition cursor-pointer"
               title="Print or Save Invoice as PDF"
             >
               <Printer size={15} />
-              <span>Print / Save PDF</span>
+              <span>Print</span>
             </button>
             <button
               onClick={onClose}
@@ -626,10 +711,20 @@ export default function BillInvoiceModal({
             </button>
             <button
               type="button"
-              onClick={handlePrint}
-              className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-xl bg-telivity-teal hover:bg-teal-600 text-white text-xs font-extrabold shadow-sm transition"
+              onClick={handleDownloadPdf}
+              disabled={downloading}
+              className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white text-xs font-extrabold shadow-sm transition disabled:opacity-50 cursor-pointer"
+              title="Download official Hotel Spark Invoice as a PDF file"
             >
-              <Printer size={15} /> Print / Save PDF
+              {downloading ? <Loader2 size={15} className="animate-spin" /> : <Download size={15} />}
+              <span>{downloading ? 'Downloading…' : 'Download Invoice (PDF)'}</span>
+            </button>
+            <button
+              type="button"
+              onClick={handlePrint}
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-telivity-teal hover:bg-teal-600 text-white text-xs font-bold shadow-xs transition cursor-pointer"
+            >
+              <Printer size={15} /> Print
             </button>
             <button
               type="button"

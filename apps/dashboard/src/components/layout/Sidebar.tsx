@@ -57,8 +57,8 @@ type NavSection = {
 
 const DEPT_ALLOWED_ROUTES: Record<string, string[]> = {
   admin: ['/', '/admin-panel', '/manager-panel', '/front-office-panel', '/tariff-settings', '/departments', '/current-guests', '/front-desk', '/reservations', '/guests', '/rooms', '/rooms/types', '/housekeeping', '/staff', '/folios', '/guest-history', '/direct-bookings', '/direct-bookings/pending', '/direct-bookings/approved', '/direct-bookings/rejected', '/direct-bookings/history', '/reports', '/settings'],
-  manager: ['/', '/admin-panel', '/manager-panel', '/front-office-panel', '/tariff-settings', '/departments', '/staff', '/current-guests', '/front-desk', '/reservations', '/guests', '/rooms', '/rooms/types', '/housekeeping', '/direct-bookings', '/direct-bookings/pending', '/direct-bookings/approved', '/direct-bookings/history', '/reports', '/settings'],
-  front_office: ['/', '/front-office-panel', '/tariff-settings', '/departments', '/current-guests', '/front-desk', '/reservations', '/guests', '/rooms', '/rooms/types', '/guest-history', '/direct-bookings', '/direct-bookings/pending', '/direct-bookings/approved', '/direct-bookings/history'],
+  manager: ['/', '/admin-panel', '/manager-panel', '/front-office-panel', '/tariff-settings', '/departments', '/staff', '/current-guests', '/front-desk', '/reservations', '/guests', '/rooms', '/rooms/types', '/housekeeping', '/direct-bookings', '/direct-bookings/pending', '/direct-bookings/approved', '/direct-bookings/history', '/reports', '/settings', '/folios'],
+  front_office: ['/', '/front-office-panel', '/tariff-settings', '/departments', '/current-guests', '/front-desk', '/reservations', '/guests', '/rooms', '/rooms/types', '/guest-history', '/direct-bookings', '/direct-bookings/pending', '/direct-bookings/approved', '/direct-bookings/history', '/folios'],
   housekeeping: ['/', '/departments', '/rooms', '/rooms/types', '/housekeeping', '/staff'],
   accounts: ['/', '/departments', '/folios', '/guest-history', '/reports'],
 };

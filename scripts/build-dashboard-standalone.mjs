@@ -56,4 +56,22 @@ if (fs.existsSync(assetsDir) && !fs.existsSync(adminAssetsDir)) {
   fs.cpSync(assetsDir, adminAssetsDir, { recursive: true });
 }
 
+// 4. Also copy into apps/booking/dist/admin to ensure unified Vercel deployment
+const bookingDist = path.join(rootDir, 'apps', 'booking', 'dist');
+if (fs.existsSync(bookingDist)) {
+  const targetBookingAdmin = path.join(bookingDist, 'admin');
+  if (!fs.existsSync(targetBookingAdmin)) {
+    fs.mkdirSync(targetBookingAdmin, { recursive: true });
+  }
+  fs.cpSync(distDir, targetBookingAdmin, { recursive: true });
+  if (fs.existsSync(indexHtml)) {
+    fs.copyFileSync(indexHtml, path.join(bookingDist, 'admin.html'));
+  }
+  const bookingAssets = path.join(bookingDist, 'assets');
+  if (fs.existsSync(assetsDir) && fs.existsSync(bookingAssets)) {
+    fs.cpSync(assetsDir, bookingAssets, { recursive: true });
+  }
+  console.log('📁 Synced latest Admin Console into apps/booking/dist/admin');
+}
+
 console.log('\n✅ Standalone Dashboard build complete!');
