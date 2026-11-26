@@ -533,6 +533,8 @@ function RoomList() {
     return [];
   }, [typesData]);
 
+  const safeTypes = Array.isArray(types) ? types : [];
+
   const isDuplicateNumber = useMemo(() => {
     if (!newRoomNumber.trim()) return false;
     return rooms.some((r) => r.number.trim().toLowerCase() === newRoomNumber.trim().toLowerCase());
@@ -698,11 +700,11 @@ function RoomList() {
                       <div className="flex items-center justify-between">
                         <p className="text-sm font-bold text-telivity-navy">Room {room.number}</p>
                         <span className="text-[10px] font-bold text-telivity-teal">
-                          ₹{(types.find((t) => t.id === room.roomTypeId)?.basePrice || 3500).toLocaleString('en-IN')}
+                          ₹{(safeTypes.find((t) => t.id === room.roomTypeId)?.basePrice || 3500).toLocaleString('en-IN')}
                         </span>
                       </div>
                       <p className="text-[11px] text-telivity-slate font-medium truncate mt-0.5">
-                        {room.roomTypeName || types.find((t) => t.id === room.roomTypeId)?.name || 'Deluxe King Room'}
+                        {room.roomTypeName || safeTypes.find((t) => t.id === room.roomTypeId)?.name || 'Deluxe King Room'}
                       </p>
                       <StatusBadge status={room.status} label={t(`dashboard.roomStatuses.${room.status}`, { defaultValue: room.status })} className="mt-1.5 text-[9px] px-1.5 py-0" />
                       {diary ? (
@@ -746,7 +748,7 @@ function RoomList() {
                 return (
                   <tr key={r.id} onClick={() => setDetailRoom(r)} className={`border-b border-gray-50 cursor-pointer hover:bg-telivity-light-grey/50 ${i % 2 === 1 ? 'bg-gray-50/50' : ''}`}>
                     <td className="px-4 py-3 text-sm font-medium text-telivity-navy">{r.number}</td>
-                    <td className="px-4 py-3 text-sm text-telivity-slate">{r.roomTypeName || types.find((t) => t.id === r.roomTypeId)?.name || 'Deluxe King Room'}</td>
+                    <td className="px-4 py-3 text-sm text-telivity-slate">{r.roomTypeName || safeTypes.find((t) => t.id === r.roomTypeId)?.name || 'Deluxe King Room'}</td>
                     <td className="px-4 py-3 text-sm text-telivity-slate">{r.floor ?? '—'}</td>
                     <td className="px-4 py-3"><StatusBadge status={r.status} label={t(`dashboard.roomStatuses.${r.status}`, { defaultValue: r.status })} /></td>
                     <td className="px-4 py-3 text-sm text-telivity-slate">{diary?.guestName ?? r.guestName ?? '—'}</td>
