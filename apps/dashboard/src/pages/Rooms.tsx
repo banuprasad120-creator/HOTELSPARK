@@ -110,8 +110,10 @@ function RoomDetailPanel({
 
   // Main photo: the room's own primary, falling back to the room type's primary
   // (rooms usually inherit their type's photos rather than having their own).
-  const { data: roomMedia = [] } = useMediaList(propertyId, 'room', room.id);
-  const { data: typeMedia = [] } = useMediaList(propertyId, 'room_type', room.roomTypeId);
+  const { data: rawRoomMedia = [] } = useMediaList(propertyId, 'room', room.id);
+  const { data: rawTypeMedia = [] } = useMediaList(propertyId, 'room_type', room.roomTypeId);
+  const roomMedia = Array.isArray(rawRoomMedia) ? rawRoomMedia : [];
+  const typeMedia = Array.isArray(rawTypeMedia) ? rawTypeMedia : [];
   const primaryImage =
     roomMedia.find((m) => m.isPrimary) ?? roomMedia[0] ??
     typeMedia.find((m) => m.isPrimary) ?? typeMedia[0] ?? null;
@@ -523,7 +525,12 @@ function RoomList() {
 
   const types: RoomType[] = useMemo(() => {
     const raw = typesData?.data ?? typesData;
-    return Array.isArray(raw) ? raw : [];
+    if (Array.isArray(raw)) return raw;
+    if (raw && typeof raw === 'object') {
+      const vals = Object.values(raw);
+      if (Array.isArray(vals[0])) return vals[0] as RoomType[];
+    }
+    return [];
   }, [typesData]);
 
   const isDuplicateNumber = useMemo(() => {
@@ -912,8 +919,9 @@ function RoomTypeList() {
 
   // Helper to find the BAR rate plan for a room type
   const getBarPlan = (roomTypeId: string) => {
-    return ratePlans.find((rp) => (rp.roomTypeId === roomTypeId || rp.room_type_id === roomTypeId) && rp.type === 'bar')
-      || ratePlans.find((rp) => rp.roomTypeId === roomTypeId || rp.room_type_id === roomTypeId);
+    const safeRatePlans = Array.isArray(ratePlans) ? ratePlans : [];
+    return safeRatePlans.find((rp) => (rp?.roomTypeId === roomTypeId || rp?.room_type_id === roomTypeId) && rp?.type === 'bar')
+      || safeRatePlans.find((rp) => rp?.roomTypeId === roomTypeId || rp?.room_type_id === roomTypeId);
   };
 
   const getPrice = (roomType: RoomType): number => {

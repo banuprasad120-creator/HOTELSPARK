@@ -41,10 +41,11 @@ export function useMediaList(
 ) {
   return useQuery({
     queryKey: ['media', ownerType, ownerId],
-    queryFn: () =>
-      api
-        .get('/v1/media', { params: { propertyId, ownerType, ownerId } })
-        .then((r) => r.data as MediaItem[]),
+    queryFn: async () => {
+      const res = await api.get('/v1/media', { params: { propertyId, ownerType, ownerId } });
+      const raw = res.data?.data ?? res.data;
+      return (Array.isArray(raw) ? raw : []) as MediaItem[];
+    },
     enabled: !!propertyId && !!ownerId,
   });
 }
