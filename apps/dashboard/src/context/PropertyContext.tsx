@@ -124,20 +124,16 @@ export function PropertyProvider({ children }: { children: ReactNode }) {
     Promise.all([
       api.get('/v1/properties').catch((err) => {
         console.warn('API /v1/properties unavailable:', err?.message);
-        return { data: [DEFAULT_PROPERTY] };
-      }),
-      api.get('/v1/organizations', { skipErrorToast: true }).catch((err) => {
         return { data: [] };
       }),
+      api.get('/v1/organizations', { skipErrorToast: true }).catch(() => ({ data: [] })),
     ])
       .then(([propRes, orgRes]) => {
         let rawProp = propRes?.data;
         if (rawProp && typeof rawProp === 'object' && Array.isArray(rawProp.data)) {
           rawProp = rawProp.data;
         }
-        const list: PropertySummary[] = Array.isArray(rawProp) && rawProp.length > 0
-          ? rawProp
-          : [DEFAULT_PROPERTY];
+        const list: PropertySummary[] = Array.isArray(rawProp) ? rawProp : [];
 
         let rawOrg = orgRes?.data;
         if (rawOrg && typeof rawOrg === 'object' && Array.isArray(rawOrg.data)) {
@@ -157,8 +153,7 @@ export function PropertyProvider({ children }: { children: ReactNode }) {
         }
       })
       .catch((err) => {
-        console.warn('Properties load fallback to Hotel Spark:', err?.message);
-        setProperties([DEFAULT_PROPERTY]);
+        setProperties([]);
         setPropertiesError(err?.message ?? 'Failed to load properties');
       })
       .finally(() => setPropertiesLoading(false));

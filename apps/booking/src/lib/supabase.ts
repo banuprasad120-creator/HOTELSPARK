@@ -1,15 +1,13 @@
 /**
- * Supabase client configuration for Hotel Spark Booking Engine.
+ * Supabase client configuration for Hotel Spark Booking Engine (browser-safe publishable key only).
  */
 export const SUPABASE_URL =
   import.meta.env.VITE_SUPABASE_URL || 'https://erzzqhzjtdhzrwpzbflr.supabase.co';
 
-const DEFAULT_KEY_B64 = 'c2JfcHVibGlzaGFibGVfWGo2QU9BZ2QtT0JZSkxNTnRadG45UV9HdkliSU9ZZA==';
-
 export const SUPABASE_ANON_KEY =
   import.meta.env.VITE_SUPABASE_ANON_KEY ||
   import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ||
-  (typeof atob === 'function' ? atob(DEFAULT_KEY_B64) : '');
+  'sb_publishable_Xj6AOAgd-OBYJLMNtZtn9Q_GvIbIOYd';
 
 export const isSupabaseConfigured = Boolean(SUPABASE_URL && SUPABASE_ANON_KEY);
 
@@ -22,7 +20,6 @@ export async function supabaseFetch<T = any>(
     ...options,
     headers: {
       apikey: SUPABASE_ANON_KEY,
-      Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
       'Content-Type': 'application/json',
       ...(options.headers || {}),
     },
@@ -30,7 +27,14 @@ export async function supabaseFetch<T = any>(
 
   if (!res.ok) {
     const errText = await res.text();
-    throw new Error(`Supabase error (${res.status}): ${errText}`);
+    let msg = `Supabase error (${res.status})`;
+    try {
+      const parsed = JSON.parse(errText);
+      msg = parsed.message || parsed.hint || parsed.details || errText || msg;
+    } catch {
+      if (errText) msg = errText;
+    }
+    throw new Error(msg);
   }
 
   const text = await res.text();
@@ -41,4 +45,3 @@ export async function supabaseFetch<T = any>(
     return text as unknown as T;
   }
 }
-

@@ -13,30 +13,50 @@ export const api = axios.create({
   headers: { 'Content-Type': 'application/json' },
 });
 
-const isStandalonePms = typeof window !== 'undefined' && (
-  window.location.hostname.includes('netlify.app') ||
-  window.location.hostname.includes('vercel.app') ||
-  window.location.hostname.includes('hotelspark') ||
-  window.location.hostname.includes('spark') ||
-  window.location.port === '5173' ||
-  window.location.port === '5174' ||
-  !window.location.port
-);
+let tokenProvider: (() => string | undefined) | null = null;
+
+export function setAuthTokenProvider(fn: () => string | undefined) {
+  tokenProvider = fn;
+}
+
+function toAxiosError(err: any, cfg: any) {
+  const status = err?.status || err?.response?.status || 400;
+  const message = err?.message || 'Supabase request failed';
+  return Object.assign(new Error(message), {
+    isAxiosError: true,
+    config: cfg,
+    response: {
+      status,
+      statusText: String(status),
+      headers: { 'content-type': 'application/json' },
+      data: { message, error: message },
+      config: cfg,
+    },
+  });
+}
+
+const isStandalonePms =
+  typeof window !== 'undefined' &&
+  (window.location.hostname.includes('netlify.app') ||
+    window.location.hostname.includes('vercel.app') ||
+    window.location.hostname.includes('hotelspark') ||
+    window.location.hostname.includes('spark') ||
+    window.location.port === '5173' ||
+    window.location.port === '5174' ||
+    !window.location.port);
 
 if (isStandalonePms) {
   api.interceptors.request.use(async (config) => {
+    const token = tokenProvider?.();
+    if (token) {
+      config.headers = config.headers || {};
+      config.headers.Authorization = `Bearer ${token}`;
+    }
     config.adapter = async (cfg) => {
       try {
         return await handleSupabaseAdapter(cfg);
-      } catch (adapterErr) {
-        console.error('handleSupabaseAdapter error:', adapterErr);
-        return {
-          data: [],
-          status: 200,
-          statusText: 'OK',
-          headers: { 'content-type': 'application/json' },
-          config: cfg,
-        };
+      } catch (adapterErr: any) {
+        return Promise.reject(toAxiosError(adapterErr, cfg));
       }
     };
     return config;
@@ -45,7 +65,6 @@ if (isStandalonePms) {
 
 api.interceptors.response.use(
   async (response) => {
-    // If the server returned an HTML fallback (e.g. Netlify serving index.html on /api/* routes)
     if (
       typeof response.data === 'string' &&
       (response.headers['content-type']?.includes('text/html') ||
@@ -54,38 +73,24 @@ api.interceptors.response.use(
     ) {
       try {
         return await handleSupabaseAdapter(response.config);
-      } catch (err) {
-        return {
-          data: [],
-          status: 200,
-          statusText: 'OK',
-          headers: { 'content-type': 'application/json' },
-          config: response.config,
-        };
+      } catch (adapterErr: any) {
+        return Promise.reject(toAxiosError(adapterErr, response.config));
       }
     }
     return response;
   },
   async (error) => {
-    // If running on static host (Netlify) and API endpoint returns 404 or network failure
     if (error.response?.status === 404 || error.code === 'ERR_NETWORK' || !error.response) {
       try {
         return await handleSupabaseAdapter(error.config);
-      } catch {
-        return {
-          data: [],
-          status: 200,
-          statusText: 'OK',
-          headers: { 'content-type': 'application/json' },
-          config: error.config,
-        };
+      } catch (adapterErr: any) {
+        return Promise.reject(toAxiosError(adapterErr, error.config));
       }
     }
     return Promise.reject(error);
   }
 );
 
-/** Set the active property ID — added as query param to all requests */
 export function setPropertyId(propertyId: string | null) {
   if (propertyId) {
     api.defaults.params = { ...api.defaults.params, propertyId };

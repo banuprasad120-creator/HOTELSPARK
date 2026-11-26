@@ -32,13 +32,8 @@ import { api } from '../lib/api';
 import { useProperty } from '../context/PropertyContext';
 import { useToast } from '../components/ui/Toast';
 import {
-  getStoredTariffConfig,
-  saveStoredTariffConfig,
-  getStoredRooms,
-  saveStoredRooms,
-  reassignRoomInventory,
   calculateTariffInvoice,
-  DEFAULT_TARIFF_CONFIG,
+  EMPTY_TARIFF_CONFIG,
   type HotelTariffConfig,
   type RoomCategoryTariff,
   type StoredRoom,
@@ -55,25 +50,37 @@ export default function RoomTariffSettings() {
   const [roomSearch, setRoomSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'available' | 'occupied' | 'booked' | 'dirty' | 'maintenance'>('all');
 
-  // Load Tariff Config from localStorage / Supabase Adapter
-  const [config, setConfig] = useState<HotelTariffConfig>(() => getStoredTariffConfig());
+  const { data: serverTariffConfig } = useQuery<HotelTariffConfig>({
+    queryKey: ['tariff-config', propertyId],
+    queryFn: () => api.get('/v1/tariff-config', { params: { propertyId } }).then((r) => r.data),
+    enabled: !!propertyId,
+  });
 
-  // Load 28 Rooms from localStorage / Supabase Adapter
-  const [rooms, setRooms] = useState<StoredRoom[]>(() => getStoredRooms());
+  const { data: serverRooms = [] } = useQuery<StoredRoom[]>({
+    queryKey: ['rooms', propertyId],
+    queryFn: () => api.get('/v1/rooms', { params: { propertyId } }).then((r) => r.data),
+    enabled: !!propertyId,
+  });
+
+  const [draftConfig, setDraftConfig] = useState<HotelTariffConfig | null>(null);
+  const config: HotelTariffConfig = draftConfig ?? serverTariffConfig ?? EMPTY_TARIFF_CONFIG;
+  const setConfig = (updater: (prev: HotelTariffConfig) => HotelTariffConfig) => {
+    setDraftConfig((prev) => updater(prev ?? serverTariffConfig ?? EMPTY_TARIFF_CONFIG));
+  };
+  const rooms: StoredRoom[] = Array.isArray(serverRooms) ? serverRooms : [];
 
   // Simulator State
-  const [simCategoryIndex, setSimCategoryIndex] = useState(1); // Default Deluxe Room
+  const [simCategoryIndex, setSimCategoryIndex] = useState(0);
   const [simOccupancy, setSimOccupancy] = useState<'single' | 'double'>('double');
   const [simNights, setSimNights] = useState(2);
-  const [simExtraPersons, setSimExtraPersons] = useState(1);
-  const [simChildren, setSimChildren] = useState(1);
+  const [simExtraPersons, setSimExtraPersons] = useState(0);
+  const [simChildren, setSimChildren] = useState(0);
 
-  // Validate Total Assigned Rooms equals 28
   const totalAssignedRooms = useMemo(() => {
     return config.categories.reduce((acc, cat) => acc + (Number(cat.assignedRoomsCount) || 0), 0);
   }, [config.categories]);
 
-  const isInventoryValid = totalAssignedRooms === 28;
+  const isInventoryValid = rooms.length === 0 || totalAssignedRooms === rooms.length;
 
   // Handle Category Pricing Update
   const handleUpdatePrice = (
@@ -99,46 +106,60 @@ export default function RoomTariffSettings() {
     }));
   };
 
-  // Save All Changes
-  const handleSaveAll = () => {
-    if (totalAssignedRooms !== 28) {
-      toast(
-        'error',
-        `Inventory allocation must equal exactly 28 rooms (current total: ${totalAssignedRooms}). Please adjust category room counts.`
-      );
-      return;
+  // Save All Changes to Supabase
+  const handleSaveAll = async () => {
+    try {
+      await api.put('/v1/tariff-config', { ...config, propertyId });
+      setDraftConfig(null);
+      queryClient.invalidateQueries({ queryKey: ['tariff-config'] });
+      queryClient.invalidateQueries({ queryKey: ['rooms'] });
+      queryClient.invalidateQueries({ queryKey: ['rate-plans'] });
+      toast('success', 'Room tariffs and GST settings saved to Supabase.');
+    } catch (err: any) {
+      toast('error', err?.message || 'Failed to save tariff configuration.');
     }
-
-    saveStoredTariffConfig(config);
-    const updatedRooms = reassignRoomInventory(config.categories);
-    setRooms(updatedRooms);
-    queryClient.invalidateQueries({ queryKey: ['rooms'] });
-    toast('success', 'Official room tariffs, 28-room inventory, and GST policies saved successfully!');
   };
 
-  // Reset to Official Defaults
   const handleResetDefaults = () => {
-    setConfig({ ...DEFAULT_TARIFF_CONFIG });
-    saveStoredTariffConfig(DEFAULT_TARIFF_CONFIG);
-    const updatedRooms = reassignRoomInventory(DEFAULT_TARIFF_CONFIG.categories);
-    setRooms(updatedRooms);
-    queryClient.invalidateQueries({ queryKey: ['rooms'] });
-    toast('success', 'Reset room tariffs and 28-room inventory to official defaults.');
+    setDraftConfig(null);
+    queryClient.invalidateQueries({ queryKey: ['tariff-config'] });
+    toast('success', 'Reloaded saved tariffs from database.');
   };
 
-  // Quick Room Status Change
-  const handleRoomStatusChange = (roomId: string, newStatus: string) => {
-    const updated = rooms.map((r) => (r.id === roomId ? { ...r, status: newStatus } : r));
-    setRooms(updated);
-    saveStoredRooms(updated);
-    queryClient.invalidateQueries({ queryKey: ['rooms'] });
-    toast('success', `Room status updated.`);
+  // Quick Room Status Change via Supabase
+  const handleRoomStatusChange = async (roomId: string, newStatus: string) => {
+    try {
+      await api.patch(`/v1/rooms/${roomId}`, { propertyId, status: newStatus });
+      queryClient.invalidateQueries({ queryKey: ['rooms'] });
+      toast('success', 'Room status updated.');
+    } catch (err: any) {
+      toast('error', err?.message || 'Failed to update room status.');
+    }
   };
 
   // Simulator Calculation
   const selectedSimCat = config.categories[simCategoryIndex] || config.categories[0];
   const simCalc = useMemo(() => {
-    // If category has only single or only double, enforce valid occupancy
+    if (!selectedSimCat) {
+      return calculateTariffInvoice({
+        category: {
+          id: '',
+          name: 'None',
+          code: '',
+          description: '',
+          assignedRoomsCount: 0,
+          maxOccupancy: 2,
+          singleOccupancyPrice: 0,
+          doubleOccupancyPrice: 0,
+          extraPersonCharge: config.extraPersonCharge,
+        },
+        occupancyType: 'double',
+        nights: simNights,
+        extraPersons: simExtraPersons,
+        gstPercentage: config.gstPercentage,
+        isTaxInclusive: config.isTaxInclusive,
+      });
+    }
     const effOccupancy =
       selectedSimCat.singleOccupancyPrice === null
         ? 'double'
@@ -154,7 +175,7 @@ export default function RoomTariffSettings() {
       gstPercentage: config.gstPercentage,
       isTaxInclusive: config.isTaxInclusive,
     });
-  }, [selectedSimCat, simOccupancy, simNights, simExtraPersons, config.gstPercentage, config.isTaxInclusive]);
+  }, [selectedSimCat, simOccupancy, simNights, simExtraPersons, config.gstPercentage, config.isTaxInclusive, config.extraPersonCharge]);
 
   // Filtered 28 rooms
   const filteredRooms = useMemo(() => {

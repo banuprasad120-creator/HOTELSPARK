@@ -30,12 +30,6 @@ import {
 import { api } from '../lib/api';
 import { useProperty } from '../context/PropertyContext';
 import { useToast } from '../components/ui/Toast';
-import {
-  getAllAuthUsers,
-  saveCustomAuthUser,
-  savePasswordOverride,
-  type AuthUser,
-} from '../context/AuthContext';
 import { formatMoney } from '../lib/money';
 import Modal from '../components/ui/Modal';
 
@@ -129,103 +123,13 @@ export default function StaffManagement() {
   const [selectedShiftFilter, setSelectedShiftFilter] = useState<'all' | ShiftType>('all');
   const [credVersion, setCredVersion] = useState(0);
 
-  // Daily Attendance State
-  const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>(() => {
-    try {
-      if (typeof window !== 'undefined' && window.localStorage) {
-        const saved = window.localStorage.getItem('hotel_spark_daily_attendance');
-        if (saved) return JSON.parse(saved);
-      }
-    } catch {
-      // ignore
-    }
-    return [
-      {
-        id: 'att-1',
-        employeeId: 'ADM001',
-        name: 'Banu Prasad (Owner)',
-        role: 'Hotel Owner & Super Admin',
-        department: 'Management',
-        shift: 'morning',
-        clockInTime: '08:30 AM',
-        clockOutTime: undefined,
-        workingHours: 7.2,
-        status: 'on_duty',
-      },
-      {
-        id: 'att-2',
-        employeeId: 'MGR001',
-        name: 'Ramesh Rao',
-        role: 'Hotel General Manager',
-        department: 'Management',
-        shift: 'morning',
-        clockInTime: '07:00 AM',
-        clockOutTime: undefined,
-        workingHours: 8.5,
-        status: 'on_duty',
-      },
-      {
-        id: 'att-3',
-        employeeId: 'FO001',
-        name: 'Priya Sharma (FO1)',
-        role: 'Front Office Executive 1 (Morning)',
-        department: 'Front Office',
-        shift: 'morning',
-        clockInTime: '06:55 AM',
-        clockOutTime: '03:05 PM',
-        workingHours: 8.1,
-        status: 'completed',
-      },
-      {
-        id: 'att-4',
-        employeeId: 'FO002',
-        name: 'Kiran Varma (FO2)',
-        role: 'Front Office Executive 2 (Evening)',
-        department: 'Front Office',
-        shift: 'evening',
-        clockInTime: '02:50 PM',
-        clockOutTime: undefined,
-        workingHours: 3.5,
-        status: 'on_duty',
-      },
-      {
-        id: 'att-5',
-        employeeId: 'FO003',
-        name: 'Rahul Verma (FO3)',
-        role: 'Front Office Executive 3 (Night)',
-        department: 'Front Office',
-        shift: 'night',
-        clockInTime: 'Scheduled 11:00 PM',
-        clockOutTime: undefined,
-        workingHours: 0,
-        status: 'absent',
-      },
-      {
-        id: 'att-6',
-        employeeId: 'EMP-SPARK-005',
-        name: 'Kavitha Devi',
-        role: 'Housekeeping Manager',
-        department: 'Housekeeping',
-        shift: 'morning',
-        clockInTime: '07:30 AM',
-        clockOutTime: '04:00 PM',
-        workingHours: 8.5,
-        status: 'completed',
-      },
-      {
-        id: 'att-7',
-        employeeId: 'EMP-SPARK-006',
-        name: 'Sunil Kumar',
-        role: 'Hotel Accountant',
-        department: 'Accounts',
-        shift: 'general',
-        clockInTime: '09:00 AM',
-        clockOutTime: '06:00 PM',
-        workingHours: 9.0,
-        status: 'completed',
-      },
-    ];
+  // Daily Attendance loaded from Supabase staff_attendance table
+  const { data: attendanceData = [] } = useQuery<AttendanceRecord[]>({
+    queryKey: ['attendance', propertyId],
+    queryFn: () => api.get('/v1/attendance', { params: { propertyId } }).then((r) => r.data),
+    enabled: !!propertyId,
   });
+  const attendanceRecords: AttendanceRecord[] = Array.isArray(attendanceData) ? attendanceData : [];
 
   const downloadAttendanceCSV = () => {
     const todayStr = new Date().toISOString().split('T')[0];
@@ -253,36 +157,24 @@ export default function StaffManagement() {
     toast('success', 'Attendance CSV report downloaded successfully.');
   };
 
-  const toggleAttendanceStatus = (id: string) => {
-    const updated = attendanceRecords.map((r) => {
-      if (r.id === id) {
-        if (r.status === 'on_duty' || r.status === 'present') {
-          const nowTime = new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
-          return {
-            ...r,
-            clockOutTime: nowTime,
-            status: 'completed' as const,
-          };
-        } else {
-          const nowTime = new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
-          return {
-            ...r,
-            clockInTime: nowTime,
-            clockOutTime: undefined,
-            status: 'on_duty' as const,
-          };
-        }
-      }
-      return r;
-    });
-    setAttendanceRecords(updated);
-    if (typeof window !== 'undefined' && window.localStorage) {
-      window.localStorage.setItem('hotel_spark_daily_attendance', JSON.stringify(updated));
+  const toggleAttendanceStatus = async (id: string) => {
+    const current = attendanceRecords.find((r) => r.id === id);
+    if (!current) return;
+    try {
+      const clockingOut = current.status === 'on_duty' || current.status === 'present';
+      await api.patch(`/v1/attendance/${id}`, {
+        propertyId,
+        status: clockingOut ? 'completed' : 'on_duty',
+        ...(clockingOut ? { clockOutAt: new Date().toISOString() } : { clockInAt: new Date().toISOString(), clockOutAt: null }),
+      });
+      queryClient.invalidateQueries({ queryKey: ['attendance'] });
+      toast('success', 'Staff attendance updated in database.');
+    } catch (err: any) {
+      toast('error', err?.message || 'Failed to update attendance.');
     }
-    toast('success', 'Staff attendance updated successfully.');
   };
 
-  // Credential Management State
+  // Credential Management State (backed by Supabase employees/profiles/admin-users)
   const [credModalOpen, setCredModalOpen] = useState(false);
   const [resetModalOpen, setResetModalOpen] = useState(false);
   const [selectedCredUser, setSelectedCredUser] = useState<any | null>(null);
@@ -290,46 +182,56 @@ export default function StaffManagement() {
   const [newCredEmail, setNewCredEmail] = useState('');
   const [newCredEmpId, setNewCredEmpId] = useState('');
   const [newCredRole, setNewCredRole] = useState<'admin' | 'manager' | 'front_office'>('front_office');
-  const [newCredPassword, setNewCredPassword] = useState('SparkHotel@2026');
-  const [newResetPassword, setNewResetPassword] = useState('SparkHotel@2026');
+  const [newCredPassword, setNewCredPassword] = useState('');
+  const [newResetPassword, setNewResetPassword] = useState('');
   const [credActionLoading, setCredActionLoading] = useState(false);
-  const [deactivatedUsers, setDeactivatedUsers] = useState<string[]>(() => {
-    try {
-      if (typeof window !== 'undefined' && window.localStorage) {
-        return JSON.parse(window.localStorage.getItem('hotel_spark_deactivated_users') || '[]');
-      }
-    } catch {
-      // ignore
-    }
-    return [];
+
+  // Fetch Departments
+  const { data: departments = [], isLoading: isLoadingDepts } = useQuery<Department[]>({
+    queryKey: ['departments', propertyId],
+    queryFn: async () => {
+      const res = await api.get('/v1/departments', { params: { propertyId } });
+      return res.data;
+    },
+  });
+
+  // Fetch Employees
+  const { data: employees = [], isLoading: isLoadingEmps } = useQuery<Employee[]>({
+    queryKey: ['employees', propertyId],
+    queryFn: async () => {
+      const res = await api.get('/v1/employees', { params: { propertyId } });
+      return res.data;
+    },
   });
 
   const allCredUsers = useMemo(() => {
-    const list = getAllAuthUsers();
+    const list = employees;
     const map = new Map<string, any>();
     for (const u of list) {
-      const emailLower = u.email.toLowerCase();
+      const emailLower = (u.email || '').toLowerCase();
+      if (!emailLower) continue;
       if (!map.has(emailLower)) {
+        const r = (u.role || '').toLowerCase();
         map.set(emailLower, {
-          id: u.sub,
+          id: u.id,
           employeeId: u.employeeId || 'STAFF',
           name: u.name,
           email: u.email,
-          role: u.roles.includes('admin') ? 'admin' : u.roles.includes('manager') ? 'manager' : 'front_office',
+          role: r.includes('admin') || r.includes('owner') ? 'admin' : r.includes('manager') ? 'manager' : 'front_office',
           roleTitle:
-            u.roleTitle ||
-            (u.roles.includes('admin')
+            u.role ||
+            (r.includes('admin') || r.includes('owner')
               ? 'Hotel Owner & Super Admin'
-              : u.roles.includes('manager')
+              : r.includes('manager')
                 ? 'Hotel General Manager'
                 : 'Front Office Executive'),
-          dashboardRoute: u.roles.includes('admin') ? '/admin' : u.roles.includes('manager') ? '/manager' : '/front-office',
-          department: u.department || (u.roles.includes('admin') || u.roles.includes('manager') ? 'Management' : 'Front Office'),
+          dashboardRoute: r.includes('admin') || r.includes('owner') ? '/admin' : r.includes('manager') ? '/manager' : '/front-office',
+          department: u.departmentName || (r.includes('admin') || r.includes('manager') ? 'Management' : 'Front Office'),
         });
       }
     }
     return Array.from(map.values());
-  }, [credModalOpen, resetModalOpen, deactivatedUsers, credVersion]);
+  }, [employees, credModalOpen, resetModalOpen, credVersion]);
 
   const handleCreateCredential = async () => {
     if (!newCredName.trim() || !newCredEmail.trim()) {
@@ -347,59 +249,36 @@ export default function StaffManagement() {
             ? 'Hotel General Manager'
             : 'Front Office Executive';
 
-      saveCustomAuthUser(
-        {
-          sub: `usr-${Date.now()}`,
-          email: cleanEmail,
-          name: newCredName.trim(),
-          employeeId: empIdentifier,
-          roleTitle,
-          department: newCredRole === 'admin' || newCredRole === 'manager' ? 'Management' : 'Front Office',
-          roles: [
-            newCredRole,
-            ...(newCredRole === 'admin' ? ['general_manager', 'front_desk'] : newCredRole === 'manager' ? ['front_desk'] : []),
-          ],
-        },
-        newCredPassword.trim() || 'SparkHotel@2026'
-      );
-
-      // Also create employee record so they show in both tabs
       await api.post('/v1/employees', {
         propertyId,
         employeeId: empIdentifier,
         name: newCredName.trim(),
-        mobile: '9876543210',
+        mobile: '',
         email: cleanEmail,
         departmentName: newCredRole === 'admin' || newCredRole === 'manager' ? 'Management' : 'Front Office',
         designation: roleTitle,
-        salary: newCredRole === 'admin' ? 100000 : newCredRole === 'manager' ? 60000 : 35000,
+        salary: 0,
         role: roleTitle,
         shift: 'morning',
         status: 'active',
         joiningDate: new Date().toISOString().split('T')[0],
       });
 
-      setCredVersion((v) => v + 1);
       queryClient.invalidateQueries({ queryKey: ['employees'] });
-      toast('success', `Staff credential for ${newCredName} (${empIdentifier}) created successfully!`);
+      toast('success', `Staff member ${newCredName} (${empIdentifier}) saved to database. Create their Supabase Auth password in Supabase Auth Admin.`);
       setCredModalOpen(false);
       setNewCredName('');
       setNewCredEmail('');
     } catch (e: any) {
-      toast('error', 'Failed to create employee credential.');
+      toast('error', e?.message || 'Failed to create staff record.');
     } finally {
       setCredActionLoading(false);
     }
   };
 
-  const handleResetPassword = () => {
-    if (!selectedCredUser || !newResetPassword.trim()) {
-      toast('error', 'Please enter a valid password.');
-      return;
-    }
-    savePasswordOverride(selectedCredUser.email, newResetPassword.trim());
-    toast('success', `Password for ${selectedCredUser.name} (${selectedCredUser.email}) updated successfully!`);
-    setCredVersion((v) => v + 1);
+  const handleResetPassword = async () => {
+    if (!selectedCredUser?.email) return;
+    toast('info', `Password resets for ${selectedCredUser.email} are managed via Supabase Authentication recovery emails.`);
     setResetModalOpen(false);
     setSelectedCredUser(null);
   };
@@ -428,24 +307,6 @@ export default function StaffManagement() {
   const [deptDesc, setDeptDesc] = useState('');
   const [deptManager, setDeptManager] = useState('');
 
-  // Fetch Departments
-  const { data: departments = [], isLoading: isLoadingDepts } = useQuery<Department[]>({
-    queryKey: ['departments', propertyId],
-    queryFn: async () => {
-      const res = await api.get('/v1/departments', { params: { propertyId } });
-      return res.data;
-    },
-  });
-
-  // Fetch Employees
-  const { data: employees = [], isLoading: isLoadingEmps } = useQuery<Employee[]>({
-    queryKey: ['employees', propertyId],
-    queryFn: async () => {
-      const res = await api.get('/v1/employees', { params: { propertyId } });
-      return res.data;
-    },
-  });
-
   // Save Employee Mutation
   const saveEmployeeMutation = useMutation({
     mutationFn: async () => {
@@ -473,38 +334,9 @@ export default function StaffManagement() {
         await api.post('/v1/employees', payload);
       }
 
-      if (empEmail.trim()) {
-        const cleanEmail = empEmail.trim().toLowerCase();
-        const role = empRole.toLowerCase();
-        const assignedRole: 'admin' | 'manager' | 'front_office' =
-          role.includes('admin') || role.includes('owner')
-            ? 'admin'
-            : role.includes('manager')
-              ? 'manager'
-              : 'front_office';
-
-        saveCustomAuthUser(
-          {
-            sub: editingEmployee?.id || `usr-${Date.now()}`,
-            email: cleanEmail,
-            name: empName.trim(),
-            employeeId: empId || `EMP-${Date.now().toString().slice(-4)}`,
-            roleTitle: empRole,
-            department: departments.find((d) => d.id === empDepartmentId)?.name || 'Front Office',
-            roles: [
-              assignedRole,
-              ...(assignedRole === 'admin' ? ['general_manager', 'front_desk'] : assignedRole === 'manager' ? ['front_desk'] : []),
-            ],
-          },
-          'SparkHotel@2026'
-        );
-      }
-    },
-    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['employees'] });
       queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
       toast('success', `Employee ${empName} saved successfully!`);
-      setCredVersion((v) => v + 1);
       setEmployeeModalOpen(false);
       resetEmployeeForm();
     },
@@ -632,9 +464,9 @@ export default function StaffManagement() {
                 onClick={() => {
                   setNewCredName('');
                   setNewCredEmail('');
-                  setNewCredEmpId(`FO00${Math.floor(4 + Math.random() * 5)}`);
+                  setNewCredEmpId(`EMP-${Date.now().toString().slice(-4)}`);
                   setNewCredRole('front_office');
-                  setNewCredPassword('SparkHotel@2026');
+                  setNewCredPassword('');
                   setCredModalOpen(true);
                 }}
                 className="inline-flex items-center gap-2 px-4 py-2.5 bg-purple-700 hover:bg-purple-800 text-white text-xs font-bold rounded-xl shadow-xs transition"
@@ -952,7 +784,7 @@ export default function StaffManagement() {
 
               <div className="flex items-center gap-2">
                 <span className="px-2.5 py-1 bg-emerald-100 text-emerald-800 text-xs font-bold rounded-lg border border-emerald-300">
-                  ● {allCredUsers.length} Active Accounts
+                  ● {employees.filter((e) => e.status === 'active').length} Active Accounts
                 </span>
               </div>
             </div>
@@ -964,22 +796,25 @@ export default function StaffManagement() {
                     <tr>
                       <th className="py-3 px-4">Staff Member & Email</th>
                       <th className="py-3 px-4">Employee ID</th>
-                      <th className="py-3 px-4">Role & Assigned Dashboard</th>
+                      <th className="py-3 px-4">Role & Department</th>
                       <th className="py-3 px-4">Account Status</th>
                       <th className="py-3 px-4">Last Login Time</th>
-                      <th className="py-3 px-4 text-right">Security Actions</th>
+                      <th className="py-3 px-4 text-right">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
-                    {allCredUsers.map((staff: any) => {
-                      const isDeactivated = deactivatedUsers.includes(staff.email.toLowerCase());
-                      const lastLogin =
-                        typeof window !== 'undefined'
-                          ? window.localStorage.getItem(`hotel_spark_last_login_${staff.id}`)
-                          : null;
+                    {employees.map((staff: any) => {
+                      const isDeactivated = staff.status !== 'active';
+                      const roleLower = (staff.role || '').toLowerCase();
+                      const roleKind =
+                        roleLower.includes('admin') || roleLower.includes('owner')
+                          ? 'admin'
+                          : roleLower.includes('manager')
+                            ? 'manager'
+                            : 'front_office';
 
                       return (
-                        <tr key={staff.email} className="hover:bg-purple-50/20 transition">
+                        <tr key={staff.id} className="hover:bg-purple-50/20 transition">
                           <td className="py-3 px-4">
                             <div className="font-bold text-telivity-navy text-sm">{staff.name}</div>
                             <div className="text-[11px] text-telivity-slate font-mono">{staff.email}</div>
@@ -994,87 +829,61 @@ export default function StaffManagement() {
                           <td className="py-3 px-4">
                             <div className="flex items-center gap-1.5">
                               <span
-                                className={`px-2 py-0.5 rounded text-[11px] font-bold ${staff.role === 'admin'
-                                  ? 'bg-purple-100 text-purple-900 border border-purple-200'
-                                  : staff.role === 'manager'
-                                    ? 'bg-blue-100 text-blue-900 border border-blue-200'
-                                    : 'bg-teal-100 text-teal-900 border border-teal-200'
-                                  }`}
+                                className={`px-2 py-0.5 rounded text-[11px] font-bold ${
+                                  roleKind === 'admin'
+                                    ? 'bg-purple-100 text-purple-900 border border-purple-200'
+                                    : roleKind === 'manager'
+                                      ? 'bg-blue-100 text-blue-900 border border-blue-200'
+                                      : 'bg-teal-100 text-teal-900 border border-teal-200'
+                                }`}
                               >
-                                {staff.roleTitle}
+                                {staff.designation || staff.role}
                               </span>
                             </div>
                             <span className="text-[10px] text-telivity-mid-grey font-mono mt-0.5 block">
-                              Directs to: {staff.dashboardRoute}
+                              Department: {staff.departmentName || 'Operations'}
                             </span>
                           </td>
 
                           <td className="py-3 px-4">
                             <span
-                              className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold ${!isDeactivated
-                                ? 'bg-emerald-100 text-emerald-800'
-                                : 'bg-red-100 text-red-800'
-                                }`}
+                              className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
+                                !isDeactivated ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'
+                              }`}
                             >
-                              <span
-                                className={`w-1.5 h-1.5 rounded-full ${!isDeactivated ? 'bg-emerald-500' : 'bg-red-500'
-                                  }`}
-                              />
-                              {!isDeactivated ? 'Active & Permitted' : 'Deactivated'}
+                              <span className={`w-1.5 h-1.5 rounded-full ${!isDeactivated ? 'bg-emerald-500' : 'bg-red-500'}`} />
+                              {!isDeactivated ? 'Active & Permitted' : staff.status}
                             </span>
                           </td>
 
                           <td className="py-3 px-4 text-telivity-slate text-[11px]">
-                            {lastLogin
-                              ? new Date(lastLogin).toLocaleString('en-IN', {
-                                dateStyle: 'short',
-                                timeStyle: 'short',
-                              })
-                              : 'Active (Session Live)'}
+                            {staff.lastLoginAt
+                              ? new Date(staff.lastLoginAt).toLocaleString('en-IN', {
+                                  dateStyle: 'short',
+                                  timeStyle: 'short',
+                                })
+                              : 'Never signed in'}
                           </td>
 
                           <td className="py-3 px-4 text-right">
                             <div className="flex items-center justify-end gap-1.5">
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setSelectedCredUser(staff);
-                                  setNewResetPassword('SparkHotel@2026');
-                                  setResetModalOpen(true);
-                                }}
-                                className="px-2.5 py-1 rounded-lg border border-gray-200 text-telivity-navy hover:bg-gray-100 font-semibold text-[11px] transition flex items-center gap-1"
-                              >
-                                <KeyRound size={12} className="text-purple-600" />
-                                Reset Password
-                              </button>
-
-                              {staff.role !== 'admin' && (
+                              {roleKind !== 'admin' && (
                                 <button
                                   type="button"
-                                  onClick={() => {
-                                    const action = isDeactivated ? 'activate' : 'deactivate';
-                                    if (
-                                      window.confirm(
-                                        `Are you sure you want to ${action} login access for ${staff.name} (${staff.email})?`
-                                      )
-                                    ) {
-                                      const clean = staff.email.toLowerCase();
-                                      const updated = isDeactivated
-                                        ? deactivatedUsers.filter((u) => u !== clean)
-                                        : [...deactivatedUsers, clean];
-                                      setDeactivatedUsers(updated);
-                                      if (typeof window !== 'undefined' && window.localStorage) {
-                                        window.localStorage.setItem(
-                                          'hotel_spark_deactivated_users',
-                                          JSON.stringify(updated)
-                                        );
-                                      }
-                                    }
+                                  onClick={async () => {
+                                    const nextStatus = isDeactivated ? 'active' : 'inactive';
+                                    await api.put(`/v1/employees/${staff.id}`, {
+                                      propertyId,
+                                      status: nextStatus,
+                                    });
+                                    queryClient.invalidateQueries({ queryKey: ['employees'] });
+                                    toast('success', `${staff.name} marked ${nextStatus}.`);
                                   }}
-                                  className={`px-2.5 py-1 rounded-lg font-bold text-[11px] transition ${!isDeactivated
-                                    ? 'bg-red-50 text-red-700 hover:bg-red-600 hover:text-white border border-red-200'
-                                    : 'bg-emerald-50 text-emerald-800 hover:bg-emerald-600 hover:text-white border border-emerald-200'
-                                    }`}
+                                  className={`px-2.5 py-1 rounded-lg font-bold text-[11px] transition ${
+                                    !isDeactivated
+                                      ? 'bg-red-50 text-red-700 hover:bg-red-600 hover:text-white border border-red-200'
+                                      : 'bg-emerald-50 text-emerald-800 hover:bg-emerald-600 hover:text-white border border-emerald-200'
+                                  }`}
                                 >
                                   {!isDeactivated ? 'Deactivate' : 'Activate Account'}
                                 </button>
@@ -1084,6 +893,13 @@ export default function StaffManagement() {
                         </tr>
                       );
                     })}
+                    {employees.length === 0 && (
+                      <tr>
+                        <td colSpan={6} className="py-8 text-center text-telivity-mid-grey">
+                          No staff accounts found in database.
+                        </td>
+                      </tr>
+                    )}
                   </tbody>
                 </table>
               </div>

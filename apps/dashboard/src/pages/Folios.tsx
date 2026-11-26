@@ -44,7 +44,7 @@ import Modal from '../components/ui/Modal';
 import { StripeProvider } from '../components/payment/StripeProvider';
 import { CardInput } from '../components/payment/CardInput';
 import { WorldlineCard } from '../components/payment/WorldlineCard';
-import { getStoredStays, saveStoredStays, type StoredStay } from '../lib/supabaseAdapter';
+import type { StoredStay } from '../lib/supabaseAdapter';
 import BillInvoiceModal from '../components/billing/BillInvoiceModal';
 import EditBillModal from '../components/billing/EditBillModal';
 
@@ -138,55 +138,55 @@ function FolioList() {
   const [settlePaymentMethod, setSettlePaymentMethod] = useState<'CASH' | 'UPI' | 'CARD'>('CASH');
   const [settling, setSettling] = useState(false);
 
-  // Local fallback storage
-  const [localStays, setLocalStays] = useState<StoredStay[]>(() => getStoredStays());
+  const { data: staysApiData, refetch: refetchStays } = useQuery({
+    queryKey: ['stays', propertyId],
+    queryFn: async () => {
+      const res = await api.get('/v1/stays', { params: { propertyId } });
+      return res.data;
+    },
+    enabled: !!propertyId,
+  });
 
   const { data, refetch, isFetching } = useQuery({
     queryKey: ['folios', propertyId],
     queryFn: async () => {
-      try {
-        const res = await api.get('/v1/folios', { params: { propertyId } });
-        return res.data;
-      } catch {
-        return { data: [] };
-      }
+      const res = await api.get('/v1/folios', { params: { propertyId } });
+      return res.data;
     },
     enabled: !!propertyId,
   });
 
   const apiFolios: Folio[] = Array.isArray(data?.data) ? data.data : (Array.isArray(data) ? data : []);
 
-  // Consolidate StoredStays and API Folios
   const staysList = useMemo(() => {
-    const stays = getStoredStays();
-    if (stays && stays.length > 0) return stays;
+    const rawStays = staysApiData?.data ?? staysApiData;
+    if (Array.isArray(rawStays) && rawStays.length > 0) return rawStays as StoredStay[];
 
-    // Fallback if stays in localStorage are empty, construct from API folios
-    return apiFolios.map((f: any) => f.stay || {
+    return apiFolios.map((f: any) => f.stay || ({
       id: f.id,
       propertyId: propertyId || '',
       guestName: f.guestName || 'Guest',
       mobile: f.mobile || '',
-      roomNumber: f.roomNumber || '101',
-      roomTypeName: f.roomTypeName || 'Budget',
+      roomNumber: f.roomNumber || 'Unassigned',
+      roomTypeName: f.roomTypeName || 'Room',
       checkInTime: f.createdAt || new Date().toISOString(),
       expectedCheckoutTime: new Date(Date.now() + 86400000).toISOString(),
       nights: 1,
-      pricePerNight: f.totalCharges || 1600,
+      pricePerNight: Number(f.totalCharges || 0),
       extraCharges: 0,
       discount: 0,
-      totalAmount: f.totalCharges || 1600,
-      advancePaid: f.totalPayments || 0,
+      totalAmount: Number(f.totalCharges || 0),
+      advancePaid: Number(f.totalPayments || 0),
       previousPayments: 0,
-      balance: f.balance || 0,
+      balance: Number(f.balance || 0),
       paymentMethod: 'CASH',
-      paymentStatus: (f.balance || 0) <= 0 ? 'paid' : ((f.totalPayments || 0) > 0 ? 'partially_paid' : 'unpaid'),
+      paymentStatus: Number(f.balance || 0) <= 0 ? 'paid' : (Number(f.totalPayments || 0) > 0 ? 'partially_paid' : 'unpaid'),
       stayStatus: f.status === 'settled' ? 'checked_out' : 'in_house',
       billNumber: f.folioNumber,
       createdAt: f.createdAt || new Date().toISOString(),
       updatedAt: f.createdAt || new Date().toISOString(),
-    } as StoredStay);
-  }, [data, localStays, propertyId, apiFolios]);
+    } as unknown as StoredStay));
+  }, [staysApiData, propertyId, apiFolios]);
 
   // KPI Metrics Calculations
   const stats = useMemo(() => {
@@ -232,9 +232,8 @@ function FolioList() {
     return list;
   }, [staysList, statusTab, searchQuery]);
 
-  const handleStayUpdated = (updatedStay: StoredStay) => {
-    const fresh = getStoredStays();
-    setLocalStays(fresh);
+  const handleStayUpdated = (_updatedStay: StoredStay) => {
+    refetchStays();
     queryClient.invalidateQueries({ queryKey: ['folios'] });
     queryClient.invalidateQueries({ queryKey: ['stays'] });
   };
@@ -298,7 +297,7 @@ function FolioList() {
           <button
             onClick={() => {
               refetch();
-              setLocalStays(getStoredStays());
+              refetchStays();
               toast('success', 'Refreshed all guest billing folios.');
             }}
             disabled={isFetching}
@@ -499,13 +498,12 @@ function FolioList() {
                     {/* Status */}
                     <td className="py-3 px-4 text-center">
                       <span
-                        className={`inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold ${
-                          isPaid
-                            ? 'bg-emerald-100 text-emerald-800'
-                            : totalPaid > 0
+                        className={`inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold ${isPaid
+                          ? 'bg-emerald-100 text-emerald-800'
+                          : totalPaid > 0
                             ? 'bg-amber-100 text-amber-800'
                             : 'bg-rose-100 text-rose-800'
-                        }`}
+                          }`}
                       >
                         {isPaid ? 'Settled' : totalPaid > 0 ? 'Partially Paid' : 'Unpaid'}
                       </span>

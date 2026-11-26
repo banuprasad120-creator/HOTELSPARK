@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { Button } from '../components/Button';
 import { Field, inputClass } from '../components/Field';
+import { bookingApi } from '../api/client';
 import { useBookingFlow } from '../context/BookingFlowContext';
 import { FullScreenScrollVideo } from '../components/FullScreenScrollVideo';
 
@@ -18,64 +20,41 @@ interface RoomShowcaseItem {
   priceNote: string;
   roomsInfo: string;
   amenities: string[];
-  image: string;
-  badge?: string;
+  image?: string;
 }
-
-const OFFICIAL_ROOMS: RoomShowcaseItem[] = [
-  {
-    id: 'b0000001-0000-4000-a000-000000000001',
-    name: 'Budget Room',
-    bed: 'Single Bed',
-    maxGuests: 1,
-    price: 1599,
-    priceNote: '+ GST · Rooms 2006, 3006, 4006',
-    roomsInfo: 'Compact & comfortable for solo travelers. 3 rooms across floors 2, 3 & 4.',
-    amenities: ['Free WiFi', 'Air Conditioning', 'LED TV', '24/7 Room Service'],
-    image: 'https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=800&q=80',
-    badge: 'Popular for Solo Stays',
-  },
-  {
-    id: 'b0000002-0000-4000-a000-000000000002',
-    name: 'Deluxe Room',
-    bed: 'Double Bed',
-    maxGuests: 2,
-    price: 2099,
-    priceNote: 'Single ₹1,799 / Double ₹2,099 + GST',
-    roomsInfo: 'Elegant deluxe room with plush bedding and private ensuite bath. 12 rooms across Floors 2, 3 & 4.',
-    amenities: ['High-Speed WiFi', 'Split AC', 'Smart TV', 'Ensuite Bath', 'In-Room Safe'],
-    image: 'https://images.unsplash.com/photo-1591088398332-8a7791972843?auto=format&fit=crop&w=800&q=80',
-    badge: 'Best Value for Couples',
-  },
-  {
-    id: 'b0000003-0000-4000-a000-000000000003',
-    name: 'Executive Room',
-    bed: 'Queen Bed',
-    maxGuests: 2,
-    price: 2499,
-    priceNote: 'Single ₹2,199 / Double ₹2,499 + GST',
-    roomsInfo: 'Sophisticated executive room featuring panoramic views and queen-size bed. 11 rooms across Floors 2, 3 & 4.',
-    amenities: ['Panoramic Views', 'Work Desk', 'Smart TV', 'Split AC', 'Premium Toiletries'],
-    image: 'https://images.unsplash.com/photo-1566665797739-1674de7a421a?auto=format&fit=crop&w=800&q=80',
-    badge: 'Executive Choice',
-  },
-  {
-    id: 'b0000004-0000-4000-a000-000000000004',
-    name: 'Executive Suite',
-    bed: 'King Bed',
-    maxGuests: 2,
-    price: 2799,
-    priceNote: '+ GST · Rooms 2010, 3010',
-    roomsInfo: 'Spacious signature suite featuring a master bedroom, living hall and luxury bathtub.',
-    amenities: ['Private Living Hall', 'Luxury Bathtub', 'Balcony', 'King Bed', '24/7 Concierge'],
-    image: 'https://images.unsplash.com/photo-1618773928121-c32242e63f39?auto=format&fit=crop&w=800&q=80',
-    badge: 'Signature Luxury Suite',
-  },
-];
 
 export function Search() {
   const navigate = useNavigate();
   const { setCriteria } = useBookingFlow();
+
+  const { data: catalog, isLoading: loadingCatalog } = useQuery({
+    queryKey: ['public-hotel-catalog'],
+    queryFn: () => bookingApi.getPublicCatalog(),
+  });
+
+  const liveRooms: RoomShowcaseItem[] = (catalog?.roomTypes || []).map((rt) => {
+    const rp = rt.ratePlans[0];
+    const minPrice = Math.min(
+      ...[rp?.singleOccupancyRate, rp?.doubleOccupancyRate, rp?.baseRate]
+        .filter((v): v is number => v != null && Number(v) > 0)
+    );
+    const displayPrice = Number.isFinite(minPrice) ? minPrice : 0;
+    const noteParts: string[] = [];
+    if (rp?.singleOccupancyRate) noteParts.push(`Single ₹${Number(rp.singleOccupancyRate).toLocaleString('en-IN')}`);
+    if (rp?.doubleOccupancyRate) noteParts.push(`Double ₹${Number(rp.doubleOccupancyRate).toLocaleString('en-IN')}`);
+
+    return {
+      id: rt.id,
+      name: rt.name,
+      bed: `${rt.bedType || 'Queen'} Bed`,
+      maxGuests: rt.maxOccupancy || 2,
+      price: displayPrice,
+      priceNote: noteParts.length ? `${noteParts.join(' / ')} + GST` : '',
+      roomsInfo: rt.description || `${rt.roomCount} rooms available`,
+      amenities: rt.amenities || [],
+      image: rt.images?.[0],
+    };
+  });
 
   const today = new Date();
   const tomorrow = new Date(today.getTime() + 86_400_000);
@@ -207,46 +186,54 @@ export function Search() {
     </form>
   );
 
-  // 2. Featured Rooms & Tariffs Showcase
+  // 2. Featured Rooms & Tariffs Showcase (Live from Supabase)
   const roomsSection = (
     <div className="space-y-8 w-full">
       <div className="text-center max-w-2xl mx-auto space-y-2">
         <span className="inline-block rounded-full bg-teal-500/20 px-4 py-1 text-xs font-bold tracking-wider text-teal-300 border border-teal-400/30">
-          OFFICIAL 28 ROOMS & TARIFFS
+          LIVE ROOM INVENTORY & TARIFFS
         </span>
         <h2 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
           Signature Accommodations
         </h2>
         <p className="text-sm sm:text-base text-gray-300 leading-relaxed">
-          Commission-free direct booking with official hotel rates across Floors 2, 3 & 4 in Karimnagar.
+          Commission-free direct booking with real-time rates for {catalog?.hotel?.name || 'Hotel Spark'}.
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {OFFICIAL_ROOMS.map((room) => (
-          <div
-            key={room.id}
-            className="group flex flex-col rounded-3xl border border-white/20 bg-black/60 shadow-2xl backdrop-blur-2xl overflow-hidden transition-all duration-300 hover:border-teal-400/60 hover:-translate-y-1"
-          >
-            {/* Room Image */}
-            <div className="relative h-48 w-full overflow-hidden bg-gray-900">
-              <img
-                src={room.image}
-                alt={room.name}
-                className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
-                loading="lazy"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-              {room.badge && (
-                <span className="absolute top-3 left-3 rounded-full bg-teal-500/90 px-3 py-0.5 text-[10px] font-bold uppercase tracking-wider text-gray-950 backdrop-blur-sm">
-                  {room.badge}
-                </span>
-              )}
-              <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between text-white">
-                <span className="text-xs font-medium text-gray-200">🛏️ {room.bed}</span>
-                <span className="text-xs font-medium text-gray-200">👥 Up to {room.maxGuests}</span>
+      {loadingCatalog ? (
+        <div className="text-center text-sm text-gray-300 py-8">Loading live room categories...</div>
+      ) : liveRooms.length === 0 ? (
+        <div className="text-center text-sm text-gray-300 py-8 rounded-2xl border border-white/15 bg-black/40">
+          No room categories currently published. Please use the search bar above or contact the hotel desk.
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {liveRooms.map((room) => (
+            <div
+              key={room.id}
+              className="group flex flex-col rounded-3xl border border-white/20 bg-black/60 shadow-2xl backdrop-blur-2xl overflow-hidden transition-all duration-300 hover:border-teal-400/60 hover:-translate-y-1"
+            >
+              {/* Room Image */}
+              <div className="relative h-48 w-full overflow-hidden bg-gray-900">
+                {room.image ? (
+                  <img
+                    src={room.image}
+                    alt={room.name}
+                    className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
+                    loading="lazy"
+                  />
+                ) : (
+                  <div className="h-full w-full flex items-center justify-center text-xs text-gray-400">
+                    No photo uploaded
+                  </div>
+                )}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+                <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between text-white">
+                  <span className="text-xs font-medium text-gray-200 capitalize">🛏️ {room.bed}</span>
+                  <span className="text-xs font-medium text-gray-200">👥 Up to {room.maxGuests}</span>
+                </div>
               </div>
-            </div>
 
             {/* Room Details */}
             <div className="p-5 flex flex-col flex-1 justify-between space-y-4">
@@ -293,7 +280,8 @@ export function Search() {
             </div>
           </div>
         ))}
-      </div>
+        </div>
+      )}
     </div>
   );
 

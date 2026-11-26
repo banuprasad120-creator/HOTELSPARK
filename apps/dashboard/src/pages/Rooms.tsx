@@ -5,7 +5,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { DoorOpen, LayoutGrid, List, Plus, X, Image as ImageIcon, AlertTriangle, Pencil, Tags, IndianRupee, Check, Sparkles, Globe, LogOut } from 'lucide-react';
 import { api } from '../lib/api';
-import { getStoredRooms, DEFAULT_ROOMS, getStoredStays, type StoredStay } from '../lib/supabaseAdapter';
+import type { StoredStay } from '../lib/supabaseAdapter';
 import { moneyString, requirePropertyId } from '../lib/api-helpers';
 import { useProperty } from '../context/PropertyContext';
 import { useAuth } from '../context/AuthContext';
@@ -105,7 +105,7 @@ function RoomDetailPanel({
   // would 403: PATCH /rooms/:id allows admin/front_desk/housekeeping_manager,
   // but every media route is admin-only. In the demo (auth off) hasRole
   // returns true so admins see all editing controls.
-  const canManageAmenities = hasRole('admin', 'general_manager', 'front_desk', 'housekeeping_manager');
+  const canManageAmenities = hasRole('admin') || hasRole('general_manager') || hasRole('front_desk') || hasRole('housekeeping_manager');
   const canManagePhotos = true; // Allow staff and managers to upload room photos directly
 
   // Main photo: the room's own primary, falling back to the room type's primary
@@ -338,7 +338,7 @@ function RoomDetailPanel({
               )}
             </div>
 
-            {hasRole('admin', 'general_manager') && room.status !== 'occupied' && (
+            {(hasRole('admin') || hasRole('general_manager')) && room.status !== 'occupied' && (
               <button
                 type="button"
                 onClick={() => {
@@ -421,12 +421,6 @@ function RoomDetailPanel({
   );
 }
 
-const DEFAULT_ROOM_TYPES: RoomType[] = [
-  { id: 'b0000001-0000-4000-a000-000000000001', name: 'Deluxe King Room', code: 'DLX', maxOccupancy: 2, bedType: 'king', basePrice: 3500 },
-  { id: 'b0000002-0000-4000-a000-000000000001', name: 'Executive Spark Suite', code: 'SUT', maxOccupancy: 4, bedType: 'king', basePrice: 6500 },
-  { id: 'b0000003-0000-4000-a000-000000000001', name: 'Standard Queen Room', code: 'STD', maxOccupancy: 2, bedType: 'queen', basePrice: 2500 },
-];
-
 // ---- Room List / Rack ----
 function RoomList() {
   const { t } = useTranslation();
@@ -451,8 +445,7 @@ function RoomList() {
   });
   const allStays: StoredStay[] = useMemo(() => {
     const raw = staysData?.data ?? staysData;
-    if (Array.isArray(raw) && raw.length > 0) return raw;
-    return getStoredStays();
+    return Array.isArray(raw) ? raw : [];
   }, [staysData]);
 
   const handleCheckOutRoom = (r: Room) => {
@@ -462,35 +455,7 @@ function RoomList() {
     if (foundStay) {
       setCheckoutStay(foundStay);
     } else {
-      const synthStay: StoredStay = {
-        id: `stay-${r.id}-${Date.now()}`,
-        propertyId: propertyId || '',
-        guestName: r.guestName || 'In-House Guest',
-        mobile: '9876543210',
-        idProofType: 'Aadhaar',
-        idProofNumber: 'XXXX XXXX 1234',
-        adults: 2,
-        children: 0,
-        roomId: r.id,
-        roomNumber: r.number,
-        roomTypeName: r.roomTypeName || 'Deluxe Room',
-        checkInTime: new Date(Date.now() - 86400000).toISOString(),
-        expectedCheckoutTime: new Date().toISOString(),
-        nights: 1,
-        pricePerNight: 2099,
-        extraCharges: 0,
-        discount: 0,
-        totalAmount: 2099,
-        advancePaid: 1000,
-        previousPayments: 0,
-        balance: 1099,
-        paymentMethod: 'Cash',
-        paymentStatus: 'partially_paid',
-        stayStatus: 'in_house',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
-      setCheckoutStay(synthStay);
+      toast('error', `No active in-house stay found for Room ${r.number}.`);
     }
   };
 
@@ -539,10 +504,7 @@ function RoomList() {
 
   const rooms: Room[] = useMemo(() => {
     const raw = roomsData?.data ?? roomsData;
-    if (Array.isArray(raw) && raw.length > 0) return raw;
-    const stored = getStoredRooms();
-    if (Array.isArray(stored) && stored.length > 0) return stored;
-    return DEFAULT_ROOMS;
+    return Array.isArray(raw) ? raw : [];
   }, [roomsData]);
 
   const summary: StatusCount[] = useMemo(() => {
@@ -561,8 +523,7 @@ function RoomList() {
 
   const types: RoomType[] = useMemo(() => {
     const raw = typesData?.data ?? typesData;
-    if (Array.isArray(raw) && raw.length > 0) return raw;
-    return DEFAULT_ROOM_TYPES;
+    return Array.isArray(raw) ? raw : [];
   }, [typesData]);
 
   const isDuplicateNumber = useMemo(() => {
@@ -945,15 +906,8 @@ function RoomTypeList() {
     enabled: !!propertyId,
   });
 
-  const DEFAULT_TYPES_WITH_PLANS: RoomType[] = [
-    { id: 'b0000001-0000-4000-a000-000000000001', name: 'Budget', code: 'BGT', description: 'Comfortable compact room for single travelers. Rooms: 2006, 3006, 4006.', maxOccupancy: 1, bedType: 'single', amenities: ['wifi', 'tv', 'ac', 'room_service'], basePrice: 1599 },
-    { id: 'b0000002-0000-4000-a000-000000000002', name: 'Deluxe Room', code: 'DLX', description: 'Elegant deluxe room with plush bedding and private ensuite bath. 12 rooms across Floors 2, 3 & 4.', maxOccupancy: 2, bedType: 'double', amenities: ['wifi', 'tv', 'ac', 'safe', 'balcony'], basePrice: 1799 },
-    { id: 'b0000003-0000-4000-a000-000000000003', name: 'Executive Room', code: 'EXE', description: 'Sophisticated executive room featuring panoramic views. 11 rooms across Floors 2, 3 & 4.', maxOccupancy: 3, bedType: 'queen', amenities: ['wifi', 'tv', 'ac', 'safe', 'minibar'], basePrice: 2199 },
-    { id: 'b0000004-0000-4000-a000-000000000004', name: 'Suite', code: 'SUT', description: 'Spacious signature suite featuring a master bedroom and living hall. Rooms: 2010, 3010.', maxOccupancy: 4, bedType: 'king', amenities: ['wifi', 'tv', 'ac', 'safe', 'minibar', 'living_area', 'bathtub'], basePrice: 2799 },
-  ];
-
   const typesRaw = Array.isArray(data?.data) ? data.data : (Array.isArray(data) ? data : []);
-  const types: RoomType[] = typesRaw.length > 0 ? typesRaw : DEFAULT_TYPES_WITH_PLANS;
+  const types: RoomType[] = typesRaw;
   const ratePlans: any[] = Array.isArray(ratePlansData?.data) ? ratePlansData.data : (Array.isArray(ratePlansData) ? ratePlansData : []);
 
   // Helper to find the BAR rate plan for a room type

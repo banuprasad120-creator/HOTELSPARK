@@ -1,4 +1,8 @@
 {
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "vite",
+  "buildCommand": "node ../../scripts/build-unified-booking.mjs",
+  "outputDirectory": "dist",
   "headers": [
     {
       "source": "/downloads/:path*",
@@ -20,11 +24,11 @@
   ],
   "rewrites": [
     {
-      "source": "/admin/:path*",
+      "source": "/admin",
       "destination": "/admin/index.html"
     },
     {
-      "source": "/admin",
+      "source": "/admin/:path*",
       "destination": "/admin/index.html"
     },
     {

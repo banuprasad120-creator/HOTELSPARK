@@ -21,7 +21,7 @@ interface HeaderProps {
 export default function Header({ onMenuClick }: HeaderProps) {
   const { t, i18n } = useTranslation();
   const { propertyId, setPropertyId, properties, isPortfolioMode } = useProperty();
-  const { user, roles, logout, switchUser } = useAuth();
+  const { user, roles, logout } = useAuth();
   const { connected } = useSocket();
   const [open, setOpen] = useState(false);
   const [langOpen, setLangOpen] = useState(false);

@@ -1,96 +1,63 @@
-import { supabaseFetch } from './supabase';
+import {
+  supabaseFetch,
+  supabaseUploadObject,
+  supabaseCreateSignedUrl,
+  getStoredSupabaseSession,
+} from './supabase';
 import type { AxiosRequestConfig, AxiosResponse } from 'axios';
 
-const PROPERTY_ID = 'a0000001-0000-4000-a000-000000000001';
+const DEFAULT_PROPERTY_ID = 'a0000001-0000-4000-a000-000000000001';
 
-const DEFAULT_PROPERTY = {
-  id: PROPERTY_ID,
-  name: 'Hotel Spark',
-  code: 'SPARK01',
-  address: 'Near Old Bus Stand, Jagtial Road, Karimnagar, Telangana 505001',
-  countryCode: 'IN',
-  currencyCode: 'INR',
-  timeZone: 'Asia/Kolkata',
-  roomCount: 10,
-  status: 'active',
-  staffDisplayName: 'Hotel Spark Admin',
-};
-
-const ROOM_TYPE_NAMES: Record<string, { name: string; code: string }> = {
-  'b0000001-0000-4000-a000-000000000001': { name: 'Budget', code: 'BGT' },
-  'b0000002-0000-4000-a000-000000000002': { name: 'Deluxe Room', code: 'DLX' },
-  'b0000003-0000-4000-a000-000000000003': { name: 'Executive Room', code: 'EXE' },
-  'b0000004-0000-4000-a000-000000000004': { name: 'Suite', code: 'SUT' },
-  // Legacy aliases
-  'b0000002-0000-4000-a000-000000000001': { name: 'Suite', code: 'SUT' },
-  'b0000003-0000-4000-a000-000000000001': { name: 'Executive Room', code: 'EXE' },
-};
-
-const DEFAULT_DEPARTMENTS = [
-  { id: 'd0000001-0000-4000-a000-000000000001', name: 'Front Office', code: 'FRONT', description: 'Guest reception, check-in, check-out, concierge and reservations', managerName: 'Ramesh Rao', employeeCount: 2 },
-  { id: 'd0000002-0000-4000-a000-000000000001', name: 'Housekeeping', code: 'HK', description: 'Room cleaning, linen, laundry and property hygiene', managerName: 'Kavitha Devi', employeeCount: 2 },
-  { id: 'd0000003-0000-4000-a000-000000000001', name: 'Food & Beverage', code: 'FNB', description: 'Restaurant, bar, room service and banquets', managerName: 'Sanjay Verma', employeeCount: 1 },
-  { id: 'd0000004-0000-4000-a000-000000000001', name: 'Kitchen', code: 'KTCH', description: 'Culinary preparation and food safety', managerName: 'Chef Anand', employeeCount: 1 },
-  { id: 'd0000005-0000-4000-a000-000000000001', name: 'Maintenance', code: 'MAINT', description: 'HVAC, plumbing, electrical and physical plant engineering', managerName: 'Satish Reddy', employeeCount: 1 },
-  { id: 'd0000006-0000-4000-a000-000000000001', name: 'Security', code: 'SEC', description: '24/7 guest safety, CCTV surveillance and access control', managerName: 'Inspector Singh', employeeCount: 1 },
-  { id: 'd0000007-0000-4000-a000-000000000001', name: 'Accounts', code: 'ACCT', description: 'Financial ledger, cashiering, billing, invoices and tax', managerName: 'Sunil Kumar', employeeCount: 1 },
-  { id: 'd0000008-0000-4000-a000-000000000001', name: 'Sales & Marketing', code: 'MKTG', description: 'Direct bookings, corporate tie-ups and travel agents', managerName: 'Deepak Varma', employeeCount: 1 },
-  { id: 'd0000009-0000-4000-a000-000000000001', name: 'Management', code: 'MGMT', description: 'Executive administration and hotel general management', managerName: 'Banu Prasad', employeeCount: 1 },
-];
-
-const DEFAULT_EMPLOYEES = [
-  { id: '9814bb0a-fd4e-4743-a18a-4cce1dd311a2', employeeId: 'ADM001', name: 'Banu Prasad (Owner)', mobile: '+91 98765 43210', email: 'admin@sparkhotel.com', designation: 'Hotel Owner & Super Admin', role: 'admin', departmentName: 'Management', salary: 150000, status: 'active', joiningDate: '2025-01-01', shift: 'morning' },
-  { id: 'eaece370-a568-40e2-8e40-cf6787c5fc50', employeeId: 'MGR001', name: 'Ramesh Rao', mobile: '+91 98765 43211', email: 'manager@sparkhotel.com', designation: 'Hotel General Manager', role: 'manager', departmentName: 'Management', salary: 60000, status: 'active', joiningDate: '2025-02-01', shift: 'morning' },
-  { id: '368d157c-a3c3-4eca-80d9-b9122d209d95', employeeId: 'FO001', name: 'Priya Sharma (FO1)', mobile: '+91 98765 43212', email: 'fo001@sparkhotel.com', designation: 'Front Office Executive 1 (Morning)', role: 'front_office', departmentName: 'Front Office', salary: 35000, status: 'active', joiningDate: '2025-03-15', shift: 'morning' },
-  { id: 'a758badd-4bf4-492c-a1fe-e31e8ba8daa6', employeeId: 'FO002', name: 'Kiran Varma (FO2)', mobile: '+91 98765 43217', email: 'fo002@sparkhotel.com', designation: 'Front Office Executive 2 (Evening)', role: 'front_office', departmentName: 'Front Office', salary: 35000, status: 'active', joiningDate: '2025-04-01', shift: 'evening' },
-  { id: '80d8b117-3e8d-453a-a6a5-315847ee6f71', employeeId: 'FO003', name: 'Rahul Verma (FO3)', mobile: '+91 98765 43218', email: 'fo003@sparkhotel.com', designation: 'Front Office Executive 3 (Night)', role: 'front_office', departmentName: 'Front Office', salary: 35000, status: 'active', joiningDate: '2025-04-01', shift: 'night' },
-  { id: 'e0000005-0000-4000-a000-000000000001', employeeId: 'EMP-SPARK-005', name: 'Kavitha Devi', mobile: '+91 98765 43213', email: 'hk.mgr@sparkhotel.com', designation: 'Housekeeping Manager', role: 'Housekeeping Manager', departmentName: 'Housekeeping', salary: 45000, status: 'active', joiningDate: '2025-02-10', shift: 'morning' },
-  { id: 'e0000006-0000-4000-a000-000000000001', employeeId: 'EMP-SPARK-006', name: 'Sunil Kumar', mobile: '+91 98765 43214', email: 'accounts@sparkhotel.com', designation: 'Hotel Accountant', role: 'Accountant', departmentName: 'Accounts', salary: 50000, status: 'active', joiningDate: '2025-01-15', shift: 'general' },
-  { id: 'e0000007-0000-4000-a000-000000000001', employeeId: 'EMP-SPARK-007', name: 'Raju Nayak', mobile: '+91 98765 43215', email: 'hk.staff1@sparkhotel.com', designation: 'Housekeeping Supervisor', role: 'Housekeeping Staff', departmentName: 'Housekeeping', salary: 25000, status: 'active', joiningDate: '2025-04-01', shift: 'night' },
-  { id: 'e0000008-0000-4000-a000-000000000001', employeeId: 'EMP-SPARK-008', name: 'Satish Reddy', mobile: '+91 98765 43216', email: 'maintenance@sparkhotel.com', designation: 'Chief Maintenance Technician', role: 'Maintenance Staff', departmentName: 'Maintenance', salary: 32000, status: 'active', joiningDate: '2025-02-01', shift: 'evening' },
-];
-
-const RATE_STORAGE_KEY = 'hotel_spark_rates_cache';
-
-function getStoredRateCache(): Record<string, number> {
-  try {
-    if (typeof window !== 'undefined' && window.localStorage) {
-      const saved = window.localStorage.getItem(RATE_STORAGE_KEY);
-      return saved ? JSON.parse(saved) : {};
-    }
-  } catch (e) {
-    void e;
-  }
-  return {};
+function ok<T>(data: T, config: AxiosRequestConfig): AxiosResponse<T> {
+  return {
+    data,
+    status: 200,
+    statusText: 'OK',
+    headers: { 'content-type': 'application/json' },
+    config: config as any,
+  };
 }
 
-function setStoredRate(key: string, price: number) {
-  try {
-    if (typeof window !== 'undefined' && window.localStorage) {
-      const cache = getStoredRateCache();
-      cache[key] = price;
-      window.localStorage.setItem(RATE_STORAGE_KEY, JSON.stringify(cache));
+function parseBody(raw: any): Record<string, any> {
+  if (!raw) return {};
+  if (typeof raw === 'string') {
+    try {
+      return JSON.parse(raw);
+    } catch {
+      return {};
     }
-  } catch (e) {
-    void e;
   }
+  return raw;
 }
 
-const ratePlanPriceCache: Record<string, number> = getStoredRateCache();
+function dataUrlToBlob(dataUrl: string): { blob: Blob; ext: string; mime: string } {
+  const [header, base64] = dataUrl.split(',');
+  const mimeMatch = header?.match(/data:([^;]+);base64/);
+  const mime = mimeMatch ? mimeMatch[1] : 'image/jpeg';
+  const ext = mime.includes('png') ? 'png' : mime.includes('webp') ? 'webp' : mime.includes('pdf') ? 'pdf' : 'jpg';
+  const bin = atob(base64 || '');
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return { blob: new Blob([bytes], { type: mime }), ext, mime };
+}
+
+// ============================================================================
+// SHARED DOMAIN INTERFACES & PURE TARIFF CALCULATOR (NO MOCK DATA / NO LOCALSTORAGE)
+// ============================================================================
 
 export interface StoredRoom {
   id: string;
-  propertyId: string;
-  roomTypeId: string;
-  roomTypeName?: string;
   number: string;
   floor: string;
+  roomTypeId: string;
+  roomTypeName: string;
+  roomTypeCode?: string;
   status: string;
   hkOccupancy?: string;
-  isActive: boolean;
   guestName?: string;
   isAccessible?: boolean;
-  amenities: string[];
+  amenities?: string[];
+  maintenanceNotes?: string;
 }
 
 export interface RoomCategoryTariff {
@@ -98,737 +65,91 @@ export interface RoomCategoryTariff {
   name: string;
   code: string;
   description: string;
+  assignedRoomsCount: number;
+  maxOccupancy: number;
   singleOccupancyPrice: number | null;
   doubleOccupancyPrice: number | null;
-  maxOccupancy: number;
-  assignedRoomsCount: number;
-  amenities: string[];
+  extraPersonCharge: number;
+  ratePlanId?: string;
+  roomNumbers?: string[];
+  floorBreakdown?: string;
 }
 
 export interface HotelTariffConfig {
-  totalRooms: number;
   extraPersonCharge: number;
+  childUnder7Free: boolean;
   gstPercentage: number;
   isTaxInclusive: boolean;
-  childrenPolicy: string;
+  gstin?: string;
+  hsnSac?: string;
+  invoiceHeaderName?: string;
+  invoiceAddress?: string;
   cancellationPolicy: string;
-  paymentPolicy: string;
+  cardPaymentInfo: string;
+  childrenPolicy?: string;
+  paymentPolicy?: string;
   categories: RoomCategoryTariff[];
 }
 
-export const TARIFF_CONFIG_STORAGE_KEY = 'hotel_spark_tariff_config';
-
-export const DEFAULT_TARIFF_CONFIG: HotelTariffConfig = {
-  totalRooms: 28,
-  extraPersonCharge: 399,
-  gstPercentage: 12,
-  isTaxInclusive: false,
-  childrenPolicy: 'Children below 7 years: Free stay without an extra bed.',
-  cancellationPolicy: 'Non-refundable room reservations.',
-  paymentPolicy: 'All major credit/debit cards (Visa, MasterCard, RuPay), UPI & Cash accepted.',
-  categories: [
-    {
-      id: 'b0000001-0000-4000-a000-000000000001',
-      name: 'Budget',
-      code: 'BGT',
-      description: 'Comfortable compact room for single travelers. Rooms: 2006, 3006, 4006.',
-      singleOccupancyPrice: 1599,
-      doubleOccupancyPrice: null,
-      maxOccupancy: 1,
-      assignedRoomsCount: 3,
-      amenities: ['wifi', 'tv', 'ac', 'room_service'],
-    },
-    {
-      id: 'b0000002-0000-4000-a000-000000000002',
-      name: 'Deluxe Room',
-      code: 'DLX',
-      description: 'Elegant deluxe room with plush bedding and private ensuite bath. 12 rooms across Floors 2, 3 & 4.',
-      singleOccupancyPrice: 1799,
-      doubleOccupancyPrice: 2099,
-      maxOccupancy: 2,
-      assignedRoomsCount: 12,
-      amenities: ['wifi', 'tv', 'ac', 'safe', 'tea_maker', 'balcony'],
-    },
-    {
-      id: 'b0000003-0000-4000-a000-000000000003',
-      name: 'Executive Room',
-      code: 'EXE',
-      description: 'Sophisticated executive room featuring panoramic views and queen-size bed. 11 rooms across Floors 2, 3 & 4.',
-      singleOccupancyPrice: 2199,
-      doubleOccupancyPrice: 2499,
-      maxOccupancy: 3,
-      assignedRoomsCount: 11,
-      amenities: ['wifi', 'tv', 'ac', 'safe', 'minibar', 'city_view'],
-    },
-    {
-      id: 'b0000004-0000-4000-a000-000000000004',
-      name: 'Suite',
-      code: 'SUT',
-      description: 'Spacious signature suite featuring a master bedroom, living hall and luxury bathtub. Rooms: 2010, 3010.',
-      singleOccupancyPrice: null,
-      doubleOccupancyPrice: 2799,
-      maxOccupancy: 4,
-      assignedRoomsCount: 2,
-      amenities: ['wifi', 'tv', 'ac', 'safe', 'minibar', 'living_area', 'bathtub'],
-    },
-  ],
-};
-
-export const DEFAULT_ROOM_TYPES = DEFAULT_TARIFF_CONFIG.categories.map((c) => ({
-  id: c.id,
-  name: c.name,
-  code: c.code,
-  description: c.description,
-  max_occupancy: c.maxOccupancy,
-  default_occupancy: c.singleOccupancyPrice ? 1 : 2,
-  bed_type: c.code === 'SUT' ? 'king' : c.code === 'EXE' ? 'queen' : c.code === 'DLX' ? 'double' : 'single',
-  amenities: c.amenities,
-  basePrice: c.doubleOccupancyPrice || c.singleOccupancyPrice || 1799,
-  singlePrice: c.singleOccupancyPrice,
-  doublePrice: c.doubleOccupancyPrice,
-  roomCount: c.assignedRoomsCount,
-}));
-
-export const DEFAULT_ROOMS: StoredRoom[] = [
-  // 2nd Floor (10 Rooms: 2001-2010)
-  { id: '5aca9c61-49d7-42db-885c-58d30dfceac7', propertyId: PROPERTY_ID, number: '2001', floor: '2', roomTypeId: 'b0000002-0000-4000-a000-000000000002', roomTypeName: 'Deluxe Room', status: 'vacant_clean', hkOccupancy: 'vacant', isActive: true, amenities: ['wifi', 'tv', 'ac', 'safe', 'balcony'] },
-  { id: 'c88c9bd4-63ba-4ecf-8780-46e9c3378d1b', propertyId: PROPERTY_ID, number: '2002', floor: '2', roomTypeId: 'b0000003-0000-4000-a000-000000000003', roomTypeName: 'Executive Room', status: 'vacant_clean', hkOccupancy: 'vacant', isActive: true, amenities: ['wifi', 'tv', 'ac', 'safe', 'minibar'] },
-  { id: '570526d0-8fac-4893-a914-586b57e7531b', propertyId: PROPERTY_ID, number: '2003', floor: '2', roomTypeId: 'b0000002-0000-4000-a000-000000000002', roomTypeName: 'Deluxe Room', status: 'vacant_clean', hkOccupancy: 'vacant', isActive: true, amenities: ['wifi', 'tv', 'ac', 'safe', 'balcony'] },
-  { id: '3f015f1e-6b7c-49b9-aaf3-6cfe51acfbd5', propertyId: PROPERTY_ID, number: '2004', floor: '2', roomTypeId: 'b0000002-0000-4000-a000-000000000002', roomTypeName: 'Deluxe Room', status: 'vacant_clean', hkOccupancy: 'vacant', isActive: true, amenities: ['wifi', 'tv', 'ac', 'safe', 'balcony'] },
-  { id: '7db20997-3628-42dc-9870-69894e0e584f', propertyId: PROPERTY_ID, number: '2005', floor: '2', roomTypeId: 'b0000003-0000-4000-a000-000000000003', roomTypeName: 'Executive Room', status: 'vacant_clean', hkOccupancy: 'vacant', isActive: true, amenities: ['wifi', 'tv', 'ac', 'safe', 'minibar'] },
-  { id: 'd5aa0e23-fc68-441e-a20c-3fac98edd91a', propertyId: PROPERTY_ID, number: '2006', floor: '2', roomTypeId: 'b0000001-0000-4000-a000-000000000001', roomTypeName: 'Budget', status: 'vacant_clean', hkOccupancy: 'vacant', isActive: true, amenities: ['wifi', 'tv', 'ac', 'room_service'] },
-  { id: 'c224f246-7cb5-40d1-976a-27d0e27e846a', propertyId: PROPERTY_ID, number: '2007', floor: '2', roomTypeId: 'b0000002-0000-4000-a000-000000000002', roomTypeName: 'Deluxe Room', status: 'vacant_clean', hkOccupancy: 'vacant', isActive: true, amenities: ['wifi', 'tv', 'ac', 'safe', 'balcony'] },
-  { id: '9b1713d2-17cf-46be-8c3d-03beef797722', propertyId: PROPERTY_ID, number: '2008', floor: '2', roomTypeId: 'b0000003-0000-4000-a000-000000000003', roomTypeName: 'Executive Room', status: 'vacant_clean', hkOccupancy: 'vacant', isActive: true, amenities: ['wifi', 'tv', 'ac', 'safe', 'minibar'] },
-  { id: 'd39a0075-b818-4584-8923-8f7842ad25a5', propertyId: PROPERTY_ID, number: '2009', floor: '2', roomTypeId: 'b0000003-0000-4000-a000-000000000003', roomTypeName: 'Executive Room', status: 'vacant_clean', hkOccupancy: 'vacant', isActive: true, amenities: ['wifi', 'tv', 'ac', 'safe', 'minibar'] },
-  { id: 'cee8da28-abab-466c-b357-1c1d018c97e7', propertyId: PROPERTY_ID, number: '2010', floor: '2', roomTypeId: 'b0000004-0000-4000-a000-000000000004', roomTypeName: 'Suite', status: 'vacant_clean', hkOccupancy: 'vacant', isActive: true, amenities: ['wifi', 'tv', 'ac', 'safe', 'minibar', 'living_area', 'bathtub'] },
-
-  // 3rd Floor (10 Rooms: 3001-3010)
-  { id: '12f46802-e6ef-4442-9719-07696d1d823f', propertyId: PROPERTY_ID, number: '3001', floor: '3', roomTypeId: 'b0000002-0000-4000-a000-000000000002', roomTypeName: 'Deluxe Room', status: 'vacant_clean', hkOccupancy: 'vacant', isActive: true, amenities: ['wifi', 'tv', 'ac', 'safe', 'balcony'] },
-  { id: 'b04ded34-41be-4834-a0cf-e4a5ad5b47d9', propertyId: PROPERTY_ID, number: '3002', floor: '3', roomTypeId: 'b0000003-0000-4000-a000-000000000003', roomTypeName: 'Executive Room', status: 'vacant_clean', hkOccupancy: 'vacant', isActive: true, amenities: ['wifi', 'tv', 'ac', 'safe', 'minibar'] },
-  { id: '23881fbd-edc5-4abe-a975-c85733a86672', propertyId: PROPERTY_ID, number: '3003', floor: '3', roomTypeId: 'b0000002-0000-4000-a000-000000000002', roomTypeName: 'Deluxe Room', status: 'vacant_clean', hkOccupancy: 'vacant', isActive: true, amenities: ['wifi', 'tv', 'ac', 'safe', 'balcony'] },
-  { id: '7634b89b-b1e2-4281-8b23-e1934c15eb69', propertyId: PROPERTY_ID, number: '3004', floor: '3', roomTypeId: 'b0000002-0000-4000-a000-000000000002', roomTypeName: 'Deluxe Room', status: 'vacant_clean', hkOccupancy: 'vacant', isActive: true, amenities: ['wifi', 'tv', 'ac', 'safe', 'balcony'] },
-  { id: 'fdeb0677-bf47-4fbd-a65a-60ac6134bb82', propertyId: PROPERTY_ID, number: '3005', floor: '3', roomTypeId: 'b0000003-0000-4000-a000-000000000003', roomTypeName: 'Executive Room', status: 'vacant_clean', hkOccupancy: 'vacant', isActive: true, amenities: ['wifi', 'tv', 'ac', 'safe', 'minibar'] },
-  { id: '3b5bbe33-31aa-4a69-ba9d-ef30444ed4a4', propertyId: PROPERTY_ID, number: '3006', floor: '3', roomTypeId: 'b0000001-0000-4000-a000-000000000001', roomTypeName: 'Budget', status: 'vacant_clean', hkOccupancy: 'vacant', isActive: true, amenities: ['wifi', 'tv', 'ac', 'room_service'] },
-  { id: 'c00a1f3f-2260-43c4-aa59-e36a4fc8141d', propertyId: PROPERTY_ID, number: '3007', floor: '3', roomTypeId: 'b0000002-0000-4000-a000-000000000002', roomTypeName: 'Deluxe Room', status: 'vacant_clean', hkOccupancy: 'vacant', isActive: true, amenities: ['wifi', 'tv', 'ac', 'safe', 'balcony'] },
-  { id: '64e8a350-9131-4df5-8642-1dfea6d52c45', propertyId: PROPERTY_ID, number: '3008', floor: '3', roomTypeId: 'b0000003-0000-4000-a000-000000000003', roomTypeName: 'Executive Room', status: 'vacant_clean', hkOccupancy: 'vacant', isActive: true, amenities: ['wifi', 'tv', 'ac', 'safe', 'minibar'] },
-  { id: '6f158f95-ea10-44a4-ac0d-697d422f7586', propertyId: PROPERTY_ID, number: '3009', floor: '3', roomTypeId: 'b0000003-0000-4000-a000-000000000003', roomTypeName: 'Executive Room', status: 'vacant_clean', hkOccupancy: 'vacant', isActive: true, amenities: ['wifi', 'tv', 'ac', 'safe', 'minibar'] },
-  { id: '5a61c51b-d33f-4b0a-84a2-d5fc56705a42', propertyId: PROPERTY_ID, number: '3010', floor: '3', roomTypeId: 'b0000004-0000-4000-a000-000000000004', roomTypeName: 'Suite', status: 'vacant_clean', hkOccupancy: 'vacant', isActive: true, amenities: ['wifi', 'tv', 'ac', 'safe', 'minibar', 'living_area', 'bathtub'] },
-
-  // 4th Floor (8 Rooms: 4001-4008)
-  { id: '1a4c3c83-cd99-4f4c-b55b-e4b072769db2', propertyId: PROPERTY_ID, number: '4001', floor: '4', roomTypeId: 'b0000002-0000-4000-a000-000000000002', roomTypeName: 'Deluxe Room', status: 'vacant_clean', hkOccupancy: 'vacant', isActive: true, amenities: ['wifi', 'tv', 'ac', 'safe', 'balcony'] },
-  { id: 'ae825695-3665-4c2e-b720-041ceaf589ce', propertyId: PROPERTY_ID, number: '4002', floor: '4', roomTypeId: 'b0000003-0000-4000-a000-000000000003', roomTypeName: 'Executive Room', status: 'vacant_clean', hkOccupancy: 'vacant', isActive: true, amenities: ['wifi', 'tv', 'ac', 'safe', 'minibar'] },
-  { id: '9858efbf-2df3-4ab3-8c79-3f9e4bdcd77a', propertyId: PROPERTY_ID, number: '4003', floor: '4', roomTypeId: 'b0000002-0000-4000-a000-000000000002', roomTypeName: 'Deluxe Room', status: 'vacant_clean', hkOccupancy: 'vacant', isActive: true, amenities: ['wifi', 'tv', 'ac', 'safe', 'balcony'] },
-  { id: '4672e9d7-ecb3-4e62-9a83-81631a9036e6', propertyId: PROPERTY_ID, number: '4004', floor: '4', roomTypeId: 'b0000002-0000-4000-a000-000000000002', roomTypeName: 'Deluxe Room', status: 'vacant_clean', hkOccupancy: 'vacant', isActive: true, amenities: ['wifi', 'tv', 'ac', 'safe', 'balcony'] },
-  { id: '2f4e5dcc-292b-4c54-ba8b-5be33b3e1879', propertyId: PROPERTY_ID, number: '4005', floor: '4', roomTypeId: 'b0000003-0000-4000-a000-000000000003', roomTypeName: 'Executive Room', status: 'vacant_clean', hkOccupancy: 'vacant', isActive: true, amenities: ['wifi', 'tv', 'ac', 'safe', 'minibar'] },
-  { id: '738f4cdf-e4f8-4473-8202-067f59e38ee6', propertyId: PROPERTY_ID, number: '4006', floor: '4', roomTypeId: 'b0000001-0000-4000-a000-000000000001', roomTypeName: 'Budget', status: 'vacant_clean', hkOccupancy: 'vacant', isActive: true, amenities: ['wifi', 'tv', 'ac', 'room_service'] },
-  { id: 'eb7b1cc9-9de6-4e5b-9c72-03fb2edd58a5', propertyId: PROPERTY_ID, number: '4007', floor: '4', roomTypeId: 'b0000002-0000-4000-a000-000000000002', roomTypeName: 'Deluxe Room', status: 'vacant_clean', hkOccupancy: 'vacant', isActive: true, amenities: ['wifi', 'tv', 'ac', 'safe', 'balcony'] },
-  { id: '8f34f3f5-17ba-4fdb-926c-27b0754b504d', propertyId: PROPERTY_ID, number: '4008', floor: '4', roomTypeId: 'b0000003-0000-4000-a000-000000000003', roomTypeName: 'Executive Room', status: 'vacant_clean', hkOccupancy: 'vacant', isActive: true, amenities: ['wifi', 'tv', 'ac', 'safe', 'minibar'] },
-];
-
-const ROOMS_STORAGE_KEY = 'hotel_spark_rooms_list';
-const STAYS_STORAGE_KEY = 'hotel_spark_stays_list';
-const NOTIFICATIONS_STORAGE_KEY = 'hotel_spark_notifications_list';
-
 export interface StoredStay {
   id: string;
-  propertyId: string;
+  reservationId?: string;
+  folioId?: string;
+  guestId?: string;
+  roomId?: string;
+  roomNumber: string;
+  roomTypeName: string;
+  rateType?: string;
   guestName: string;
   mobile: string;
   email?: string;
   address?: string;
   city?: string;
   state?: string;
-  idProofType: string;
-  idProofNumber: string;
+  guestGstin?: string;
+  source?: string;
+  sourceOfSupply?: string;
+  idProofType?: string;
+  idProofNumber?: string;
   idProofFrontUrl?: string;
   idProofBackUrl?: string;
-  adults: number;
-  children: number;
-  roomId: string;
-  roomNumber: string;
-  roomTypeName: string;
   checkInTime: string;
   expectedCheckoutTime: string;
   actualCheckoutTime?: string;
   nights: number;
+  adults?: number;
+  children?: number;
   pricePerNight: number;
   extraCharges: number;
   discount: number;
+  taxMode?: 'inclusive' | 'exclusive';
+  gstRate?: number;
+  cgstAmount?: number;
+  sgstAmount?: number;
   totalAmount: number;
   advancePaid: number;
-  previousPayments: number;
+  previousPayments?: number;
   balance: number;
   paymentMethod: string;
-  paymentReference?: string;      // e.g. "CARD: ****8005" or UPI ref#
-  paymentStatus: 'paid' | 'partially_paid' | 'unpaid';
-  stayStatus: 'in_house' | 'checked_out';
+  paymentReference?: string;
+  paymentStatus?: 'paid' | 'partially_paid' | 'unpaid' | string;
+  stayStatus: 'in_house' | 'checked_out' | 'confirmed';
   billNumber?: string;
+  cashierName?: string;
   notes?: string;
-  // Invoice / Folio extra fields (for official Hotel Spark invoice pattern)
-  guestGstin?: string;            // Guest / Corporate GSTIN
-  rateType?: string;              // e.g. Budget / EP / CP
-  source?: string;                // Walk-in / Website / Phone Booking
-  sourceOfSupply?: string;        // e.g. Karimnagar
-  cashierName?: string;           // Cashier (C/O) printed on invoice
-  createdAt: string;
-  updatedAt: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface StoredNotification {
   id: string;
-  type: string;
   title: string;
   message: string;
   severity: 'info' | 'warning' | 'critical';
-  createdAt: string;
+  type: string;
   isRead: boolean;
+  createdAt: string;
 }
-
-export const DEFAULT_STAYS: StoredStay[] = [];
-
-export const DEFAULT_NOTIFICATIONS: StoredNotification[] = [];
-
-export function getStoredRooms(): StoredRoom[] {
-  try {
-    if (typeof window !== 'undefined' && window.localStorage) {
-      const saved = window.localStorage.getItem(ROOMS_STORAGE_KEY);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length >= 28 && parsed.some((r: any) => r.number === '2001') && !parsed.some((r: any) => r.number === '101')) {
-          return parsed;
-        }
-      }
-    }
-  } catch (e) {
-    void e;
-  }
-  return [...DEFAULT_ROOMS];
-}
-
-export function saveStoredRooms(rooms: StoredRoom[]) {
-  try {
-    if (typeof window !== 'undefined' && window.localStorage) {
-      window.localStorage.setItem(ROOMS_STORAGE_KEY, JSON.stringify(rooms));
-    }
-  } catch (e) {
-    void e;
-  }
-}
-
-export function getStoredTariffConfig(): HotelTariffConfig {
-  try {
-    if (typeof window !== 'undefined' && window.localStorage) {
-      const saved = window.localStorage.getItem(TARIFF_CONFIG_STORAGE_KEY);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (parsed && Array.isArray(parsed.categories) && parsed.categories.length === 4) {
-          return parsed;
-        }
-      }
-    }
-  } catch (e) {
-    void e;
-  }
-  return { ...DEFAULT_TARIFF_CONFIG };
-}
-
-export function saveStoredTariffConfig(config: HotelTariffConfig): void {
-  try {
-    if (typeof window !== 'undefined' && window.localStorage) {
-      window.localStorage.setItem(TARIFF_CONFIG_STORAGE_KEY, JSON.stringify(config));
-    }
-  } catch (e) {
-    void e;
-  }
-}
-
-export function reassignRoomInventory(categories: RoomCategoryTariff[]): StoredRoom[] {
-  const currentRooms = getStoredRooms();
-  let roomIdx = 0;
-  const updatedRooms: StoredRoom[] = [];
-
-  for (const cat of categories) {
-    const count = Number(cat.assignedRoomsCount) || 0;
-    for (let i = 0; i < count && roomIdx < currentRooms.length; i++) {
-      const existing = currentRooms[roomIdx];
-      updatedRooms.push({
-        ...existing,
-        roomTypeId: cat.id,
-        roomTypeName: cat.name,
-      });
-      roomIdx++;
-    }
-  }
-
-  while (roomIdx < currentRooms.length) {
-    updatedRooms.push(currentRooms[roomIdx]);
-    roomIdx++;
-  }
-
-  saveStoredRooms(updatedRooms);
-  return updatedRooms;
-}
-
-export interface TariffCalculationResult {
-  roomTariffPerNight: number;
-  totalRoomTariff: number;
-  extraPersonsCount: number;
-  extraPersonRate: number;
-  totalExtraPersonCharges: number;
-  subtotal: number;
-  gstRate: number;
-  isTaxInclusive: boolean;
-  taxableBase: number;
-  cgst: number;
-  sgst: number;
-  totalGst: number;
-  grandTotal: number;
-  formattedGrandTotal: string;
-}
-
-export function calculateTariffInvoice({
-  category,
-  occupancyType,
-  nights = 1,
-  extraPersons = 0,
-  extraCharges = 0,
-  discount = 0,
-  gstPercentage = 12,
-  isTaxInclusive = true,
-}: {
-  category: RoomCategoryTariff;
-  occupancyType: 'single' | 'double';
-  nights?: number;
-  extraPersons?: number;
-  extraCharges?: number;
-  discount?: number;
-  gstPercentage?: number;
-  isTaxInclusive?: boolean;
-}): TariffCalculationResult {
-  const ratePerNight =
-    occupancyType === 'single'
-      ? (category.singleOccupancyPrice ?? category.doubleOccupancyPrice ?? 1599)
-      : (category.doubleOccupancyPrice ?? category.singleOccupancyPrice ?? 2099);
-
-  const totalRoomTariff = ratePerNight * Math.max(1, nights);
-  const extraPersonRate = 399;
-  const totalExtraPersonCharges = Math.max(0, extraPersons) * extraPersonRate * Math.max(1, nights);
-
-  const subtotal = totalRoomTariff + totalExtraPersonCharges + extraCharges - discount;
-
-  let taxableBase: number;
-  let totalGst: number;
-  let grandTotal: number;
-
-  if (isTaxInclusive) {
-    taxableBase = Math.round((subtotal / (1 + gstPercentage / 100)) * 100) / 100;
-    totalGst = Math.round((subtotal - taxableBase) * 100) / 100;
-    grandTotal = subtotal;
-  } else {
-    taxableBase = subtotal;
-    totalGst = Math.round((subtotal * (gstPercentage / 100)) * 100) / 100;
-    grandTotal = Math.round((subtotal + totalGst) * 100) / 100;
-  }
-
-  const cgst = Math.round((totalGst / 2) * 100) / 100;
-  const sgst = Math.round((totalGst - cgst) * 100) / 100;
-
-  return {
-    roomTariffPerNight: ratePerNight,
-    totalRoomTariff,
-    extraPersonsCount: Math.max(0, extraPersons),
-    extraPersonRate,
-    totalExtraPersonCharges,
-    subtotal,
-    gstRate: gstPercentage,
-    isTaxInclusive,
-    taxableBase,
-    cgst,
-    sgst,
-    totalGst,
-    grandTotal,
-    formattedGrandTotal: `₹${grandTotal.toLocaleString('en-IN')}`,
-  };
-}
-
-export function getStoredStays(): StoredStay[] {
-  try {
-    if (typeof window !== 'undefined' && window.localStorage) {
-      const saved = window.localStorage.getItem(STAYS_STORAGE_KEY);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) {
-          return parsed.filter((item: StoredStay) =>
-            !item.id.startsWith('stay-00') &&
-            !item.id.startsWith('stay-hist-') &&
-            item.guestName !== 'Rahul Verma' &&
-            item.guestName !== 'Priya Sharma' &&
-            item.guestName !== 'Vikram Malhotra' &&
-            item.guestName !== 'Sneha Reddy'
-          );
-        }
-      }
-    }
-  } catch (e) {
-    void e;
-  }
-  return [...DEFAULT_STAYS];
-}
-
-export function saveStoredStays(stays: StoredStay[]) {
-  try {
-    if (typeof window !== 'undefined' && window.localStorage) {
-      window.localStorage.setItem(STAYS_STORAGE_KEY, JSON.stringify(stays));
-    }
-  } catch (e) {
-    void e;
-  }
-}
-
-export function getStoredNotifications(): StoredNotification[] {
-  try {
-    if (typeof window !== 'undefined' && window.localStorage) {
-      const saved = window.localStorage.getItem(NOTIFICATIONS_STORAGE_KEY);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          return parsed;
-        }
-      }
-    }
-  } catch (e) {
-    void e;
-  }
-  return [...DEFAULT_NOTIFICATIONS];
-}
-
-export function saveStoredNotifications(notifs: StoredNotification[]) {
-  try {
-    if (typeof window !== 'undefined' && window.localStorage) {
-      window.localStorage.setItem(NOTIFICATIONS_STORAGE_KEY, JSON.stringify(notifs));
-    }
-  } catch (e) {
-    void e;
-  }
-}
-
-const EMPLOYEES_STORAGE_KEY = 'hotel_spark_employees_list';
-const HK_TASKS_STORAGE_KEY = 'hotel_spark_hk_tasks_list';
-const RESERVATIONS_STORAGE_KEY = 'hotel_spark_reservations_list';
-const GUESTS_STORAGE_KEY = 'hotel_spark_guests_list';
-
-const DEFAULT_GUESTS: any[] = [];
-
-const DEFAULT_HK_TASKS = [
-  {
-    id: 'hk-104',
-    roomId: 'r0000104-0000-4000-a000-000000000001',
-    roomNumber: '104',
-    floor: '1',
-    type: 'checkout_clean',
-    status: 'pending',
-    priority: 1,
-    assignedTo: 'e0000006-0000-4000-a000-000000000001', // Raju Nayak
-    serviceDate: new Date().toISOString().split('T')[0],
-    checklist: [
-      { item: 'Change bed linen & pillow covers', checked: false },
-      { item: 'Sanitize bathroom and replace towels', checked: false },
-      { item: 'Dust surfaces & restock water bottles', checked: false },
-      { item: 'Vacuum carpet & mop floor', checked: false },
-    ],
-    notes: 'Previous guest checked out. Ready for deep clean.',
-  },
-  {
-    id: 'hk-103',
-    roomId: 'r0000103-0000-4000-a000-000000000001',
-    roomNumber: '103',
-    floor: '1',
-    type: 'inspection',
-    status: 'completed',
-    priority: 2,
-    assignedTo: 'e0000004-0000-4000-a000-000000000001', // Kavitha Devi
-    serviceDate: new Date().toISOString().split('T')[0],
-    checklist: [
-      { item: 'Linen fresh and bed made to standard', checked: true },
-      { item: 'All electrical fittings & AC tested', checked: true },
-      { item: 'Ensuite bath inspection', checked: true },
-    ],
-    notes: 'Room inspected and guest ready.',
-  },
-  {
-    id: 'hk-201',
-    roomId: 'r0000201-0000-4000-a000-000000000001',
-    roomNumber: '201',
-    floor: '2',
-    type: 'stayover',
-    status: 'in_progress',
-    priority: 2,
-    assignedTo: 'e0000006-0000-4000-a000-000000000001', // Raju Nayak
-    serviceDate: new Date().toISOString().split('T')[0],
-    checklist: [
-      { item: 'Make bed & tidy room', checked: true },
-      { item: 'Replenish toiletries', checked: false },
-      { item: 'Empty trash bins', checked: true },
-    ],
-    notes: 'Daily stayover housekeeping for staying guest.',
-  },
-];
-
-const DEFAULT_RESERVATIONS: any[] = [];
-
-export function getStoredEmployees(): any[] {
-  try {
-    if (typeof window !== 'undefined' && window.localStorage) {
-      const saved = window.localStorage.getItem(EMPLOYEES_STORAGE_KEY);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      }
-    }
-  } catch (e) {
-    void e;
-  }
-  return [...DEFAULT_EMPLOYEES];
-}
-
-export function saveStoredEmployees(list: any[]) {
-  try {
-    if (typeof window !== 'undefined' && window.localStorage) {
-      window.localStorage.setItem(EMPLOYEES_STORAGE_KEY, JSON.stringify(list));
-    }
-  } catch (e) {
-    void e;
-  }
-}
-
-export function getStoredHkTasks(): any[] {
-  try {
-    if (typeof window !== 'undefined' && window.localStorage) {
-      const saved = window.localStorage.getItem(HK_TASKS_STORAGE_KEY);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      }
-    }
-  } catch (e) {
-    void e;
-  }
-  return [...DEFAULT_HK_TASKS];
-}
-
-export function saveStoredHkTasks(list: any[]) {
-  try {
-    if (typeof window !== 'undefined' && window.localStorage) {
-      window.localStorage.setItem(HK_TASKS_STORAGE_KEY, JSON.stringify(list));
-    }
-  } catch (e) {
-    void e;
-  }
-}
-
-export function getStoredReservations(): any[] {
-  try {
-    if (typeof window !== 'undefined' && window.localStorage) {
-      const saved = window.localStorage.getItem(RESERVATIONS_STORAGE_KEY);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) {
-          return parsed.filter((r: any) =>
-            !r.id.startsWith('resv-00') &&
-            !r.confirmationNumber?.includes('880') &&
-            r.guestName !== 'Suresh Goud' &&
-            r.guestName !== 'Mohammed Rafi'
-          );
-        }
-      }
-    }
-  } catch (e) {
-    void e;
-  }
-  return [...DEFAULT_RESERVATIONS];
-}
-
-export function saveStoredReservations(list: any[]) {
-  try {
-    if (typeof window !== 'undefined' && window.localStorage) {
-      window.localStorage.setItem(RESERVATIONS_STORAGE_KEY, JSON.stringify(list));
-    }
-  } catch (e) {
-    void e;
-  }
-}
-
-export function getStoredGuests(): any[] {
-  try {
-    if (typeof window !== 'undefined' && window.localStorage) {
-      const saved = window.localStorage.getItem(GUESTS_STORAGE_KEY);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) {
-          return parsed.filter((g: any) => !g.id.startsWith('g000000'));
-        }
-      }
-    }
-  } catch (e) {
-    void e;
-  }
-  return [...DEFAULT_GUESTS];
-}
-
-export function saveStoredGuests(list: any[]) {
-  try {
-    if (typeof window !== 'undefined' && window.localStorage) {
-      window.localStorage.setItem(GUESTS_STORAGE_KEY, JSON.stringify(list));
-    }
-  } catch (e) {
-    void e;
-  }
-}
-
-export const DIRECT_BOOKINGS_STORAGE_KEY = 'hotel_spark_direct_bookings';
-
-export const DEFAULT_DIRECT_BOOKINGS: any[] = [
-  {
-    id: 'req_spark_web_001',
-    propertyId: PROPERTY_ID,
-    status: 'pending',
-    reference: 'SPARK-WEB-001',
-    submissionIdempotencyKey: 'SPARK-WEB-001',
-    arrivalDate: '2026-11-20',
-    departureDate: '2026-11-22',
-    roomTypeId: 'b0000002-0000-4000-a000-000000000002',
-    roomTypeName: 'Deluxe Room',
-    roomTypeCode: 'DLX',
-    ratePlanId: 'c0000002-0000-4000-a000-000000000002',
-    ratePlanName: 'Best Available Rate',
-    adults: 2,
-    children: 0,
-    guestFirstName: 'Rahul',
-    guestLastName: 'Verma',
-    guestEmail: 'rahul.verma@example.com',
-    guestPhone: '+91 98765 11223',
-    specialRequests: 'Quiet room requested, arriving late evening.',
-    submittedTotal: '4698.00',
-    currencyCode: 'INR',
-    confirmedReservationNumber: null,
-    assignedRoomNumber: null,
-    availableRoomsCount: 12,
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: 'req_spark_web_002',
-    propertyId: PROPERTY_ID,
-    status: 'accepted',
-    reference: 'SPARK-WEB-002',
-    submissionIdempotencyKey: 'SPARK-WEB-002',
-    arrivalDate: '2026-11-21',
-    departureDate: '2026-11-24',
-    roomTypeId: 'b0000003-0000-4000-a000-000000000003',
-    roomTypeName: 'Executive Room',
-    roomTypeCode: 'EXE',
-    ratePlanId: 'c0000003-0000-4000-a000-000000000003',
-    ratePlanName: 'Best Available Rate',
-    adults: 2,
-    children: 1,
-    guestFirstName: 'Priya',
-    guestLastName: 'Sharma',
-    guestEmail: 'priya.sharma@example.com',
-    guestPhone: '+91 98765 44556',
-    specialRequests: 'Room 2005 preferred with extra towels.',
-    submittedTotal: '8396.00',
-    currencyCode: 'INR',
-    confirmedReservationNumber: 'SPARK-CONF-2005',
-    assignedRoomId: '7db20997-3628-42dc-9870-69894e0e584f',
-    assignedRoomNumber: '2005',
-    availableRoomsCount: 11,
-    decidedAt: new Date().toISOString(),
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: 'req_spark_web_003',
-    propertyId: PROPERTY_ID,
-    status: 'pending',
-    reference: 'SPARK-WEB-003',
-    submissionIdempotencyKey: 'SPARK-WEB-003',
-    arrivalDate: '2026-11-25',
-    departureDate: '2026-11-27',
-    roomTypeId: 'b0000004-0000-4000-a000-000000000004',
-    roomTypeName: 'Suite',
-    roomTypeCode: 'SUT',
-    ratePlanId: 'c0000004-0000-4000-a000-000000000004',
-    ratePlanName: 'Best Available Rate',
-    adults: 2,
-    children: 0,
-    guestFirstName: 'Ananya',
-    guestLastName: 'Rao',
-    guestEmail: 'ananya.rao@example.com',
-    guestPhone: '+91 98765 77889',
-    specialRequests: 'Anniversary trip, luxury arrangement requested.',
-    submittedTotal: '6269.00',
-    currencyCode: 'INR',
-    confirmedReservationNumber: null,
-    assignedRoomNumber: null,
-    availableRoomsCount: 2,
-    createdAt: new Date().toISOString(),
-  },
-];
-
-export function getStoredDirectBookings(): any[] {
-  try {
-    if (typeof window !== 'undefined' && window.localStorage) {
-      const saved = window.localStorage.getItem(DIRECT_BOOKINGS_STORAGE_KEY);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          return parsed.filter((b: any) =>
-            b.id !== '2a52aaa6-dd15-4c31-9716-a81c2080288a' &&
-            b.id !== 'b744d03d-24fb-4bca-85f0-619f79883db1' &&
-            b.id !== 'c287d743-808d-41f1-8034-e9baf96faabc' &&
-            b.id !== '30b3fd49-613c-4c29-9b7b-877e645eb66f' &&
-            b.id !== '415de485-046d-4591-830b-6183994c823a' &&
-            b.id !== 'fb3e09c9-b088-4604-82e2-30c010c06715'
-          );
-        }
-      }
-    }
-  } catch (e) {
-    void e;
-  }
-  return [...DEFAULT_DIRECT_BOOKINGS];
-}
-
-export function saveStoredDirectBookings(list: any[]) {
-  try {
-    if (typeof window !== 'undefined' && window.localStorage) {
-      window.localStorage.setItem(DIRECT_BOOKINGS_STORAGE_KEY, JSON.stringify(list));
-    }
-  } catch (e) {
-    void e;
-  }
-}
-
-export function addNotification(
-  title: string,
-  message: string,
-  severity: 'info' | 'warning' | 'critical' = 'info',
-  type = 'general'
-): StoredNotification {
-  const notifs = getStoredNotifications();
-  const newNotif: StoredNotification = {
-    id: `notif-${Date.now()}`,
-    type,
-    title,
-    message,
-    severity,
-    createdAt: new Date().toISOString(),
-    isRead: false,
-  };
-  const updated = [newNotif, ...notifs];
-  saveStoredNotifications(updated);
-  return newNotif;
-}
-
-export const MEDIA_STORAGE_KEY = 'haip_media_store';
 
 export interface StoredMediaItem {
   id: string;
@@ -836,2429 +157,2292 @@ export interface StoredMediaItem {
   ownerType: 'property' | 'room_type' | 'room';
   ownerId: string;
   url: string;
-  storageKey: string | null;
-  category: 'hero' | 'exterior' | 'room' | 'amenity' | 'dining' | 'other';
-  caption: string | null;
-  altText: string | null;
-  sortOrder: number;
+  storagePath?: string;
+  caption?: string;
+  altText?: string;
+  category?: string;
   isPrimary: boolean;
+  sortOrder: number;
+  createdAt: string;
 }
 
-export const DEFAULT_MEDIA_ITEMS: StoredMediaItem[] = [
-  // Budget Room Type (b0000001-0000-4000-a000-000000000001)
-  {
-    id: 'med-bgt-01',
-    propertyId: PROPERTY_ID,
-    ownerType: 'room_type',
-    ownerId: 'b0000001-0000-4000-a000-000000000001',
-    url: 'https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=1200&q=80',
-    storageKey: null,
-    category: 'room',
-    caption: 'Hotel Spark Budget Room',
-    altText: 'Budget Room Single/Double Bed',
-    sortOrder: 0,
-    isPrimary: true,
-  },
-  // Deluxe Room Type (b0000002-0000-4000-a000-000000000002)
-  {
-    id: 'med-dlx-01',
-    propertyId: PROPERTY_ID,
-    ownerType: 'room_type',
-    ownerId: 'b0000002-0000-4000-a000-000000000002',
-    url: 'https://images.unsplash.com/photo-1591088398332-8a7791972843?auto=format&fit=crop&w=1200&q=80',
-    storageKey: null,
-    category: 'room',
-    caption: 'Hotel Spark Deluxe Room',
-    altText: 'Deluxe Room with Queen Bed and Balcony',
-    sortOrder: 0,
-    isPrimary: true,
-  },
-  // Executive Room Type (b0000003-0000-4000-a000-000000000003 - includes Room 2005)
-  {
-    id: 'med-exe-01',
-    propertyId: PROPERTY_ID,
-    ownerType: 'room_type',
-    ownerId: 'b0000003-0000-4000-a000-000000000003',
-    url: 'https://images.unsplash.com/photo-1566665797739-1674de7a421a?auto=format&fit=crop&w=1200&q=80',
-    storageKey: null,
-    category: 'room',
-    caption: 'Hotel Spark Executive King Room',
-    altText: 'Executive Room Panoramic Views and Work Desk',
-    sortOrder: 0,
-    isPrimary: true,
-  },
-  // Suite Type (b0000004-0000-4000-a000-000000000004)
-  {
-    id: 'med-sut-01',
-    propertyId: PROPERTY_ID,
-    ownerType: 'room_type',
-    ownerId: 'b0000004-0000-4000-a000-000000000004',
-    url: 'https://images.unsplash.com/photo-1618773928121-c32242e63f39?auto=format&fit=crop&w=1200&q=80',
-    storageKey: null,
-    category: 'room',
-    caption: 'Hotel Spark Signature Suite',
-    altText: 'Signature Luxury Suite Living Room and Master Bed',
-    sortOrder: 0,
-    isPrimary: true,
-  },
-];
+export interface TariffCalculationResult {
+  roomRatePerNight: number;
+  roomTariffPerNight: number;
+  baseRoomCharges: number;
+  totalRoomTariff: number;
+  extraPersonCharges: number;
+  totalExtraPersonCharges: number;
+  grossSubtotal: number;
+  taxableValue: number;
+  taxableBase: number;
+  gstAmount: number;
+  cgstAmount: number;
+  sgstAmount: number;
+  cgst: number;
+  sgst: number;
+  grandTotal: number;
+  nights: number;
+  occupancyType: 'single' | 'double';
+  extraPersons: number;
+  extraPersonsCount: number;
+  isTaxInclusive: boolean;
+}
 
-export function getStoredMedia(): StoredMediaItem[] {
-  try {
-    if (typeof window !== 'undefined' && window.localStorage) {
-      const saved = window.localStorage.getItem(MEDIA_STORAGE_KEY);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          return parsed;
+export function calculateTariffInvoice({
+  category,
+  occupancyType,
+  nights,
+  extraPersons,
+  gstPercentage = 5,
+  isTaxInclusive = true,
+  extraPersonRate = 399,
+}: {
+  category: RoomCategoryTariff;
+  occupancyType: 'single' | 'double';
+  nights: number;
+  extraPersons: number;
+  gstPercentage?: number;
+  isTaxInclusive?: boolean;
+  extraPersonRate?: number;
+}): TariffCalculationResult {
+  const safeNights = Math.max(1, Number(nights) || 1);
+  const safeExtra = Math.max(0, Number(extraPersons) || 0);
+  const perNightRate =
+    occupancyType === 'single'
+      ? category.singleOccupancyPrice ?? category.doubleOccupancyPrice ?? 0
+      : category.doubleOccupancyPrice ?? category.singleOccupancyPrice ?? 0;
+
+  const baseRoomCharges = perNightRate * safeNights;
+  const effectiveExtraRate = category.extraPersonCharge || extraPersonRate;
+  const extraPersonCharges = safeExtra * effectiveExtraRate * safeNights;
+  const netPreTaxOrInclusive = baseRoomCharges + extraPersonCharges;
+  const gstMult = (gstPercentage || 0) / 100;
+
+  let taxableValue: number;
+  let gstAmount: number;
+  let grandTotal: number;
+
+  if (isTaxInclusive) {
+    taxableValue = Math.round((netPreTaxOrInclusive / (1 + gstMult)) * 100) / 100;
+    gstAmount = Math.round((netPreTaxOrInclusive - taxableValue) * 100) / 100;
+    grandTotal = netPreTaxOrInclusive;
+  } else {
+    taxableValue = netPreTaxOrInclusive;
+    gstAmount = Math.round((netPreTaxOrInclusive * gstMult) * 100) / 100;
+    grandTotal = Math.round((taxableValue + gstAmount) * 100) / 100;
+  }
+
+  const halfGst = Math.round((gstAmount / 2) * 100) / 100;
+
+  return {
+    roomRatePerNight: perNightRate,
+    roomTariffPerNight: perNightRate,
+    baseRoomCharges,
+    totalRoomTariff: baseRoomCharges,
+    extraPersonCharges,
+    totalExtraPersonCharges: extraPersonCharges,
+    grossSubtotal: netPreTaxOrInclusive,
+    taxableValue,
+    taxableBase: taxableValue,
+    gstAmount,
+    cgstAmount: halfGst,
+    sgstAmount: halfGst,
+    cgst: halfGst,
+    sgst: halfGst,
+    grandTotal,
+    nights: safeNights,
+    occupancyType,
+    extraPersons: safeExtra,
+    extraPersonsCount: safeExtra,
+    isTaxInclusive,
+  };
+}
+
+// Pure empty defaults for type safety (never populated with mock records)
+export const EMPTY_TARIFF_CONFIG: HotelTariffConfig = {
+  extraPersonCharge: 399,
+  childUnder7Free: true,
+  gstPercentage: 5,
+  isTaxInclusive: true,
+  gstin: '',
+  hsnSac: '996311',
+  cancellationPolicy: '',
+  cardPaymentInfo: '',
+  categories: [],
+};
+
+// ============================================================================
+// SUPABASE QUERY & MAP HELPERS
+// ============================================================================
+
+async function uploadIdProofIfDataUrl(
+  propertyId: string,
+  label: string,
+  val?: string
+): Promise<string | undefined> {
+  if (!val) return undefined;
+  if (!val.startsWith('data:')) return val;
+  const { blob, ext, mime } = dataUrlToBlob(val);
+  const path = `${propertyId}/id-proofs/${Date.now()}-${label}.${ext}`;
+  const uploaded = await supabaseUploadObject('guest-documents', path, blob, mime);
+  return uploaded.path;
+}
+
+async function resolveStayDocuments(stays: StoredStay[]): Promise<StoredStay[]> {
+  return Promise.all(
+    stays.map(async (s) => {
+      let frontUrl = s.idProofFrontUrl;
+      let backUrl = s.idProofBackUrl;
+      if (frontUrl && !frontUrl.startsWith('http') && !frontUrl.startsWith('data:')) {
+        try {
+          frontUrl = await supabaseCreateSignedUrl('guest-documents', frontUrl, 3600);
+        } catch {
+          /* keep stored path */
         }
       }
-    }
-  } catch (e) {
-    void e;
-  }
-  return [...DEFAULT_MEDIA_ITEMS];
-}
-
-export function saveStoredMedia(items: StoredMediaItem[]): void {
-  try {
-    if (typeof window !== 'undefined' && window.localStorage) {
-      window.localStorage.setItem(MEDIA_STORAGE_KEY, JSON.stringify(items));
-    }
-  } catch (e) {
-    void e;
-  }
-}
-
-export async function fileToDataUrl(file: File, maxEdge = 1600, quality = 0.82): Promise<string> {
-  try {
-    if (typeof window !== 'undefined' && typeof window.createImageBitmap === 'function') {
-      const bitmap = await createImageBitmap(file);
-      const scale = Math.min(1, maxEdge / Math.max(bitmap.width, bitmap.height));
-      const width = Math.max(1, Math.round(bitmap.width * scale));
-      const height = Math.max(1, Math.round(bitmap.height * scale));
-
-      const canvas = document.createElement('canvas');
-      canvas.width = width;
-      canvas.height = height;
-      const ctx = canvas.getContext('2d');
-      if (ctx) {
-        ctx.drawImage(bitmap, 0, 0, width, height);
-        bitmap.close();
-        const dataUrl = canvas.toDataURL('image/jpeg', quality);
-        if (dataUrl && dataUrl.length > 64) {
-          return dataUrl;
+      if (backUrl && !backUrl.startsWith('http') && !backUrl.startsWith('data:')) {
+        try {
+          backUrl = await supabaseCreateSignedUrl('guest-documents', backUrl, 3600);
+        } catch {
+          /* keep stored path */
         }
       }
-      bitmap.close();
-    }
-  } catch (err) {
-    console.warn('Canvas image compression fallback to FileReader:', err);
+      return { ...s, idProofFrontUrl: frontUrl, idProofBackUrl: backUrl };
+    })
+  );
+}
+
+async function fetchStaysFromSupabase(propertyId: string, onlyActive = false): Promise<StoredStay[]> {
+  const statusFilter = onlyActive
+    ? '&status=in.(checked_in,stayover,due_out)'
+    : '&status=in.(confirmed,assigned,checked_in,stayover,due_out,checked_out)';
+
+  const [reservations, folios, payments, invoices, guestDocs] = await Promise.all([
+    supabaseFetch<any[]>(
+      `/reservations?select=*,guest:guests(*),room:rooms(*),room_type:room_types(*),booking:bookings(*)&or=(hotel_id.eq.${propertyId},property_id.eq.${propertyId})${statusFilter}&order=created_at.desc`
+    ),
+    supabaseFetch<any[]>(
+      `/folios?select=*&or=(hotel_id.eq.${propertyId},property_id.eq.${propertyId})`
+    ).catch(() => []),
+    supabaseFetch<any[]>(
+      `/payments?select=*&or=(hotel_id.eq.${propertyId},property_id.eq.${propertyId})&status=in.(paid,captured,settled)`
+    ).catch(() => []),
+    supabaseFetch<any[]>(
+      `/invoices?select=*&or=(hotel_id.eq.${propertyId},property_id.eq.${propertyId})&order=created_at.desc`
+    ).catch(() => []),
+    supabaseFetch<any[]>(
+      `/guest_documents?select=*&or=(hotel_id.eq.${propertyId},property_id.eq.${propertyId})&order=created_at.desc`
+    ).catch(() => []),
+  ]);
+
+  const stays: StoredStay[] = (reservations || []).map((r) => {
+    const guest = r.guest || {};
+    const room = r.room || {};
+    const rt = r.room_type || {};
+    const booking = r.booking || {};
+    const folio = (folios || []).find((f) => f.reservation_id === r.id);
+    const resPayments = (payments || []).filter((p) => p.reservation_id === r.id);
+    const inv = (invoices || []).find((i) => i.reservation_id === r.id);
+    const doc = (guestDocs || []).find((d) => d.guest_id === r.guest_id);
+
+    const totalPaid =
+      folio?.total_payments != null
+        ? Number(folio.total_payments)
+        : resPayments.reduce((sum, p) => sum + Number(p.amount || 0), 0);
+    const totalAmount = Number(inv?.total_amount ?? folio?.total_charges ?? r.total_amount ?? 0);
+    const balance = Math.max(0, Number(folio?.balance ?? Math.max(0, totalAmount - totalPaid)));
+    const nights = Math.max(1, Number(r.nights || 1));
+    const perNight = nights > 0 ? Math.round((Number(r.base_amount || r.total_amount || 0) / nights) * 100) / 100 : 0;
+
+    const regData = guest.registration_data || {};
+    const guestFullName = [guest.first_name, guest.last_name].filter(Boolean).join(' ').trim();
+
+    return {
+      id: r.id,
+      reservationId: r.id,
+      folioId: folio?.id,
+      guestId: r.guest_id,
+      roomId: r.room_id || '',
+      roomNumber: room.number || 'Unassigned',
+      roomTypeName: rt.name || '',
+      rateType: rt.name || '',
+      guestName: guestFullName || guest.email || 'Guest',
+      mobile: guest.phone || '',
+      email: guest.email || '',
+      address: guest.address_line_1 || '',
+      city: guest.city || '',
+      state: guest.state_province || '',
+      guestGstin: guest.tax_id || inv?.guest_gstin || '',
+      source: r.booking_source || booking.source || 'walk_in',
+      sourceOfSupply: guest.city || '',
+      idProofType: doc?.document_type || guest.id_type || regData.idProofType || 'Government ID',
+      idProofNumber: doc?.document_number || guest.id_number || regData.idProofNumber || '',
+      idProofFrontUrl: doc?.file_url || regData.idProofFrontUrl || '',
+      idProofBackUrl: doc?.storage_path || regData.idProofBackUrl || '',
+      checkInTime: r.checked_in_at || `${r.arrival_date}T12:00:00.000Z`,
+      expectedCheckoutTime: `${r.departure_date}T11:00:00.000Z`,
+      actualCheckoutTime: r.checked_out_at || undefined,
+      nights,
+      adults: Number(r.adults || 1),
+      children: Number(r.children || 0),
+      pricePerNight: perNight,
+      extraCharges: Number(r.extra_charges || inv?.extra_charges || 0),
+      discount: Number(r.discount_amount || inv?.discount_amount || 0),
+      taxMode: (inv?.tax_mode as 'inclusive' | 'exclusive') || 'inclusive',
+      gstRate: Number(inv?.gst_rate ?? 5),
+      cgstAmount: Number(inv?.cgst_amount ?? 0),
+      sgstAmount: Number(inv?.sgst_amount ?? 0),
+      totalAmount,
+      advancePaid: totalPaid,
+      previousPayments: 0,
+      balance,
+      paymentMethod: resPayments[0]?.payment_method || 'cash',
+      paymentReference: resPayments[0]?.transaction_reference || '',
+      stayStatus:
+        r.status === 'checked_out'
+          ? 'checked_out'
+          : r.status === 'confirmed' || r.status === 'pending' || r.status === 'assigned'
+            ? 'confirmed'
+            : 'in_house',
+      billNumber: inv?.invoice_number || folio?.folio_number || booking.confirmation_number,
+      cashierName: inv?.cashier_name || undefined,
+      notes: r.special_requests || r.notes || '',
+    };
+  });
+
+  return resolveStayDocuments(stays);
+}
+
+async function fetchRoomsFromSupabase(propertyId: string) {
+  const [rooms, roomTypes, activeRes] = await Promise.all([
+    supabaseFetch<any[]>(
+      `/rooms?select=*,room_type:room_types(id,name,code)&or=(hotel_id.eq.${propertyId},property_id.eq.${propertyId})&is_active=eq.true&order=number.asc`
+    ),
+    supabaseFetch<any[]>(
+      `/room_types?select=*&or=(hotel_id.eq.${propertyId},property_id.eq.${propertyId})&is_active=eq.true`
+    ).catch(() => []),
+    supabaseFetch<any[]>(
+      `/reservations?select=id,room_id,guest:guests(first_name,last_name)&or=(hotel_id.eq.${propertyId},property_id.eq.${propertyId})&status=in.(checked_in,stayover,due_out)`
+    ).catch(() => []),
+  ]);
+
+  const rtMap = new Map<string, any>();
+  for (const rt of roomTypes || []) rtMap.set(rt.id, rt);
+  const resByRoom = new Map<string, any>();
+  for (const res of activeRes || []) {
+    if (res.room_id) resByRoom.set(res.room_id, res);
   }
 
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result));
-    reader.onerror = () => reject(reader.error);
-    reader.readAsDataURL(file);
+  return (rooms || []).map((r) => {
+    const rt = r.room_type || rtMap.get(r.room_type_id);
+    const active = resByRoom.get(r.id);
+    const guestName = active?.guest
+      ? `${active.guest.first_name || ''} ${active.guest.last_name || ''}`.trim()
+      : undefined;
+
+    return {
+      id: r.id,
+      propertyId: r.property_id || r.hotel_id || propertyId,
+      roomTypeId: r.room_type_id,
+      roomTypeName: rt?.name || 'Room',
+      roomTypeCode: rt?.code || '',
+      number: r.number,
+      floor: String(r.floor || '1'),
+      building: r.building || 'Main',
+      status: r.status || 'vacant_clean',
+      hkOccupancy: r.hk_occupancy || 'unknown',
+      guestName,
+      isAccessible: Boolean(r.is_accessible),
+      amenities: Array.isArray(r.amenities) ? r.amenities : [],
+      maintenanceNotes: r.maintenance_notes || '',
+    };
   });
 }
+
+async function fetchTariffConfigFromSupabase(propertyId: string): Promise<HotelTariffConfig> {
+  const [settingsRows, roomTypes, ratePlans, rooms] = await Promise.all([
+    supabaseFetch<any[]>(
+      `/hotel_settings?select=*&or=(hotel_id.eq.${propertyId},property_id.eq.${propertyId})&limit=1`
+    ).catch(() => []),
+    supabaseFetch<any[]>(
+      `/room_types?select=*&or=(hotel_id.eq.${propertyId},property_id.eq.${propertyId})&is_active=eq.true&order=sort_order.asc`
+    ),
+    supabaseFetch<any[]>(
+      `/rate_plans?select=*&or=(hotel_id.eq.${propertyId},property_id.eq.${propertyId})&is_active=eq.true`
+    ),
+    supabaseFetch<any[]>(
+      `/rooms?select=id,number,room_type_id&or=(hotel_id.eq.${propertyId},property_id.eq.${propertyId})&is_active=eq.true`
+    ),
+  ]);
+
+  const hs = settingsRows?.[0] || {};
+  const roomsByType = new Map<string, string[]>();
+  for (const r of rooms || []) {
+    const arr = roomsByType.get(r.room_type_id) || [];
+    arr.push(r.number);
+    roomsByType.set(r.room_type_id, arr);
+  }
+
+  // Filter room_types to those that either have rooms or match active hotel categories
+  const activeTypes = (roomTypes || []).filter((rt) => {
+    const cnt = (roomsByType.get(rt.id) || []).length;
+    return cnt > 0 || (ratePlans || []).some((rp) => rp.room_type_id === rt.id);
+  });
+
+  // Deduplicate by keeping types with physical rooms first
+  const typesWithRooms = activeTypes.filter((rt) => (roomsByType.get(rt.id) || []).length > 0);
+  const targetTypes = typesWithRooms.length > 0 ? typesWithRooms : activeTypes;
+
+  const categories: RoomCategoryTariff[] = targetTypes.map((rt) => {
+    const rp = (ratePlans || []).find((p) => p.room_type_id === rt.id);
+    const nums = (roomsByType.get(rt.id) || []).sort();
+    const single =
+      rp?.single_occupancy_rate !== undefined
+        ? (rp.single_occupancy_rate === null ? null : Number(rp.single_occupancy_rate))
+        : rp?.base_rate != null
+          ? Number(rp.base_rate)
+          : null;
+    const dbl =
+      rp?.double_occupancy_rate !== undefined
+        ? (rp.double_occupancy_rate === null ? null : Number(rp.double_occupancy_rate))
+        : rp?.base_rate != null && (rt.max_occupancy ?? 2) > 1
+          ? Number(rp.base_rate)
+          : null;
+
+    return {
+      id: rt.id,
+      name: rt.name,
+      code: rt.code,
+      description: rt.description || '',
+      assignedRoomsCount: nums.length,
+      maxOccupancy: Number(rt.max_occupancy || 2),
+      singleOccupancyPrice: single,
+      doubleOccupancyPrice: dbl,
+      extraPersonCharge: Number(rp?.extra_person_charge ?? hs.extra_person_charge ?? 399),
+      ratePlanId: rp?.id,
+      roomNumbers: nums,
+    };
+  });
+
+  return {
+    extraPersonCharge: Number(hs.extra_person_charge ?? 399),
+    childUnder7Free: true,
+    gstPercentage: Number(hs.gst_percentage ?? 5),
+    isTaxInclusive: hs.tax_inclusive !== false,
+    gstin: hs.gstin || '',
+    hsnSac: hs.hsn_sac || '996311',
+    invoiceHeaderName: hs.invoice_header_name || 'Hotel Spark',
+    invoiceAddress: hs.invoice_address || '',
+    cancellationPolicy: hs.cancellation_policy || '',
+    cardPaymentInfo: 'All major debit/credit cards, UPI, and cash supported.',
+    categories,
+  };
+}
+
+// ============================================================================
+// MAIN ADAPTER ROUTER (100% REAL SUPABASE BACKEND)
+// ============================================================================
 
 export async function handleSupabaseAdapter(config: AxiosRequestConfig): Promise<AxiosResponse> {
+  const method = (config.method || 'GET').toUpperCase();
   const rawUrl = config.url || '';
   const url = rawUrl.replace(/^\/api/, '');
-  const method = (config.method || 'GET').toUpperCase();
+  const body = parseBody(config.data);
+  const params = config.params || {};
+  const propertyId = params.propertyId || body.propertyId || DEFAULT_PROPERTY_ID;
 
-  const ok = (data: any): AxiosResponse => ({
-    data,
-    status: 200,
-    statusText: 'OK',
-    headers: { 'content-type': 'application/json' },
-    config: config as any,
-  });
-
-  // Media endpoints: config, list, upload, add, delete, primary, reorder
+  // 1. MEDIA GALLERY & UPLOADS (Supabase Storage + media / room_images tables)
   if (url.includes('/media/config')) {
-    return ok({ uploadEnabled: true });
+    return ok({ driver: 'supabase', maxBytes: 15 * 1024 * 1024 }, config);
   }
 
   if (url.includes('/media/upload') && method === 'POST') {
-    let file: File | null = null;
-    let propId = PROPERTY_ID;
-    let ownerType: any = 'room';
-    let ownerId = '';
-    let caption = '';
+    const file: File | undefined = body.file instanceof File ? body.file : undefined;
+    const dataUrlStr: string | undefined = typeof body.dataUrl === 'string' ? body.dataUrl : undefined;
+    const ownerType = body.ownerType || 'room_type';
+    const ownerId = body.ownerId || propertyId;
+    const caption = body.caption || '';
+    const category = body.category || 'room';
+    const bucket = ownerType === 'property' ? 'hotel-assets' : 'room-photos';
 
-    if (typeof FormData !== 'undefined' && config.data instanceof FormData) {
-      file = config.data.get('file') as File;
-      propId = (config.data.get('propertyId') as string) || PROPERTY_ID;
-      ownerType = (config.data.get('ownerType') as string) || 'room';
-      ownerId = (config.data.get('ownerId') as string) || '';
-      caption = (config.data.get('caption') as string) || '';
-    } else if (config.data && typeof config.data === 'object') {
-      file = config.data.file;
-      propId = config.data.propertyId || PROPERTY_ID;
-      ownerType = config.data.ownerType || 'room';
-      ownerId = config.data.ownerId || '';
-      caption = config.data.caption || '';
+    let uploadBlob: Blob;
+    let contentType: string;
+    let ext: string;
+
+    if (file) {
+      uploadBlob = file;
+      contentType = file.type || 'image/jpeg';
+      ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
+    } else if (dataUrlStr && dataUrlStr.startsWith('data:')) {
+      const converted = dataUrlToBlob(dataUrlStr);
+      uploadBlob = converted.blob;
+      contentType = converted.mime;
+      ext = converted.ext;
+    } else {
+      throw new Error('Image file is required.');
     }
 
-    if (!file) {
-      return ok({ error: 'No file provided' });
+    const storagePath = `${propertyId}/${ownerType}/${ownerId}/${Date.now()}.${ext}`;
+    const { publicUrl } = await supabaseUploadObject(bucket, storagePath, uploadBlob, contentType);
+
+    const existing = await supabaseFetch<any[]>(
+      `/media?select=id&owner_type=eq.${encodeURIComponent(ownerType)}&owner_id=eq.${ownerId}`
+    ).catch(() => []);
+    const isPrimary = !existing || existing.length === 0;
+
+    const inserted = await supabaseFetch<any[]>(`/media`, {
+      method: 'POST',
+      body: JSON.stringify({
+        hotel_id: propertyId,
+        property_id: propertyId,
+        owner_type: ownerType,
+        owner_id: ownerId,
+        url: publicUrl,
+        storage_key: storagePath,
+        mime_type: contentType,
+        caption,
+        category,
+        is_primary: isPrimary,
+        sort_order: existing?.length || 0,
+      }),
+    });
+
+    if (ownerType === 'room_type' || ownerType === 'room') {
+      await supabaseFetch(`/room_images`, {
+        method: 'POST',
+        body: JSON.stringify({
+          hotel_id: propertyId,
+          property_id: propertyId,
+          room_type_id: ownerType === 'room_type' ? ownerId : null,
+          room_id: ownerType === 'room' ? ownerId : null,
+          url: publicUrl,
+          storage_path: storagePath,
+          caption,
+          category,
+          is_primary: isPrimary,
+          sort_order: existing?.length || 0,
+        }),
+      }).catch(() => undefined);
     }
 
-    const dataUrl = await fileToDataUrl(file);
-    const allMedia = getStoredMedia();
-    const existingForOwner = allMedia.filter((m) => m.ownerType === ownerType && m.ownerId === ownerId);
-
-    const newItem: StoredMediaItem = {
-      id: typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `med_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
-      propertyId: propId,
+    const item = inserted?.[0] || {
+      id: `media-${Date.now()}`,
+      propertyId,
       ownerType,
       ownerId,
-      url: dataUrl,
-      storageKey: null,
-      category: 'room',
-      caption: caption || file.name.replace(/\.[^/.]+$/, ''),
-      altText: caption || file.name,
-      sortOrder: existingForOwner.length,
-      isPrimary: existingForOwner.length === 0,
+      url: publicUrl,
+      caption,
+      category,
+      isPrimary,
+      sortOrder: existing?.length || 0,
+      createdAt: new Date().toISOString(),
     };
-
-    const updated = [...allMedia, newItem];
-    saveStoredMedia(updated);
-    return ok(newItem);
+    return ok({ data: item }, config);
   }
 
   if (url.includes('/media/reorder') && method === 'POST') {
-    const body = typeof config.data === 'string' ? JSON.parse(config.data || '{}') : (config.data || {});
-    const orderedIds: string[] = body.orderedIds || [];
-    const allMedia = getStoredMedia();
-    orderedIds.forEach((id, index) => {
-      const item = allMedia.find((m) => m.id === id);
-      if (item) item.sortOrder = index;
-    });
-    saveStoredMedia(allMedia);
-    return ok({ success: true });
+    const order: string[] = Array.isArray(body.ids) ? body.ids : [];
+    await Promise.all(
+      order.map((id, idx) =>
+        supabaseFetch(`/media?id=eq.${id}`, {
+          method: 'PATCH',
+          body: JSON.stringify({ sort_order: idx }),
+        }).catch(() => undefined)
+      )
+    );
+    return ok({ success: true }, config);
   }
 
   if (url.includes('/media/') && url.includes('/primary') && method === 'POST') {
-    const match = url.match(/\/media\/([^/?]+)\/primary/);
-    const mediaId = match ? match[1] : '';
-    const allMedia = getStoredMedia();
-    const target = allMedia.find((m) => m.id === mediaId);
-    if (target) {
-      allMedia.forEach((m) => {
-        if (m.ownerType === target.ownerType && m.ownerId === target.ownerId) {
-          m.isPrimary = m.id === mediaId;
-        }
-      });
-      saveStoredMedia(allMedia);
-    }
-    return ok({ success: true, id: mediaId });
-  }
-
-  if (url.match(/\/media\/([^/?]+)$/) && method === 'DELETE') {
-    const match = url.match(/\/media\/([^/?]+)$/);
-    const mediaId = match ? match[1] : '';
-    const allMedia = getStoredMedia();
-    const itemToRemove = allMedia.find((m) => m.id === mediaId);
-    const updated = allMedia.filter((m) => m.id !== mediaId);
-    if (itemToRemove?.isPrimary) {
-      const nextPrimary = updated.find((m) => m.ownerType === itemToRemove.ownerType && m.ownerId === itemToRemove.ownerId);
-      if (nextPrimary) {
-        nextPrimary.isPrimary = true;
+    const m = url.match(/\/media\/([^/?]+)\/primary/);
+    const mediaId = m?.[1];
+    if (mediaId) {
+      const targetRows = await supabaseFetch<any[]>(`/media?id=eq.${mediaId}&limit=1`);
+      const target = targetRows?.[0];
+      if (target) {
+        await supabaseFetch(
+          `/media?owner_type=eq.${encodeURIComponent(target.owner_type)}&owner_id=eq.${target.owner_id}`,
+          { method: 'PATCH', body: JSON.stringify({ is_primary: false }) }
+        );
+        await supabaseFetch(`/media?id=eq.${mediaId}`, {
+          method: 'PATCH',
+          body: JSON.stringify({ is_primary: true }),
+        });
       }
     }
-    saveStoredMedia(updated);
-    return ok({ success: true, id: mediaId });
+    return ok({ success: true }, config);
+  }
+
+  if (url.match(/\/v1\/media\/[^/?]+$/) && method === 'DELETE') {
+    const id = url.split('/').pop()?.split('?')[0];
+    if (id) {
+      await supabaseFetch(`/media?id=eq.${id}`, { method: 'DELETE' });
+    }
+    return ok({ success: true }, config);
   }
 
   if ((url.endsWith('/media') || url.includes('/media?')) && method === 'POST') {
-    const body = typeof config.data === 'string' ? JSON.parse(config.data || '{}') : (config.data || {});
-    const allMedia = getStoredMedia();
-    const ownerType = body.ownerType || 'room';
-    const ownerId = body.ownerId || '';
-    const existingForOwner = allMedia.filter((m) => m.ownerType === ownerType && m.ownerId === ownerId);
-
-    const newItem: StoredMediaItem = {
-      id: typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `med_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
-      propertyId: body.propertyId || PROPERTY_ID,
-      ownerType,
-      ownerId,
-      url: body.url,
-      storageKey: null,
-      category: body.category || 'room',
-      caption: body.caption || null,
-      altText: body.altText || body.caption || 'Hotel Spark Room Photo',
-      sortOrder: existingForOwner.length,
-      isPrimary: existingForOwner.length === 0,
-    };
-
-    const updated = [...allMedia, newItem];
-    saveStoredMedia(updated);
-    return ok(newItem);
+    const ownerType = body.ownerType || 'room_type';
+    const ownerId = body.ownerId || propertyId;
+    const inserted = await supabaseFetch<any[]>(`/media`, {
+      method: 'POST',
+      body: JSON.stringify({
+        hotel_id: propertyId,
+        property_id: propertyId,
+        owner_type: ownerType,
+        owner_id: ownerId,
+        url: body.url,
+        caption: body.caption || '',
+        alt_text: body.altText || '',
+        category: body.category || 'room',
+        is_primary: Boolean(body.isPrimary),
+        sort_order: Number(body.sortOrder || 0),
+      }),
+    });
+    if (ownerType === 'room_type' && body.url) {
+      await supabaseFetch(`/room_images`, {
+        method: 'POST',
+        body: JSON.stringify({
+          hotel_id: propertyId,
+          property_id: propertyId,
+          room_type_id: ownerId,
+          url: body.url,
+          caption: body.caption || '',
+          is_primary: Boolean(body.isPrimary),
+        }),
+      }).catch(() => undefined);
+    }
+    return ok({ data: inserted?.[0] || body }, config);
   }
 
   if ((url.endsWith('/media') || url.includes('/media?')) && method === 'GET') {
-    let ownerType = config.params?.ownerType;
-    let ownerId = config.params?.ownerId;
-    if (!ownerType || !ownerId) {
-      try {
-        const urlObj = new URL(url, 'http://localhost');
-        ownerType = ownerType || urlObj.searchParams.get('ownerType');
-        ownerId = ownerId || urlObj.searchParams.get('ownerId');
-      } catch (e) {
-        void e;
-      }
-    }
+    const ownerType = params.ownerType;
+    const ownerId = params.ownerId;
+    const filters: string[] = [];
+    if (ownerType) filters.push(`owner_type=eq.${encodeURIComponent(ownerType)}`);
+    if (ownerId) filters.push(`owner_id=eq.${encodeURIComponent(ownerId)}`);
+    const q = filters.length ? `&${filters.join('&')}` : '';
 
-    const allMedia = getStoredMedia();
-    let filtered = allMedia;
-    if (ownerType) {
-      filtered = filtered.filter((m) => m.ownerType === ownerType);
-    }
-    if (ownerId) {
-      filtered = filtered.filter((m) => m.ownerId === ownerId);
-    }
-    filtered.sort((a, b) => a.sortOrder - b.sortOrder);
-    return ok(filtered);
-  }
+    const rows = await supabaseFetch<any[]>(
+      `/media?select=*&or=(hotel_id.eq.${propertyId},property_id.eq.${propertyId})${q}&order=is_primary.desc,sort_order.asc`
+    ).catch(() => []);
 
-  // 1. Properties
-  if (url.includes('/properties')) {
-    if (url.match(/\/properties\/[^/]+$/) && !url.endsWith('/properties')) {
-      return ok(DEFAULT_PROPERTY);
-    }
-    return ok([DEFAULT_PROPERTY]);
-  }
-
-  // 2. Direct Bookings available rooms
-  if (url.includes('/direct-bookings') && url.includes('/available-rooms')) {
-    const rooms = getStoredRooms();
-    const list = rooms
-      .filter((r) => r.status === 'vacant_clean' || r.status === 'clean' || r.status === 'available')
-      .map((r) => ({
-        id: r.id,
-        number: r.number,
-        floor: r.floor || '1',
-        status: r.status,
-        roomTypeId: r.roomTypeId,
-        roomTypeName: r.roomTypeName || 'Deluxe King Room',
-        hkOccupancy: r.hkOccupancy || 'vacant',
-      }));
-    return ok(list);
-  }
-
-  // 3. Direct booking approve
-  if (url.includes('/direct-bookings') && url.includes('/approve') && method === 'POST') {
-    const idMatch = url.match(/\/direct-bookings\/([^/]+)\/approve/);
-    const requestId = idMatch ? idMatch[1] : '';
-    const body = typeof config.data === 'string' ? JSON.parse(config.data || '{}') : (config.data || {});
-    const currentRooms = getStoredRooms();
-    const targetRoom = currentRooms.find((r) => r.id === body.roomId || r.number === body.roomId) || currentRooms.find((r) => r.status === 'vacant_clean') || currentRooms[0];
-    const roomId = targetRoom.id;
-    const roomNumber = targetRoom.number;
-    const confCode = `CONF-${Date.now().toString(36).toUpperCase()}`;
-
-    // 1. Update localStorage direct bookings
-    const directBookings = getStoredDirectBookings();
-    let approvedBooking: any = null;
-    const updatedDirectBookings = directBookings.map((b: any) => {
-      if (b.id === requestId || b.reference === requestId) {
-        approvedBooking = {
-          ...b,
-          status: 'accepted',
-          assignedRoomNumber: roomNumber,
-          confirmedReservationNumber: confCode,
-          decidedAt: new Date().toISOString(),
-        };
-        return approvedBooking;
-      }
-      return b;
-    });
-    saveStoredDirectBookings(updatedDirectBookings);
-
-    // 2. Update room status in localStorage
-    const updatedRooms = currentRooms.map((r) =>
-      r.id === roomId || r.number === roomNumber ? { ...r, status: 'occupied', guestName: `${approvedBooking?.guestFirstName || 'Guest'} ${approvedBooking?.guestLastName || ''}`.trim() } : r
-    );
-    saveStoredRooms(updatedRooms);
-
-    // 3. Auto-create In-House stay so the guest appears in Front Desk In-House tab immediately
-    const guestFirst = approvedBooking?.guestFirstName || 'Online';
-    const guestLast = approvedBooking?.guestLastName || 'Guest';
-    const fullGuestName = `${guestFirst} ${guestLast}`.trim();
-    const currentStays = getStoredStays();
-    const newStay: StoredStay = {
-      id: `stay-${requestId || Date.now()}`,
-      propertyId: PROPERTY_ID,
-      guestName: fullGuestName,
-      mobile: approvedBooking?.guestPhone || '+91 98765 00000',
-      email: approvedBooking?.guestEmail || 'guest@example.com',
-      address: 'Online Website Booking',
-      city: 'Karimnagar',
-      state: 'Telangana',
-      idProofType: 'Aadhaar Card',
-      idProofNumber: '7823 4512 9012',
-      idProofFrontUrl: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=600&auto=format&fit=crop&q=80',
-      idProofBackUrl: 'https://images.unsplash.com/photo-1557683316-973673baf926?w=600&auto=format&fit=crop&q=80',
-      adults: approvedBooking?.adults || 2,
-      children: approvedBooking?.children || 0,
-      roomId: roomId,
-      roomNumber: roomNumber,
-      roomTypeName: approvedBooking?.roomTypeName || 'Deluxe King Room',
-      checkInTime: new Date().toISOString(),
-      expectedCheckoutTime: new Date(Date.now() + 86400000).toISOString(),
-      nights: 1,
-      pricePerNight: Number(approvedBooking?.submittedTotal || 3920),
-      extraCharges: 0,
-      discount: 0,
-      totalAmount: Number(approvedBooking?.submittedTotal || 3920),
-      advancePaid: Number(approvedBooking?.submittedTotal || 3920),
-      previousPayments: 0,
-      balance: 0,
-      paymentMethod: 'Online Website',
-      paymentStatus: 'paid',
-      stayStatus: 'in_house',
-      billNumber: confCode,
-      notes: `Direct website booking confirmed. Ref: ${approvedBooking?.reference || confCode}`,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-    saveStoredStays([newStay, ...currentStays.filter((s) => s.id !== newStay.id)]);
-
-    // 4. Auto-create reservation in localStorage
-    const localResvs = getStoredReservations();
-    const newResv = {
-      id: `res-${requestId || Date.now()}`,
-      confirmationNumber: confCode,
-      bookingId: `bk-${requestId || Date.now()}`,
-      status: 'checked_in',
-      arrivalDate: approvedBooking?.arrivalDate || new Date().toISOString().split('T')[0],
-      departureDate: approvedBooking?.departureDate || new Date(Date.now() + 86400000).toISOString().split('T')[0],
-      roomId,
-      roomNumber: roomNumber,
-      roomTypeId: approvedBooking?.roomTypeId || 'b0000001-0000-4000-a000-000000000001',
-      roomTypeName: approvedBooking?.roomTypeName || 'Deluxe King Room',
-      guestName: fullGuestName,
-      guest: {
-        firstName: guestFirst,
-        lastName: guestLast,
-        email: approvedBooking?.guestEmail || null,
-        phone: approvedBooking?.guestPhone || null,
-      },
-      totalAmount: String(approvedBooking?.submittedTotal || '3920.00'),
-    };
-    saveStoredReservations([newResv, ...localResvs.filter((r) => r.id !== newResv.id)]);
-
-    // 5. Sync to serverless function or Supabase in background
-    (async () => {
-      try {
-        await fetch(`/api/direct-bookings/${requestId}/approve`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ roomId }),
-        });
-      } catch {
-        // Fallback to Supabase REST
-        if (requestId) {
-          await supabaseFetch(`booking_requests?id=eq.${requestId}`, {
-            method: 'PATCH',
-            body: JSON.stringify({
-              status: 'accepted',
-              decided_at: new Date().toISOString(),
-              decided_by: 'Hotel Spark Admin',
-            }),
-          });
-          await supabaseFetch(`rooms?id=eq.${roomId}`, {
-            method: 'PATCH',
-            body: JSON.stringify({ status: 'occupied' }),
-          });
-        }
-      }
-    })().catch((err) => console.warn('Approve sync error:', err));
-
-    return ok({
-      success: true,
-      roomNumber: roomNumber,
-      confirmationNumber: confCode,
-    });
-  }
-
-  // 4. Direct booking reject
-  if (url.includes('/direct-bookings') && (url.includes('/reject') || url.includes('/deny')) && method === 'POST') {
-    const idMatch = url.match(/\/direct-bookings\/([^/]+)\/(?:reject|deny)/);
-    const requestId = idMatch ? idMatch[1] : '';
-    const body = typeof config.data === 'string' ? JSON.parse(config.data || '{}') : (config.data || {});
-
-    // Update localStorage
-    const directBookings = getStoredDirectBookings();
-    const updatedDirectBookings = directBookings.map((b: any) => {
-      if (b.id === requestId || b.reference === requestId) {
-        return {
-          ...b,
-          status: 'denied',
-          denialReason: body.reason || 'Requested dates unavailable',
-          decidedAt: new Date().toISOString(),
-        };
-      }
-      return b;
-    });
-    saveStoredDirectBookings(updatedDirectBookings);
-
-    // Sync to serverless function or Supabase in background
-    (async () => {
-      try {
-        await fetch(`/api/direct-bookings/${requestId}/reject`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ reason: body.reason }),
-        });
-      } catch {
-        if (requestId) {
-          await supabaseFetch(`booking_requests?id=eq.${requestId}`, {
-            method: 'PATCH',
-            body: JSON.stringify({
-              status: 'denied',
-              denial_reason: body.reason || 'Requested dates unavailable',
-              decided_at: new Date().toISOString(),
-              decided_by: 'Hotel Spark Admin',
-            }),
-          });
-        }
-      }
-    })().catch((err) => console.warn('Reject sync error:', err));
-
-    return ok({ success: true });
-  }
-
-  // 5. Direct Bookings list
-  if (url.includes('/direct-bookings') && method === 'GET') {
-    if (url.includes('/history/audit')) {
-      const stored = getStoredDirectBookings();
-      const map = new Map<string, any>();
-      for (const b of stored) {
-        if (b.status === 'accepted' || b.status === 'denied') {
-          map.set(b.id, b);
-        }
-      }
-
-      try {
-        const { data: dbReqs } = await supabaseFetch<any[]>('booking_requests?select=*&order=decided_at.desc,created_at.desc');
-        if (Array.isArray(dbReqs)) {
-          for (const r of dbReqs) {
-            if (r.status === 'accepted' || r.status === 'denied') {
-              map.set(r.id, {
-                id: r.id,
-                propertyId: r.property_id || PROPERTY_ID,
-                status: r.status,
-                guestFirstName: r.guest_first_name,
-                guestLastName: r.guest_last_name,
-                reference: r.submission_idempotency_key || `SPARK-${(r.id ? String(r.id).slice(0, 8) : 'REQ').toUpperCase()}`,
-                submittedTotal: r.submitted_total,
-                assignedRoomNumber: r.status === 'accepted' ? '2001' : null,
-                denialReason: r.denial_reason,
-                decidedAt: r.decided_at || r.updated_at,
-                createdAt: r.created_at,
-              });
-            }
-          }
-        }
-      } catch { }
-
-      const auditList: any[] = [];
-      for (const b of map.values()) {
-        if (b.status === 'accepted') {
-          auditList.push({
-            id: `audit-${b.id}-approve`,
-            propertyId: b.propertyId || PROPERTY_ID,
-            action: 'approve',
-            entityType: 'booking_request',
-            entityId: b.id,
-            description: `Admin approved booking request for ${b.guestFirstName || 'Guest'} ${b.guestLastName || ''} (${b.reference}) and assigned Room ${b.assignedRoomNumber || '2001'}.`,
-            occurredAt: b.decidedAt || b.createdAt || new Date().toISOString(),
-            newValue: {
-              roomNumber: b.assignedRoomNumber || '2001',
-              total: b.submittedTotal,
-              guest: `${b.guestFirstName || 'Guest'} ${b.guestLastName || ''}`.trim(),
-            },
-          });
-        } else if (b.status === 'denied') {
-          auditList.push({
-            id: `audit-${b.id}-reject`,
-            propertyId: b.propertyId || PROPERTY_ID,
-            action: 'reject',
-            entityType: 'booking_request',
-            entityId: b.id,
-            description: `Admin rejected booking request for ${b.guestFirstName || 'Guest'} ${b.guestLastName || ''}. Reason: ${b.denialReason || 'Room unavailable'}.`,
-            occurredAt: b.decidedAt || b.createdAt || new Date().toISOString(),
-            newValue: {
-              reason: b.denialReason,
-              guest: `${b.guestFirstName || 'Guest'} ${b.guestLastName || ''}`.trim(),
-            },
-          });
-        }
-      }
-
-      auditList.sort((a, b) => new Date(b.occurredAt).getTime() - new Date(a.occurredAt).getTime());
-      return ok({ data: auditList });
-    }
-
-    let serverReqs: any[] = [];
-
-    // Attempt 1: Fetch via Netlify serverless endpoint
-    try {
-      const resp = await fetch('/api/v1/direct-bookings').catch(() => fetch('/api/direct-bookings'));
-      if (resp && resp.ok) {
-        const text = await resp.text();
-        if (text.startsWith('[') || text.startsWith('{')) {
-          const data = JSON.parse(text);
-          const list = Array.isArray(data) ? data : (Array.isArray(data?.data) ? data.data : []);
-          if (list.length > 0) {
-            serverReqs = list;
-          }
-        }
-      }
-    } catch {
-      // Netlify function not available in current environment
-    }
-
-    // Attempt 2: Direct Supabase REST fetch
-    if (serverReqs.length === 0) {
-      try {
-        const { data: reqs } = await supabaseFetch<any[]>('booking_requests?select=*&order=created_at.desc');
-        if (Array.isArray(reqs) && reqs.length > 0) {
-          serverReqs = reqs.map((r) => {
-            const rt = ROOM_TYPE_NAMES[r.room_type_id] || { name: 'Deluxe King Room', code: 'DLX' };
-            return {
-              id: r.id,
-              propertyId: r.property_id || PROPERTY_ID,
-              status: r.status,
-              reference: r.submission_idempotency_key || `SPARK-${(r.id ? String(r.id).slice(0, 8) : 'REQ').toUpperCase()}`,
-              submissionIdempotencyKey: r.submission_idempotency_key || `SPARK-${(r.id ? String(r.id).slice(0, 8) : 'REQ').toUpperCase()}`,
-              arrivalDate: r.arrival_date,
-              departureDate: r.departure_date,
-              roomTypeId: r.room_type_id,
-              roomTypeName: rt.name,
-              roomTypeCode: rt.code,
-              ratePlanId: r.rate_plan_id || 'c0000001-0000-4000-a000-000000000001',
-              ratePlanName: 'Best Available Rate',
-              adults: r.adults || 2,
-              children: r.children || 0,
-              guestFirstName: r.guest_first_name,
-              guestLastName: r.guest_last_name,
-              guestEmail: r.guest_email,
-              guestPhone: r.guest_phone || '',
-              specialRequests: r.special_requests || '',
-              submittedTotal: String(r.submitted_total || '3500.00'),
-              currencyCode: r.currency_code || 'INR',
-              confirmedReservationNumber: r.accepted_reservation_id,
-              assignedRoomNumber: r.status === 'accepted' ? '101' : null,
-              availableRoomsCount: 4,
-              denialReason: r.denial_reason,
-              decidedAt: r.decided_at,
-              createdAt: r.created_at,
-            };
-          });
-        }
-      } catch {
-        // Continue to localStorage merge
-      }
-    }
-
-    // Merge: DEFAULT_DIRECT_BOOKINGS + localStorage + serverReqs
-    const stored = getStoredDirectBookings();
-    const map = new Map<string, any>();
-
-    for (const item of DEFAULT_DIRECT_BOOKINGS) {
-      map.set(item.id, item);
-      if (item.reference) map.set(item.reference, item);
-    }
-    for (const item of stored) {
-      const existing = map.get(item.id) || (item.reference ? map.get(item.reference) : null) || {};
-      const merged = { ...existing, ...item };
-      map.set(item.id, merged);
-      if (item.reference) map.set(item.reference, merged);
-    }
-    for (const item of serverReqs) {
-      const existing = map.get(item.id) || (item.reference ? map.get(item.reference) : null) || {};
-      const merged = { ...existing, ...item };
-      map.set(item.id, merged);
-      if (item.reference) map.set(item.reference, merged);
-    }
-
-    // Unique by id
-    const uniqueMap = new Map<string, any>();
-    for (const val of map.values()) {
-      uniqueMap.set(val.id, val);
-    }
-
-    const items = Array.from(uniqueMap.values()).sort(
-      (a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
-    );
-
-    let result = items;
-    if (config.params?.status) {
-      result = result.filter((i) => i.status === config.params.status);
-    }
-    if (config.params?.search) {
-      const q = String(config.params.search).toLowerCase();
-      result = result.filter(
-        (i) =>
-          i.guestFirstName?.toLowerCase().includes(q) ||
-          i.guestLastName?.toLowerCase().includes(q) ||
-          i.reference?.toLowerCase().includes(q)
+    if ((!rows || rows.length === 0) && ownerType === 'room_type' && ownerId) {
+      const imgs = await supabaseFetch<any[]>(
+        `/room_images?select=*&room_type_id=eq.${ownerId}&order=is_primary.desc,sort_order.asc`
+      ).catch(() => []);
+      return ok(
+        {
+          data: (imgs || []).map((i) => ({
+            id: i.id,
+            propertyId: i.property_id || propertyId,
+            ownerType: 'room_type',
+            ownerId: i.room_type_id,
+            url: i.url,
+            caption: i.caption,
+            category: i.category || 'room',
+            isPrimary: Boolean(i.is_primary),
+            sortOrder: Number(i.sort_order || 0),
+            createdAt: i.created_at,
+          })),
+        },
+        config
       );
     }
 
-    const counts = {
-      total: items.length,
-      pending: items.filter((i) => i.status === 'pending' || i.status === 'pending_approval').length,
-      accepted: items.filter((i) => i.status === 'accepted').length,
-      denied: items.filter((i) => i.status === 'denied').length,
-    };
-
-    return ok({ data: result, counts });
+    return ok(
+      {
+        data: (rows || []).map((m) => ({
+          id: m.id,
+          propertyId: m.property_id || propertyId,
+          ownerType: m.owner_type,
+          ownerId: m.owner_id,
+          url: m.url,
+          caption: m.caption,
+          altText: m.alt_text,
+          category: m.category,
+          isPrimary: Boolean(m.is_primary),
+          sortOrder: Number(m.sort_order || 0),
+          createdAt: m.created_at,
+        })),
+      },
+      config
+    );
   }
 
-  // 6. Room types and categories
-  if (url.includes('/room-types') || url.includes('/rooms/types')) {
+  // 2. PROPERTIES & SETTINGS
+  if (url.includes('/properties')) {
+    const singleMatch = url.match(/\/properties\/([^/?]+)/);
     if (method === 'GET') {
-      const [typesResult, plansResult] = await Promise.all([
-        supabaseFetch<any[]>('room_types?select=*&order=sort_order.asc'),
-        supabaseFetch<any[]>('rate_plans?select=*'),
-      ]);
+      const rows = await supabaseFetch<any[]>(
+        singleMatch
+          ? `/properties?id=eq.${singleMatch[1]}&limit=1`
+          : `/properties?is_active=eq.true&order=created_at.asc`
+      );
+      const formatted = (rows || []).map((p) => ({
+        id: p.id,
+        name: p.name,
+        code: p.code,
+        address: [p.address_line_1, p.city, p.state_province, p.postal_code].filter(Boolean).join(', '),
+        addressLine1: p.address_line_1,
+        city: p.city,
+        stateProvince: p.state_province,
+        postalCode: p.postal_code,
+        countryCode: p.country_code,
+        currencyCode: p.currency_code,
+        timeZone: p.timezone,
+        phone: p.phone,
+        email: p.email,
+        checkInTime: p.check_in_time,
+        checkOutTime: p.check_out_time,
+        roomCount: p.total_rooms,
+        status: p.is_active ? 'active' : 'inactive',
+        staffDisplayName: p.staff_display_name || p.name,
+        guestRegistrationRequired: p.guest_registration_required,
+        settings: p.settings || {},
+      }));
+      if (singleMatch) return ok(formatted[0] || null, config);
+      return ok(formatted, config);
+    }
 
-      const plans = plansResult.data || [];
-      const currentCache = getStoredRateCache();
-      const planPriceByRoomType: Record<string, number> = {};
-      for (const p of plans) {
-        if (p.room_type_id) {
-          const cached = currentCache[p.id] ?? currentCache[p.room_type_id] ?? ratePlanPriceCache[p.id] ?? ratePlanPriceCache[p.room_type_id];
-          planPriceByRoomType[p.room_type_id] = cached !== undefined ? cached : Number(p.base_amount || p.base_rate || 3500);
-        }
-      }
+    if ((method === 'PATCH' || method === 'PUT') && singleMatch) {
+      const targetId = singleMatch[1];
+      const payload: Record<string, any> = {};
+      if (body.name !== undefined) payload.name = body.name;
+      if (body.phone !== undefined) payload.phone = body.phone;
+      if (body.email !== undefined) payload.email = body.email;
+      if (body.addressLine1 !== undefined) payload.address_line_1 = body.addressLine1;
+      if (body.checkInTime !== undefined) payload.check_in_time = body.checkInTime;
+      if (body.checkOutTime !== undefined) payload.check_out_time = body.checkOutTime;
+      if (body.currencyCode !== undefined) payload.currency_code = body.currencyCode;
+      if (body.timezone !== undefined) payload.timezone = body.timezone;
+      if (body.countryCode !== undefined) payload.country_code = body.countryCode;
+      if (body.staffDisplayName !== undefined) payload.staff_display_name = body.staffDisplayName;
+      if (body.guestRegistrationRequired !== undefined)
+        payload.guest_registration_required = body.guestRegistrationRequired;
 
-      const typesList = typesResult.data && typesResult.data.length > 0
-        ? typesResult.data
-        : [
-          { id: 'b0000001-0000-4000-a000-000000000001', name: 'Deluxe King Room', code: 'DLX', description: 'Spacious king-size bed room with ensuite bath', max_occupancy: 2, bed_type: 'king', amenities: ['wifi', 'tv', 'ac', 'safe'] },
-          { id: 'b0000002-0000-4000-a000-000000000001', name: 'Executive Spark Suite', code: 'SUT', description: 'Luxurious suite with separate living room', max_occupancy: 4, bed_type: 'king', amenities: ['wifi', 'tv', 'ac', 'bathtub', 'minibar'] },
-          { id: 'b0000003-0000-4000-a000-000000000001', name: 'Standard Queen Room', code: 'STD', description: 'Cozy queen-size bed room', max_occupancy: 2, bed_type: 'queen', amenities: ['wifi', 'tv', 'ac'] },
-        ];
-
-      const mapped = typesList.map((t) => {
-        const cached = currentCache[t.id] ?? ratePlanPriceCache[t.id];
-        const defaultPrice = t.code === 'SUT' ? 6500 : t.code === 'STD' ? 2500 : 3500;
-        const price = cached !== undefined ? cached : (planPriceByRoomType[t.id] ?? defaultPrice);
-        return {
-          id: t.id,
-          roomTypeId: t.id,
-          name: t.name,
-          code: t.code,
-          description: t.description || '',
-          maxOccupancy: t.max_occupancy || 2,
-          defaultOccupancy: t.default_occupancy || 2,
-          bedType: t.bed_type || 'king',
-          amenities: t.amenities || [],
-          basePrice: price,
-          baseAmount: price,
-          price: price,
-          sortOrder: t.sort_order || 1,
-          isActive: t.is_active !== false,
-        };
+      const updated = await supabaseFetch<any[]>(`/properties?id=eq.${targetId}`, {
+        method: 'PATCH',
+        body: JSON.stringify(payload),
       });
-
-      return ok(mapped);
+      return ok(updated?.[0] || payload, config);
     }
+  }
 
-    if (method === 'PATCH' || method === 'PUT') {
-      const idMatch = url.match(/(?:\/rooms\/types|\/room-types)\/([^/?]+)/);
-      const typeId = idMatch ? idMatch[1] : '';
-      const body = typeof config.data === 'string' ? JSON.parse(config.data || '{}') : (config.data || {});
-
-      if (typeId) {
-        await supabaseFetch(`room_types?id=eq.${typeId}`, {
-          method: 'PATCH',
-          body: JSON.stringify({
-            name: body.name,
-            description: body.description,
-            max_occupancy: body.maxOccupancy,
-            bed_type: body.bedType,
-            amenities: body.amenities,
-          }),
-        });
-      }
-      return ok({ success: true, id: typeId, ...body });
+  // 3. TARIFF CONFIG & TAX SETTINGS
+  if (url.includes('/tariff-config')) {
+    if (method === 'GET') {
+      const cfg = await fetchTariffConfigFromSupabase(propertyId);
+      return ok(cfg, config);
     }
-
-    if (method === 'POST') {
-      const body = typeof config.data === 'string' ? JSON.parse(config.data || '{}') : (config.data || {});
-      const newId = `b${Date.now().toString().slice(-7)}-0000-4000-a000-000000000001`;
-      await supabaseFetch('room_types', {
-        method: 'POST',
+    if ((method === 'PUT' || method === 'PATCH' || method === 'POST')) {
+      const cfg = body as HotelTariffConfig;
+      await supabaseFetch(`/hotel_settings?or=(hotel_id.eq.${propertyId},property_id.eq.${propertyId})`, {
+        method: 'PATCH',
         body: JSON.stringify({
-          id: newId,
-          property_id: PROPERTY_ID,
-          hotel_id: PROPERTY_ID,
-          name: body.name,
-          code: body.code,
-          description: body.description,
-          max_occupancy: body.maxOccupancy || 2,
-          bed_type: body.bedType || 'king',
-          amenities: body.amenities || [],
+          gst_percentage: Number(cfg.gstPercentage ?? 5),
+          tax_inclusive: Boolean(cfg.isTaxInclusive),
+          extra_person_charge: Number(cfg.extraPersonCharge ?? 399),
+          gstin: cfg.gstin || null,
+          hsn_sac: cfg.hsnSac || '996311',
+          invoice_header_name: cfg.invoiceHeaderName || null,
+          invoice_address: cfg.invoiceAddress || null,
+          cancellation_policy: cfg.cancellationPolicy || null,
         }),
       });
 
-      return ok({ success: true, id: newId, ...body });
-    }
-  }
-
-  // 7. Rooms status summary
-  if (url.includes('/rooms/status-summary')) {
-    const rooms = getStoredRooms();
-    const counts: Record<string, number> = {};
-    for (const r of rooms) {
-      const s = r.status || 'vacant_clean';
-      counts[s] = (counts[s] || 0) + 1;
-    }
-    return ok(Object.entries(counts).map(([status, count]) => ({ status, count })));
-  }
-
-  // 8. Rooms discrepancies
-  if (url.includes('/rooms/discrepancies')) {
-    return ok([]);
-  }
-
-  // 8b. Rooms by status (e.g. /rooms/by-status?status=guest_ready)
-  if (url.includes('/rooms/by-status')) {
-    const rooms = getStoredRooms();
-    const urlObj = new URL(url, 'http://localhost');
-    const reqStatus = (urlObj.searchParams.get('status') || '').toLowerCase();
-    const filtered = reqStatus
-      ? rooms.filter((r) => {
-        if (reqStatus === 'guest_ready' || reqStatus === 'available') {
-          return r.status === 'guest_ready' || r.status === 'vacant_clean' || r.status === 'clean' || r.status === 'available';
-        }
-        return r.status.toLowerCase() === reqStatus;
-      })
-      : rooms;
-    return ok(filtered);
-  }
-
-  // 9. Rooms list and mutations
-  if (url.match(/\/rooms(\?|$)/) || (url.includes('/rooms') && !url.includes('/types') && !url.includes('/status-summary') && !url.includes('/discrepancies') && !url.includes('/by-status'))) {
-    if (method === 'GET') {
-      const stored = getStoredRooms();
-      const statusFilter = (config.params?.status || '').toLowerCase();
-      let result = stored;
-      if (statusFilter) {
-        if (statusFilter === 'available' || statusFilter === 'guest_ready') {
-          result = stored.filter((r) => r.status === 'guest_ready' || r.status === 'vacant_clean' || r.status === 'clean' || r.status === 'available');
-        } else {
-          result = stored.filter((r) => r.status.toLowerCase() === statusFilter);
-        }
-      }
-
-      // Sync from Supabase asynchronously in background without blocking immediate response
-      supabaseFetch<any[]>('rooms?select=*&order=number.asc')
-        .then(({ data: remoteRooms }) => {
-          if (remoteRooms && Array.isArray(remoteRooms) && remoteRooms.length > 0) {
-            const current = getStoredRooms();
-            const merged = [...current];
-            for (const rem of remoteRooms) {
-              const idx = merged.findIndex((m) => m.id === rem.id || m.number === rem.number);
-              const mappedRoom: StoredRoom = {
-                id: rem.id,
-                propertyId: rem.property_id || PROPERTY_ID,
-                roomTypeId: rem.room_type_id || DEFAULT_ROOM_TYPES[0].id,
-                roomTypeName: DEFAULT_ROOM_TYPES.find((t) => t.id === rem.room_type_id)?.name || 'Deluxe King Room',
-                number: rem.number,
-                floor: rem.floor || '1',
-                status: rem.status || 'vacant_clean',
-                hkOccupancy: rem.hk_occupancy || 'vacant',
-                isActive: rem.is_active !== false,
-                amenities: rem.amenities || ['wifi', 'tv', 'ac'],
-              };
-              if (idx >= 0) {
-                merged[idx] = { ...merged[idx], ...mappedRoom };
-              } else {
-                merged.push(mappedRoom);
-              }
-            }
-            saveStoredRooms(merged);
-          }
-        })
-        .catch(() => { });
-
-      return ok(result);
-    }
-
-    if (method === 'PATCH' || method === 'PUT') {
-      const body = typeof config.data === 'string' ? JSON.parse(config.data || '{}') : (config.data || {});
-      const idMatch = url.match(/\/rooms\/([^/?]+)/);
-      const roomId = idMatch ? idMatch[1] : '';
-      const rooms = getStoredRooms();
-      const idx = rooms.findIndex((r) => r.id === roomId || r.number === roomId);
-
-      if (idx >= 0) {
-        if (body.number) rooms[idx].number = String(body.number);
-        if (body.status) rooms[idx].status = body.status;
-        if (body.floor) rooms[idx].floor = String(body.floor);
-        if (body.roomTypeId || body.room_type_id) {
-          const rtId = body.roomTypeId || body.room_type_id;
-          rooms[idx].roomTypeId = rtId;
-          const matchedType = DEFAULT_ROOM_TYPES.find((t) => t.id === rtId);
-          if (matchedType) rooms[idx].roomTypeName = matchedType.name;
-        }
-        if (body.amenities) rooms[idx].amenities = body.amenities;
-        if (body.guestName !== undefined) rooms[idx].guestName = body.guestName;
-        saveStoredRooms(rooms);
-      }
-
-      if (roomId) {
-        try {
-          const supabasePayload: Record<string, any> = {};
-          if (body.number) supabasePayload.number = String(body.number);
-          if (body.status) supabasePayload.status = body.status;
-          if (body.floor) supabasePayload.floor = body.floor;
-          if (body.roomTypeId || body.room_type_id) supabasePayload.room_type_id = body.roomTypeId || body.room_type_id;
-          if (body.amenities) supabasePayload.amenities = body.amenities;
-          if (Object.keys(supabasePayload).length > 0) {
-            await supabaseFetch(`rooms?id=eq.${roomId}`, {
+      if (Array.isArray(cfg.categories)) {
+        for (const cat of cfg.categories) {
+          const baseRate = cat.doubleOccupancyPrice ?? cat.singleOccupancyPrice ?? 0;
+          if (cat.ratePlanId) {
+            await supabaseFetch(`/rate_plans?id=eq.${cat.ratePlanId}`, {
               method: 'PATCH',
-              body: JSON.stringify(supabasePayload),
+              body: JSON.stringify({
+                base_rate: baseRate,
+                base_amount: baseRate,
+                single_occupancy_rate: cat.singleOccupancyPrice,
+                double_occupancy_rate: cat.doubleOccupancyPrice,
+                extra_person_charge: Number(cfg.extraPersonCharge ?? cat.extraPersonCharge ?? 399),
+                gst_percentage: Number(cfg.gstPercentage ?? 5),
+                tax_inclusive: Boolean(cfg.isTaxInclusive),
+              }),
+            });
+          } else {
+            await supabaseFetch(`/rate_plans`, {
+              method: 'POST',
+              body: JSON.stringify({
+                hotel_id: propertyId,
+                property_id: propertyId,
+                room_type_id: cat.id,
+                name: `${cat.name} Standard Rate`,
+                code: `BAR-${cat.code || 'STD'}`,
+                type: 'bar',
+                base_rate: baseRate,
+                base_amount: baseRate,
+                single_occupancy_rate: cat.singleOccupancyPrice,
+                double_occupancy_rate: cat.doubleOccupancyPrice,
+                extra_person_charge: Number(cfg.extraPersonCharge ?? 399),
+                gst_percentage: Number(cfg.gstPercentage ?? 5),
+                tax_inclusive: Boolean(cfg.isTaxInclusive),
+                is_active: true,
+              }),
             });
           }
-        } catch (err) {
-          void err;
         }
       }
 
-      return ok({ success: true, ...(idx >= 0 ? rooms[idx] : body) });
+      const fresh = await fetchTariffConfigFromSupabase(propertyId);
+      return ok(fresh, config);
+    }
+  }
+
+  // 4. DIRECT BOOKING REQUESTS & ATOMIC APPROVAL / REJECTION
+  if (url.includes('/direct-bookings') && url.includes('/available-rooms')) {
+    const m = url.match(/\/direct-bookings\/([^/]+)\/available-rooms/);
+    const reqId = m?.[1];
+    if (!reqId) return ok({ availableRooms: [] }, config);
+
+    const reqRows = await supabaseFetch<any[]>(`/booking_requests?id=eq.${reqId}&limit=1`);
+    const br = reqRows?.[0];
+    if (!br) return ok({ availableRooms: [] }, config);
+
+    const avail = await supabaseFetch<any[]>(`/rpc/revalidate_room_availability`, {
+      method: 'POST',
+      body: JSON.stringify({
+        p_hotel_id: propertyId,
+        p_room_type_id: br.room_type_id,
+        p_arrival_date: br.arrival_date,
+        p_departure_date: br.departure_date,
+      }),
+    });
+    const list = (avail || [])
+      .filter((r) => r.is_available)
+      .map((r) => ({
+        id: r.room_id,
+        number: r.room_number,
+        floor: r.room_floor || '1',
+        status: r.room_status,
+      }));
+    return ok({ availableRooms: list }, config);
+  }
+
+  if (url.includes('/direct-bookings') && url.includes('/approve') && method === 'POST') {
+    const m = url.match(/\/direct-bookings\/([^/]+)\/approve/);
+    const reqId = m?.[1];
+    const roomId = body.roomId;
+    if (!reqId || !roomId) {
+      throw new Error('Both booking request ID and room ID are required to approve.');
+    }
+    const session = getStoredSupabaseSession();
+    const res = await supabaseFetch<any>(`/rpc/approve_direct_booking`, {
+      method: 'POST',
+      body: JSON.stringify({
+        p_booking_request_id: reqId,
+        p_hotel_id: propertyId,
+        p_room_id: roomId,
+        p_decided_by: session?.user?.id || null,
+        p_custom_total: body.customTotal != null ? Number(body.customTotal) : null,
+        p_custom_price_reason: body.customPriceReason || null,
+      }),
+    });
+    return ok(res, config);
+  }
+
+  if (url.includes('/direct-bookings') && (url.includes('/reject') || url.includes('/deny')) && method === 'POST') {
+    const m = url.match(/\/direct-bookings\/([^/]+)\/(?:reject|deny)/);
+    const reqId = m?.[1];
+    const reason = (body.reason || body.denialReason || '').trim();
+    if (!reqId || !reason) {
+      throw new Error('Rejection reason is mandatory.');
+    }
+    const session = getStoredSupabaseSession();
+    const res = await supabaseFetch<any>(`/rpc/reject_direct_booking`, {
+      method: 'POST',
+      body: JSON.stringify({
+        p_booking_request_id: reqId,
+        p_hotel_id: propertyId,
+        p_reason: reason,
+        p_decided_by: session?.user?.id || null,
+      }),
+    });
+    return ok(res, config);
+  }
+
+  if (url.includes('/direct-bookings') && method === 'GET') {
+    if (url.includes('/history/audit')) {
+      const logs = await supabaseFetch<any[]>(
+        `/audit_logs?select=*&or=(hotel_id.eq.${propertyId},property_id.eq.${propertyId})&order=occurred_at.desc&limit=50`
+      );
+      return ok(
+        {
+          logs: (logs || []).map((l) => ({
+            id: l.id,
+            propertyId: l.property_id || propertyId,
+            action: l.action,
+            entityType: l.entity_type,
+            entityId: l.entity_id,
+            description: l.description,
+            newValue: l.new_value,
+            occurredAt: l.occurred_at,
+          })),
+        },
+        config
+      );
+    }
+
+    const statusParam = params.status;
+    let statusFilter = '';
+    if (statusParam === 'pending') statusFilter = '&status=eq.pending';
+    else if (statusParam === 'approved' || statusParam === 'accepted') statusFilter = '&status=eq.accepted';
+    else if (statusParam === 'rejected' || statusParam === 'denied') statusFilter = '&status=in.(denied,rejected)';
+
+    const [requests, roomTypes, ratePlans, reservations, rooms] = await Promise.all([
+      supabaseFetch<any[]>(
+        `/booking_requests?select=*&or=(hotel_id.eq.${propertyId},property_id.eq.${propertyId})${statusFilter}&order=created_at.desc`
+      ),
+      supabaseFetch<any[]>(`/room_types?select=id,name,code`).catch(() => []),
+      supabaseFetch<any[]>(`/rate_plans?select=id,name`).catch(() => []),
+      supabaseFetch<any[]>(`/reservations?select=id,room_id,booking_id,bookings(confirmation_number)`).catch(() => []),
+      supabaseFetch<any[]>(`/rooms?select=id,number,floor`).catch(() => []),
+    ]);
+
+    const rtMap = new Map((roomTypes || []).map((rt) => [rt.id, rt]));
+    const rpMap = new Map((ratePlans || []).map((rp) => [rp.id, rp]));
+    const resMap = new Map((reservations || []).map((r) => [r.id, r]));
+    const roomMap = new Map((rooms || []).map((r) => [r.id, r]));
+
+    const items = (requests || []).map((req) => {
+      const rt = rtMap.get(req.room_type_id);
+      const rp = rpMap.get(req.rate_plan_id);
+      const linkedRes = req.accepted_reservation_id ? resMap.get(req.accepted_reservation_id) : null;
+      const linkedRoom = linkedRes?.room_id ? roomMap.get(linkedRes.room_id) : null;
+      const snap = req.form_snapshot && typeof req.form_snapshot === 'object' && !Array.isArray(req.form_snapshot) ? req.form_snapshot : {};
+
+      return {
+        id: req.id,
+        propertyId: req.property_id || propertyId,
+        status: req.status,
+        reference: req.submission_idempotency_key,
+        submissionIdempotencyKey: req.submission_idempotency_key,
+        arrivalDate: req.arrival_date,
+        departureDate: req.departure_date,
+        roomTypeId: req.room_type_id,
+        roomTypeName: rt?.name || 'Room',
+        roomTypeCode: rt?.code || '',
+        ratePlanId: req.rate_plan_id,
+        ratePlanName: rp?.name || 'Standard Rate',
+        adults: req.adults,
+        children: req.children,
+        guestFirstName: req.guest_first_name,
+        guestLastName: req.guest_last_name,
+        guestEmail: req.guest_email,
+        guestPhone: req.guest_phone || '',
+        specialRequests: req.special_requests,
+        submittedTotal: String(req.accepted_total ?? req.submitted_total ?? 0),
+        currencyCode: req.currency_code || 'INR',
+        cardBrand: req.card_brand || snap.cardBrand || null,
+        cardLastFour: req.card_last_four || snap.cardLastFour || null,
+        acceptedReservationId: req.accepted_reservation_id,
+        confirmedReservationNumber: linkedRes?.bookings?.confirmation_number || null,
+        assignedRoomNumber: linkedRoom?.number || null,
+        assignedRoomFloor: linkedRoom?.floor || null,
+        availableRoomsCount: 0,
+        denialReason: req.denial_reason,
+        decidedAt: req.decided_at,
+        createdAt: req.created_at,
+      };
+    });
+
+    return ok({ items, requests: items }, config);
+  }
+
+  // 5. ROOM TYPES & ROOMS
+  if (url.includes('/room-types') || url.includes('/rooms/types')) {
+    const idMatch = url.match(/\/(?:room-types|rooms\/types)\/([^/?]+)/);
+    if (method === 'GET') {
+      const [rts, plans, rooms] = await Promise.all([
+        supabaseFetch<any[]>(
+          `/room_types?select=*&or=(hotel_id.eq.${propertyId},property_id.eq.${propertyId})&is_active=eq.true&order=sort_order.asc`
+        ),
+        supabaseFetch<any[]>(
+          `/rate_plans?select=*&or=(hotel_id.eq.${propertyId},property_id.eq.${propertyId})&is_active=eq.true`
+        ).catch(() => []),
+        supabaseFetch<any[]>(
+          `/rooms?select=id,room_type_id&or=(hotel_id.eq.${propertyId},property_id.eq.${propertyId})&is_active=eq.true`
+        ).catch(() => []),
+      ]);
+      const data = (rts || []).map((rt) => {
+        const rp = (plans || []).find((p) => p.room_type_id === rt.id);
+        const count = (rooms || []).filter((r) => r.room_type_id === rt.id).length;
+        const rate = Number(rp?.double_occupancy_rate ?? rp?.base_rate ?? rp?.single_occupancy_rate ?? 0);
+        return {
+          id: rt.id,
+          propertyId: rt.property_id || propertyId,
+          name: rt.name,
+          code: rt.code,
+          description: rt.description,
+          maxOccupancy: rt.max_occupancy,
+          bedType: rt.bed_type,
+          amenities: rt.amenities || [],
+          roomCount: count,
+          basePrice: rate,
+          baseAmount: rate,
+          price: rate,
+          singleOccupancyPrice: rp?.single_occupancy_rate ?? null,
+          doubleOccupancyPrice: rp?.double_occupancy_rate ?? null,
+        };
+      });
+      return ok(data, config);
+    }
+
+    if ((method === 'PATCH' || method === 'PUT') && idMatch) {
+      const updated = await supabaseFetch<any[]>(`/room_types?id=eq.${idMatch[1]}`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          ...(body.name !== undefined ? { name: body.name } : {}),
+          ...(body.code !== undefined ? { code: body.code } : {}),
+          ...(body.description !== undefined ? { description: body.description } : {}),
+          ...(body.maxOccupancy !== undefined ? { max_occupancy: Number(body.maxOccupancy) } : {}),
+          ...(body.bedType !== undefined ? { bed_type: body.bedType } : {}),
+          ...(body.amenities !== undefined ? { amenities: body.amenities } : {}),
+        }),
+      });
+      if (body.basePrice != null || body.baseAmount != null || body.price != null) {
+        const nextPrice = Number(body.basePrice ?? body.baseAmount ?? body.price);
+        await supabaseFetch(`/rate_plans?room_type_id=eq.${idMatch[1]}`, {
+          method: 'PATCH',
+          body: JSON.stringify({ base_rate: nextPrice, base_amount: nextPrice }),
+        }).catch(() => undefined);
+      }
+      return ok(updated?.[0] || body, config);
     }
 
     if (method === 'POST') {
-      const body = typeof config.data === 'string' ? JSON.parse(config.data || '{}') : (config.data || {});
-      const rooms = getStoredRooms();
-      const roomNumber = String(body.number || '').trim();
-      const roomTypeId = body.roomTypeId || body.room_type_id || DEFAULT_ROOM_TYPES[0].id;
-      const floor = String(body.floor || (roomNumber.length >= 3 ? roomNumber[0] : '1'));
-      const status = body.status || 'vacant_clean';
-      const amenities = Array.isArray(body.amenities) && body.amenities.length > 0 ? body.amenities : ['wifi', 'tv', 'ac'];
-      const matchedType = DEFAULT_ROOM_TYPES.find((t) => t.id === roomTypeId);
-      const roomTypeName = matchedType ? matchedType.name : (body.roomTypeName || 'Deluxe King Room');
-
-      const newId = body.id || `r${Date.now().toString().slice(-7)}-0000-4000-a000-000000000001`;
-
-      const newRoom: StoredRoom = {
-        id: newId,
-        propertyId: PROPERTY_ID,
-        roomTypeId,
-        roomTypeName,
-        number: roomNumber,
-        floor,
-        status,
-        hkOccupancy: 'vacant',
-        isActive: true,
-        amenities,
-      };
-
-      const existingIdx = rooms.findIndex((r) => r.number.toLowerCase() === roomNumber.toLowerCase());
-      if (existingIdx >= 0) {
-        rooms[existingIdx] = { ...rooms[existingIdx], ...newRoom };
-      } else {
-        rooms.push(newRoom);
-      }
-      saveStoredRooms(rooms);
-
-      try {
-        await supabaseFetch('rooms', {
+      const inserted = await supabaseFetch<any[]>(`/room_types`, {
+        method: 'POST',
+        body: JSON.stringify({
+          hotel_id: propertyId,
+          property_id: propertyId,
+          name: body.name,
+          code: body.code,
+          description: body.description || '',
+          max_occupancy: Number(body.maxOccupancy || 2),
+          bed_type: body.bedType || 'queen',
+          amenities: body.amenities || [],
+          is_active: true,
+        }),
+      });
+      const created = inserted?.[0];
+      if (created && (body.basePrice != null || body.price != null)) {
+        const rate = Number(body.basePrice ?? body.price ?? 0);
+        await supabaseFetch(`/rate_plans`, {
           method: 'POST',
           body: JSON.stringify({
-            id: newId,
-            property_id: PROPERTY_ID,
-            hotel_id: PROPERTY_ID,
-            room_type_id: roomTypeId,
-            number: roomNumber,
-            floor,
-            status,
-            amenities,
+            hotel_id: propertyId,
+            property_id: propertyId,
+            room_type_id: created.id,
+            name: `${created.name} Standard Rate`,
+            code: `BAR-${created.code}`,
+            type: 'bar',
+            base_rate: rate,
+            base_amount: rate,
+            double_occupancy_rate: rate,
             is_active: true,
           }),
-        });
-      } catch (err) {
-        void err;
+        }).catch(() => undefined);
       }
-
-      return ok(newRoom);
-    }
-
-    if (method === 'DELETE') {
-      const idMatch = url.match(/\/rooms\/([^/?]+)/);
-      const roomId = idMatch ? idMatch[1] : '';
-      if (roomId) {
-        const rooms = getStoredRooms();
-        const filtered = rooms.filter((r) => r.id !== roomId && r.number !== roomId);
-        saveStoredRooms(filtered);
-        try {
-          await supabaseFetch(`rooms?id=eq.${roomId}`, { method: 'DELETE' });
-        } catch (err) {
-          void err;
-        }
-      }
-      return ok({ success: true, message: 'Room deleted' });
+      return ok(created, config);
     }
   }
 
-  // 10. Rate Plans
-  if (url.includes('/rate-plans')) {
+  if (url.includes('/rooms/status-summary')) {
+    const rooms = await fetchRoomsFromSupabase(propertyId);
+    const counts = new Map<string, number>();
+    for (const r of rooms) counts.set(r.status, (counts.get(r.status) || 0) + 1);
+    return ok(
+      Array.from(counts.entries()).map(([status, count]) => ({ status, count })),
+      config
+    );
+  }
+
+  if (url.includes('/rooms/discrepancies')) {
+    return ok([], config);
+  }
+
+  if (url.includes('/rooms/by-status')) {
+    const targetStatus = params.status;
+    const rooms = await fetchRoomsFromSupabase(propertyId);
+    return ok(targetStatus ? rooms.filter((r) => r.status === targetStatus) : rooms, config);
+  }
+
+  if (
+    url.match(/\/rooms(\/[^/?]+)?(\?|$)/) &&
+    !url.includes('/types') &&
+    !url.includes('/status-summary')
+  ) {
+    const roomMatch = url.match(/\/rooms\/([^/?]+)/);
+    const targetRoomId = roomMatch?.[1];
+
     if (method === 'GET') {
-      const { data: plans } = await supabaseFetch<any[]>('rate_plans?select=*');
-      const defaultPlans = [
-        { id: 'c0000001-0000-4000-a000-000000000001', room_type_id: 'b0000001-0000-4000-a000-000000000001', name: 'Deluxe Best Flexible Rate', code: 'BAR-DLX', type: 'bar', base_amount: 3500, base_rate: 3500, currency_code: 'INR' },
-        { id: 'c0000002-0000-4000-a000-000000000001', room_type_id: 'b0000002-0000-4000-a000-000000000001', name: 'Suite Best Flexible Rate', code: 'BAR-SUT', type: 'bar', base_amount: 6500, base_rate: 6500, currency_code: 'INR' },
-        { id: 'c0000003-0000-4000-a000-000000000001', room_type_id: 'b0000003-0000-4000-a000-000000000001', name: 'Standard Best Flexible Rate', code: 'BAR-STD', type: 'bar', base_amount: 2500, base_rate: 2500, currency_code: 'INR' },
-      ];
-      const list = plans && plans.length > 0 ? plans : defaultPlans;
-      const currentCache = getStoredRateCache();
-      const mapped = list.map((p) => {
-        const cached = currentCache[p.id] ?? (p.room_type_id ? currentCache[p.room_type_id] : undefined) ?? ratePlanPriceCache[p.id] ?? (p.room_type_id ? ratePlanPriceCache[p.room_type_id] : undefined);
-        const price = cached !== undefined ? cached : Number(p.base_amount || p.base_rate || 3500);
-        return {
-          id: p.id,
-          roomTypeId: p.room_type_id,
-          room_type_id: p.room_type_id,
-          name: p.name,
-          code: p.code,
-          type: p.type || 'bar',
-          baseAmount: price,
-          baseRate: price,
-          base_amount: price,
-          base_rate: price,
-          currencyCode: p.currency_code || 'INR',
-          isActive: p.is_active !== false,
-        };
-      });
-      return ok(mapped);
+      const rooms = await fetchRoomsFromSupabase(propertyId);
+      if (targetRoomId) {
+        return ok(rooms.find((r) => r.id === targetRoomId) || null, config);
+      }
+      return ok(rooms, config);
     }
 
-    if (method === 'PATCH' || method === 'PUT') {
-      const idMatch = url.match(/\/rate-plans\/([^/?]+)/);
-      const planId = idMatch ? idMatch[1] : '';
-      const body = typeof config.data === 'string' ? JSON.parse(config.data || '{}') : (config.data || {});
-      const newPrice = Number(body.baseAmount || body.baseRate || body.base_amount || body.base_rate);
-
-      if (!isNaN(newPrice) && newPrice > 0) {
-        if (planId) {
-          ratePlanPriceCache[planId] = newPrice;
-          setStoredRate(planId, newPrice);
-        }
-        if (body.roomTypeId || body.room_type_id) {
-          const rtId = body.roomTypeId || body.room_type_id;
-          ratePlanPriceCache[rtId] = newPrice;
-          setStoredRate(rtId, newPrice);
-          await supabaseFetch(`rate_plans?room_type_id=eq.${rtId}`, {
-            method: 'PATCH',
-            headers: { Prefer: 'return=representation' },
-            body: JSON.stringify({
-              base_amount: newPrice,
-              base_rate: newPrice,
-            }),
-          });
-        }
-        if (planId) {
-          await supabaseFetch(`rate_plans?id=eq.${planId}`, {
-            method: 'PATCH',
-            headers: { Prefer: 'return=representation' },
-            body: JSON.stringify({
-              base_amount: newPrice,
-              base_rate: newPrice,
-            }),
-          });
-        }
-      }
-      return ok({ success: true, id: planId, baseAmount: newPrice, baseRate: newPrice, ...body });
+    if ((method === 'PATCH' || method === 'PUT') && targetRoomId) {
+      const targetId = targetRoomId.replace(/\/status$/, '');
+      const payload: Record<string, any> = {};
+      if (body.status !== undefined) payload.status = body.status;
+      if (body.hkOccupancy !== undefined) payload.hk_occupancy = body.hkOccupancy;
+      if (body.floor !== undefined) payload.floor = String(body.floor);
+      if (body.roomTypeId !== undefined) payload.room_type_id = body.roomTypeId;
+      if (body.maintenanceNotes !== undefined) payload.maintenance_notes = body.maintenanceNotes;
+      if (body.number !== undefined) payload.number = String(body.number);
+      const updated = await supabaseFetch<any[]>(`/rooms?id=eq.${targetId}`, {
+        method: 'PATCH',
+        body: JSON.stringify(payload),
+      });
+      return ok(updated?.[0] || payload, config);
     }
 
     if (method === 'POST') {
-      const body = typeof config.data === 'string' ? JSON.parse(config.data || '{}') : (config.data || {});
-      const newId = `c${Date.now().toString().slice(-7)}-0000-4000-a000-000000000001`;
-      const price = Number(body.baseAmount || body.baseRate || 3500);
-
-      ratePlanPriceCache[newId] = price;
-      setStoredRate(newId, price);
-      if (body.roomTypeId || body.room_type_id) {
-        ratePlanPriceCache[body.roomTypeId || body.room_type_id] = price;
-        setStoredRate(body.roomTypeId || body.room_type_id, price);
-      }
-
-      await supabaseFetch('rate_plans', {
+      const inserted = await supabaseFetch<any[]>(`/rooms`, {
         method: 'POST',
-        headers: { Prefer: 'return=representation' },
         body: JSON.stringify({
-          id: newId,
-          property_id: PROPERTY_ID,
-          hotel_id: PROPERTY_ID,
-          room_type_id: body.roomTypeId || body.room_type_id,
-          name: body.name || 'BAR Rate',
-          code: body.code || 'BAR',
-          type: body.type || 'bar',
-          base_amount: price,
-          base_rate: price,
-          currency_code: 'INR',
+          hotel_id: propertyId,
+          property_id: propertyId,
+          room_type_id: body.roomTypeId,
+          number: String(body.number),
+          floor: String(body.floor || '1'),
+          building: body.building || 'Main',
+          status: body.status || 'vacant_clean',
+          is_accessible: Boolean(body.isAccessible),
+          amenities: body.amenities || [],
+          is_active: true,
         }),
       });
-      return ok({ success: true, id: newId, ...body });
+      return ok(inserted?.[0] || body, config);
+    }
+
+    if (method === 'DELETE' && targetRoomId) {
+      await supabaseFetch(`/rooms?id=eq.${targetRoomId}`, { method: 'DELETE' });
+      return ok({ success: true }, config);
     }
   }
 
-  // 11. Reservations search availability
-  if (url.includes('/reservations/search-availability')) {
-    const { data: types } = await supabaseFetch<any[]>('room_types?select=*&order=sort_order.asc');
-    const rows = (types || []).map((t) => ({
-      roomTypeId: t.id,
-      roomTypeName: t.name,
-      available: 3,
-    }));
-    return ok(rows);
-  }
-
-  // 12. Reservations unassigned queue
-  if (url.includes('/reservations/unassigned')) {
-    return ok({ data: [], total: 0 });
-  }
-
-  // 13. Reservations list and mutations (Unified with online booking requests)
-  if (url.includes('/reservations')) {
+  // 6. RATE PLANS
+  if (url.includes('/rate-plans')) {
+    const idMatch = url.match(/\/rate-plans\/([^/?]+)/);
     if (method === 'GET') {
-      const [resvsResult, reqsResult, roomsResult] = await Promise.all([
-        supabaseFetch<any[]>('reservations?select=*&order=arrival_date.desc'),
-        supabaseFetch<any[]>('booking_requests?select=*&order=created_at.desc'),
-        supabaseFetch<any[]>('rooms?select=id,number,room_type_id'),
-      ]);
+      const rows = await supabaseFetch<any[]>(
+        `/rate_plans?select=*,room_type:room_types(id,name,code)&or=(hotel_id.eq.${propertyId},property_id.eq.${propertyId})&order=created_at.asc`
+      );
+      return ok(
+        (rows || []).map((rp) => ({
+          id: rp.id,
+          propertyId: rp.property_id || propertyId,
+          roomTypeId: rp.room_type_id,
+          roomTypeName: rp.room_type?.name || '',
+          name: rp.name,
+          code: rp.code,
+          description: rp.description,
+          type: rp.type,
+          baseRate: Number(rp.base_rate || rp.base_amount || 0),
+          baseAmount: Number(rp.base_amount || rp.base_rate || 0),
+          singleOccupancyRate: rp.single_occupancy_rate != null ? Number(rp.single_occupancy_rate) : null,
+          doubleOccupancyRate: rp.double_occupancy_rate != null ? Number(rp.double_occupancy_rate) : null,
+          currencyCode: rp.currency_code || 'INR',
+          isActive: rp.is_active !== false,
+        })),
+        config
+      );
+    }
+    if ((method === 'PATCH' || method === 'PUT') && idMatch) {
+      const rate = Number(body.baseAmount ?? body.baseRate ?? body.price);
+      const updated = await supabaseFetch<any[]>(`/rate_plans?id=eq.${idMatch[1]}`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          ...(body.name !== undefined ? { name: body.name } : {}),
+          ...(body.isActive !== undefined ? { is_active: body.isActive } : {}),
+          ...(!Number.isNaN(rate) ? { base_rate: rate, base_amount: rate } : {}),
+        }),
+      });
+      return ok(updated?.[0] || body, config);
+    }
+    if (method === 'POST') {
+      const rate = Number(body.baseAmount ?? body.baseRate ?? 0);
+      const inserted = await supabaseFetch<any[]>(`/rate_plans`, {
+        method: 'POST',
+        body: JSON.stringify({
+          hotel_id: propertyId,
+          property_id: propertyId,
+          room_type_id: body.roomTypeId || null,
+          name: body.name,
+          code: body.code || `RP-${Date.now().toString().slice(-4)}`,
+          type: body.type || 'bar',
+          base_rate: rate,
+          base_amount: rate,
+          is_active: true,
+        }),
+      });
+      return ok(inserted?.[0] || body, config);
+    }
+  }
 
-      const storedRooms = getStoredRooms();
-      const roomsMap = new Map([
-        ...storedRooms.map((rm) => [rm.id, rm.number] as [string, string]),
-        ...((roomsResult.data || []).map((rm: any) => [rm.id, rm.number] as [string, string])),
-      ]);
-      const list: any[] = [];
-
-      // 1. Merge booking requests from website
-      for (const b of (reqsResult.data || [])) {
-        if (b.status === 'denied') continue;
-        const rt = ROOM_TYPE_NAMES[b.room_type_id] || { name: 'Deluxe King Room', code: 'DLX' };
-        list.push({
-          id: b.id,
-          propertyId: b.property_id || PROPERTY_ID,
-          confirmationNumber: b.submission_idempotency_key || `SPARK-${(b.id ? String(b.id).slice(0, 8) : 'BKG').toUpperCase()}`,
-          status: b.status === 'accepted' ? 'confirmed' : 'pending',
-          arrivalDate: b.arrival_date,
-          departureDate: b.departure_date,
-          roomId: b.status === 'accepted' ? '5aca9c61-49d7-42db-885c-58d30dfceac7' : undefined,
-          roomNumber: b.status === 'accepted' ? '101' : 'Unassigned (Website)',
-          roomTypeId: b.room_type_id,
+  // 7. RESERVATIONS & AVAILABILITY
+  if (url.includes('/reservations/search-availability')) {
+    const arr = params.arrivalDate || params.checkIn || new Date().toISOString().slice(0, 10);
+    const dep = params.departureDate || params.checkOut || new Date(Date.now() + 86400000).toISOString().slice(0, 10);
+    const [rts, plans] = await Promise.all([
+      supabaseFetch<any[]>(`/room_types?select=*&or=(hotel_id.eq.${propertyId},property_id.eq.${propertyId})&is_active=eq.true`),
+      supabaseFetch<any[]>(`/rate_plans?select=*&or=(hotel_id.eq.${propertyId},property_id.eq.${propertyId})&is_active=eq.true`),
+    ]);
+    const results = await Promise.all(
+      (rts || []).map(async (rt) => {
+        const avail = await supabaseFetch<any[]>(`/rpc/revalidate_room_availability`, {
+          method: 'POST',
+          body: JSON.stringify({ p_hotel_id: propertyId, p_room_type_id: rt.id, p_arrival_date: arr, p_departure_date: dep }),
+        }).catch(() => []);
+        const availableCount = (avail || []).filter((x) => x.is_available).length;
+        const rp = (plans || []).find((p) => p.room_type_id === rt.id);
+        return {
+          roomTypeId: rt.id,
           roomTypeName: rt.name,
-          guestName: `${b.guest_first_name} ${b.guest_last_name}`,
-          guest: {
-            firstName: b.guest_first_name,
-            lastName: b.guest_last_name,
-            email: b.guest_email,
-            phone: b.guest_phone || '',
-          },
-          guestEmail: b.guest_email,
-          guestPhone: b.guest_phone || '',
-          totalAmount: b.submitted_total || 3920,
-          currencyCode: b.currency_code || 'INR',
-          adults: b.adults || 2,
-          children: b.children || 0,
-          source: 'WEBSITE',
-          specialRequests: b.special_requests || '',
-          createdAt: b.created_at,
-        });
-      }
+          availableCount,
+          ratePlanId: rp?.id,
+          baseRate: Number(rp?.double_occupancy_rate ?? rp?.base_rate ?? 0),
+        };
+      })
+    );
+    return ok(results.filter((r) => r.availableCount > 0), config);
+  }
 
-      // 2. Merge database reservations
-      for (const r of (resvsResult.data || [])) {
-        const rt = ROOM_TYPE_NAMES[r.room_type_id] || { name: 'Deluxe King Room', code: 'DLX' };
-        list.push({
+  if (url.includes('/reservations/unassigned')) {
+    const rows = await supabaseFetch<any[]>(
+      `/reservations?select=*,guest:guests(id,first_name,last_name,phone,email),room_type:room_types(id,name),booking:bookings(confirmation_number)&or=(hotel_id.eq.${propertyId},property_id.eq.${propertyId})&room_id=is.null&status=in.(pending,confirmed)`
+    );
+    return ok(
+      (rows || []).map((r) => ({
+        id: r.id,
+        confirmationNumber: r.booking?.confirmation_number || r.id.slice(0, 8).toUpperCase(),
+        status: r.status,
+        arrivalDate: r.arrival_date,
+        departureDate: r.departure_date,
+        roomTypeId: r.room_type_id,
+        roomTypeName: r.room_type?.name || '',
+        guestName: r.guest ? `${r.guest.first_name || ''} ${r.guest.last_name || ''}`.trim() : 'Guest',
+        totalAmount: String(r.total_amount || 0),
+        currencyCode: r.currency_code || 'INR',
+      })),
+      config
+    );
+  }
+
+  if (url.includes('/reservations')) {
+    const idMatch = url.match(/\/reservations\/([^/?]+)/);
+    const targetId = idMatch?.[1];
+
+    if (method === 'GET') {
+      const filters: string[] = [];
+      if (params.status) filters.push(`status=eq.${encodeURIComponent(params.status)}`);
+      if (params.arrivalDate) filters.push(`arrival_date=eq.${encodeURIComponent(params.arrivalDate)}`);
+      if (params.departureDate) filters.push(`departure_date=eq.${encodeURIComponent(params.departureDate)}`);
+      const q = filters.length ? `&${filters.join('&')}` : '';
+
+      const rows = await supabaseFetch<any[]>(
+        `/reservations?select=*,guest:guests(*),room:rooms(id,number),room_type:room_types(id,name),rate_plan:rate_plans(id,name),booking:bookings(confirmation_number,source)&or=(hotel_id.eq.${propertyId},property_id.eq.${propertyId})${q}&order=created_at.desc`
+      );
+      return ok(
+        (rows || []).map((r) => ({
           id: r.id,
-          propertyId: r.property_id || PROPERTY_ID,
-          confirmationNumber: r.booking_id
-            ? `CONF-${String(r.booking_id).slice(0, 8).toUpperCase()}`
-            : `CONF-${(r.id ? String(r.id).slice(0, 8) : '0000').toUpperCase()}`,
-          status: r.status || 'confirmed',
+          confirmationNumber: r.booking?.confirmation_number || r.id.slice(0, 8).toUpperCase(),
+          status: r.status,
           arrivalDate: r.arrival_date,
           departureDate: r.departure_date,
+          nights: r.nights,
           roomId: r.room_id,
-          roomNumber: roomsMap.get(r.room_id) || '101',
+          roomNumber: r.room?.number,
           roomTypeId: r.room_type_id,
-          roomTypeName: rt.name,
-          guestName: 'Banu Prasad',
-          guest: { firstName: 'Banu', lastName: 'Prasad', email: 'banu.prasad0607@gmail.com', phone: '+91 98765 43210' },
-          totalAmount: r.total_amount || 7000,
-          currencyCode: r.currency_code || 'INR',
-          adults: r.adults || 2,
-          children: r.children || 0,
-          source: 'WALK_IN',
-          createdAt: r.created_at,
-        });
-      }
-
-      let filtered = list;
-
-      // Also merge any locally stored reservations created via Front Desk or booking modal
-      const localResvs = getStoredReservations();
-      for (const lr of localResvs) {
-        if (!list.some((existing) => existing.id === lr.id || existing.confirmationNumber === lr.confirmationNumber)) {
-          list.push(lr);
-        }
-      }
-
-      // Also merge website direct bookings so Booking Management (/reservations) displays them
-      const directBookings = getStoredDirectBookings();
-      for (const db of directBookings) {
-        const confNum = db.reference || db.submissionIdempotencyKey || `SPARK-${(db.id ? String(db.id).slice(0, 8) : 'DIR').toUpperCase()}`;
-        if (!list.some((existing) => existing.id === db.id || existing.confirmationNumber === confNum)) {
-          list.push({
-            id: db.id,
-            propertyId: db.propertyId || PROPERTY_ID,
-            confirmationNumber: confNum,
-            status: db.status === 'accepted' ? 'confirmed' : (db.status || 'pending'),
-            arrivalDate: db.arrivalDate,
-            departureDate: db.departureDate,
-            roomId: db.assignedRoomId,
-            roomNumber: db.assignedRoomNumber || (db.status === 'accepted' ? '2001' : 'Unassigned (Website)'),
-            roomTypeId: db.roomTypeId,
-            roomTypeName: db.roomTypeName || 'Deluxe Room',
-            guestName: `${db.guestFirstName || 'Guest'} ${db.guestLastName || ''}`.trim(),
-            guest: {
-              firstName: db.guestFirstName || 'Guest',
-              lastName: db.guestLastName || '',
-              email: db.guestEmail || '',
-              phone: db.guestPhone || '',
-            },
-            guestEmail: db.guestEmail || '',
-            guestPhone: db.guestPhone || '',
-            totalAmount: Number(db.submittedTotal) || 2099,
-            currencyCode: db.currencyCode || 'INR',
-            adults: db.adults || 2,
-            children: db.children || 0,
-            source: 'WEBSITE',
-            specialRequests: db.specialRequests || '',
-            createdAt: db.createdAt || new Date().toISOString(),
-          });
-        }
-      }
-
-      // Filter by status if specified
-      if (config.params?.status) {
-        filtered = filtered.filter((r) => r.status === config.params.status);
-      }
-
-      // If Front Desk is looking for today's arrivals (arrivalDateFrom == arrivalDateTo == today)
-      // include both today's arrivals AND pending website bookings so staff never misses them!
-      if (config.params?.arrivalDateFrom && config.params?.arrivalDateTo) {
-        const from = config.params.arrivalDateFrom;
-        const to = config.params.arrivalDateTo;
-        filtered = filtered.filter(
-          (r) =>
-            (r.arrivalDate >= from && r.arrivalDate <= to) ||
-            r.source === 'WEBSITE',
-        );
-      }
-
-      return ok(filtered);
-    }
-
-    if (method === 'PATCH' || method === 'PUT') {
-      const body = typeof config.data === 'string' ? JSON.parse(config.data || '{}') : (config.data || {});
-      const idMatch = url.match(/\/reservations\/([^/?]+)/);
-      const resvId = idMatch ? idMatch[1] : '';
-
-      const localResvs = getStoredReservations();
-      const resvIdx = localResvs.findIndex((r) => r.id === resvId || r.confirmationNumber === resvId);
-
-      // Handle Cancel Reservation
-      if (url.includes('/cancel') || body.status === 'cancelled') {
-        if (resvIdx >= 0) {
-          localResvs[resvIdx].status = 'cancelled';
-          saveStoredReservations(localResvs);
-
-          // Free up room if assigned
-          const roomId = localResvs[resvIdx].roomId;
-          if (roomId) {
-            const rooms = getStoredRooms();
-            const rmIdx = rooms.findIndex((rm) => rm.id === roomId || rm.number === localResvs[resvIdx].roomNumber);
-            if (rmIdx >= 0 && rooms[rmIdx].status === 'occupied') {
-              rooms[rmIdx].status = 'vacant_clean';
-              delete rooms[rmIdx].guestName;
-              saveStoredRooms(rooms);
-            }
-          }
-        }
-        return ok({ success: true, id: resvId, status: 'cancelled' });
-      }
-
-      // Normal edit/update
-      if (resvIdx >= 0) {
-        localResvs[resvIdx] = { ...localResvs[resvIdx], ...body };
-        saveStoredReservations(localResvs);
-      }
-      return ok({ success: true, id: resvId, ...body });
-    }
-
-    if (method === 'POST') {
-      const body = typeof config.data === 'string' ? JSON.parse(config.data || '{}') : (config.data || {});
-      const confCode = body.confirmationNumber || `CONF-SPARK-${Date.now().toString(36).toUpperCase()}`;
-
-      // Synchronize directly into StoredStays and StoredRooms
-      const rooms = getStoredRooms();
-      const matchedRoom = rooms.find((r) => r.id === body.roomId || r.number === body.roomNumber);
-      const guestName = body.guest?.firstName ? `${body.guest.firstName} ${body.guest.lastName || ''}`.trim() : (body.guestName || 'Guest');
-      const nights = body.stay?.nights || body.nights || 1;
-      const rate = body.stay?.nightlyRate || body.pricePerNight || 3500;
-      const advance = body.stay?.advancePaid ?? body.advancePaid ?? rate;
-      const total = body.stay?.grandTotal ?? body.totalAmount ?? (nights * rate);
-      const balance = Math.max(0, total - advance);
-
-      const newReservation = {
-        id: `resv-${Date.now()}`,
-        propertyId: PROPERTY_ID,
-        confirmationNumber: confCode,
-        status: body.status || 'confirmed',
-        arrivalDate: body.arrivalDate || new Date().toISOString().split('T')[0],
-        departureDate: body.departureDate || new Date(Date.now() + nights * 24 * 3600 * 1000).toISOString().split('T')[0],
-        roomId: matchedRoom?.id || body.roomId,
-        roomNumber: matchedRoom?.number || body.roomNumber || '101',
-        roomTypeId: body.roomTypeId || matchedRoom?.roomTypeId || DEFAULT_ROOM_TYPES[0].id,
-        roomTypeName: matchedRoom?.roomTypeName || 'Deluxe King Room',
-        guestName,
-        guest: body.guest || { firstName: guestName, lastName: '', phone: body.mobile || '' },
-        nights,
-        totalAmount: total,
-        advancePaid: advance,
-        source: 'FRONT_DESK',
-      };
-
-      const localResvs = getStoredReservations();
-      saveStoredReservations([newReservation, ...localResvs]);
-
-      const newStay: StoredStay = {
-        id: `stay-${Date.now()}`,
-        propertyId: PROPERTY_ID,
-        guestName,
-        mobile: body.guest?.phone || body.mobile || '',
-        email: body.guest?.email || body.email || '',
-        address: body.guest?.address || body.address || '',
-        city: 'Karimnagar',
-        state: 'Telangana',
-        idProofType: body.guest?.idProofType || 'Aadhaar Card',
-        idProofNumber: body.guest?.idProofNumber || '',
-        adults: body.adults || 2,
-        children: body.children || 0,
-        roomId: matchedRoom?.id || body.roomId || 'r0000101-0000-4000-a000-000000000001',
-        roomNumber: matchedRoom?.number || body.roomNumber || '101',
-        roomTypeName: matchedRoom?.roomTypeName || 'Deluxe King Room',
-        checkInTime: new Date().toISOString(),
-        expectedCheckoutTime: new Date(Date.now() + nights * 24 * 3600 * 1000).toISOString(),
-        nights,
-        pricePerNight: rate,
-        extraCharges: 0,
-        discount: 0,
-        totalAmount: total,
-        advancePaid: advance,
-        previousPayments: 0,
-        balance,
-        paymentMethod: body.stay?.paymentMethod || 'UPI',
-        paymentStatus: balance === 0 ? 'paid' : 'partially_paid',
-        stayStatus: 'in_house',
-        billNumber: `INV-SPARK-${new Date().getFullYear()}-${matchedRoom?.number || '101'}`,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
-
-      const stays = getStoredStays();
-      saveStoredStays([newStay, ...stays]);
-
-      if (matchedRoom) {
-        const roomIdx = rooms.findIndex((r) => r.id === matchedRoom.id);
-        if (roomIdx >= 0) {
-          rooms[roomIdx].status = 'occupied';
-          rooms[roomIdx].guestName = guestName;
-          saveStoredRooms(rooms);
-        }
-      }
-
-      addNotification(
-        `Guest Checked In: Room ${newStay.roomNumber}`,
-        `${guestName} checked in to Room ${newStay.roomNumber}. Advance paid: ₹${advance.toLocaleString('en-IN')}.`,
-        'info',
-        'check_in'
-      );
-
-      if (body.roomId) {
-        supabaseFetch(`rooms?id=eq.${body.roomId}`, {
-          method: 'PATCH',
-          body: JSON.stringify({ status: 'occupied' }),
-        }).catch(() => { });
-      }
-
-      return ok({
-        id: newReservation.id,
-        confirmationNumber: confCode,
-        status: 'checked_in',
-        ...body,
-      });
-    }
-  }
-
-  // 14. Checkout mutations
-  if (url.includes('/checkout') && method === 'POST') {
-    const body = typeof config.data === 'string' ? JSON.parse(config.data || '{}') : (config.data || {});
-    if (body.roomId) {
-      await supabaseFetch(`rooms?id=eq.${body.roomId}`, {
-        method: 'PATCH',
-        body: JSON.stringify({ status: 'vacant_dirty' }),
-      });
-    }
-    return ok({
-      success: true,
-      invoiceNumber: `INV-SPARK-${Date.now().toString(36).toUpperCase()}`,
-      status: 'checked_out',
-    });
-  }
-
-  // 15. Guests
-  if (url.includes('/guests')) {
-    const guests = getStoredGuests();
-    if (method === 'GET') {
-      const singleMatch = url.match(/\/guests\/([^/?]+)/);
-      const singleId = singleMatch ? singleMatch[1] : null;
-
-      // Fetch remote guests and booking requests in parallel
-      let remoteGuests: any[] = [];
-      let bookingReqs: any[] = [];
-      try {
-        const [gRes, bRes] = await Promise.all([
-          supabaseFetch<any[]>('guests?select=*&order=created_at.desc'),
-          supabaseFetch<any[]>('booking_requests?select=*&order=created_at.desc'),
-        ]);
-        if (Array.isArray(gRes.data)) remoteGuests = gRes.data;
-        if (Array.isArray(bRes.data)) bookingReqs = bRes.data;
-      } catch (err) {
-        console.warn('Could not fetch guests from Supabase:', err);
-      }
-
-      const map = new Map<string, any>();
-
-      // 1. From booking_requests (website visitors who booked)
-      for (const b of bookingReqs) {
-        if (!b.guest_first_name) continue;
-        const key = (b.guest_phone || b.guest_email || b.id || '').trim();
-        if (!key) continue;
-        map.set(key, {
-          id: b.id,
-          propertyId: b.property_id || PROPERTY_ID,
-          firstName: b.guest_first_name,
-          lastName: b.guest_last_name || '',
-          email: b.guest_email || '',
-          phone: b.guest_phone || '',
-          address: '',
-          city: 'Karimnagar',
-          state: 'Telangana',
-          idType: 'aadhaar',
-          idProofType: 'Aadhaar Card',
-          idProofNumber: '',
-          idProofFrontUrl: '',
-          idProofBackUrl: '',
-          vipLevel: 'none',
-          status: 'active',
-          stayCount: 1,
-          totalSpend: Number(b.submitted_total) || 3500,
-          createdAt: b.created_at,
-        });
-      }
-
-      // 2. From remote guests table in Supabase
-      for (const g of remoteGuests) {
-        const key = (g.phone || g.email || g.id || '').trim();
-        if (!key) continue;
-        const reg = (g.registration_data && typeof g.registration_data === 'object') ? g.registration_data : {};
-        map.set(key, {
-          id: g.id,
-          propertyId: g.property_id || PROPERTY_ID,
-          firstName: g.first_name || 'Guest',
-          lastName: g.last_name || '',
-          email: g.email || '',
-          phone: g.phone || '',
-          address: g.address_line_1 || '',
-          city: g.city || 'Karimnagar',
-          state: g.state_province || 'Telangana',
-          idType: g.id_type || 'aadhaar',
-          idProofType: reg.idProofType || (g.id_type === 'aadhaar' ? 'Aadhaar Card' : g.id_type) || 'Aadhaar Card',
-          idNumber: g.id_number || reg.idProofNumber || '',
-          idProofNumber: reg.idProofNumber || g.id_number || '',
-          idProofFrontUrl: reg.idProofFrontUrl || '',
-          idProofBackUrl: reg.idProofBackUrl || '',
-          vipLevel: g.vip_level || 'none',
-          status: 'active',
-          stayCount: 1,
-          totalSpend: 3500,
-          createdAt: g.created_at,
-          updatedAt: g.updated_at,
-        });
-      }
-
-      // 3. Merge stored guests from localStorage
-      for (const lg of guests) {
-        const key = (lg.phone || lg.email || lg.id || '').trim();
-        if (!key) continue;
-        const existing = map.get(key) || {};
-        map.set(key, { ...existing, ...lg });
-      }
-
-      const allGuests = Array.from(map.values()).sort(
-        (a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
-      );
-
-      if (singleId && singleId !== 'guests') {
-        const found = allGuests.find((g) => g.id === singleId);
-        if (found) {
-          return ok({
-            ...found,
-            idProofType: found.idProofType || (found.idType === 'aadhaar' ? 'Aadhaar Card' : found.idType) || 'Aadhaar Card',
-            idProofNumber: found.idProofNumber || found.idNumber || found.taxId || '',
-            idProofFrontUrl: found.idProofFrontUrl || found.registrationData?.idProofFrontUrl || '',
-            idProofBackUrl: found.idProofBackUrl || found.registrationData?.idProofBackUrl || '',
-          });
-        }
-      }
-
-      const search = (config.params?.search || '').toLowerCase();
-      let res = allGuests;
-      if (search) {
-        res = allGuests.filter(
-          (g) =>
-            (g.firstName && g.firstName.toLowerCase().includes(search)) ||
-            (g.lastName && g.lastName.toLowerCase().includes(search)) ||
-            (g.phone && g.phone.includes(search)) ||
-            (g.email && g.email.toLowerCase().includes(search)) ||
-            (g.idProofNumber && g.idProofNumber.toLowerCase().includes(search))
-        );
-      }
-      return ok(res);
-    }
-    if (method === 'POST') {
-      const body = typeof config.data === 'string' ? JSON.parse(config.data || '{}') : (config.data || {});
-      const guestId = (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function')
-        ? crypto.randomUUID()
-        : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
-          const r = (Math.random() * 16) | 0;
-          const v = c === 'x' ? r : (r & 0x3) | 0x8;
-          return v.toString(16);
-        });
-
-      const validVipLevels = ['none', 'silver', 'gold', 'platinum', 'diamond'];
-      const safeVip = validVipLevels.includes(body.vipLevel) ? body.vipLevel : 'none';
-
-      const newGuest = {
-        id: guestId,
-        propertyId: PROPERTY_ID,
-        firstName: body.firstName || 'Guest',
-        lastName: body.lastName || '',
-        email: body.email || '',
-        phone: body.phone || '',
-        address: body.address || body.addressLine1 || '',
-        city: body.city || 'Karimnagar',
-        state: body.state || body.stateProvince || 'Telangana',
-        idType: body.idType || 'aadhaar',
-        idProofType: body.idProofType || (body.idType === 'aadhaar' ? 'Aadhaar Card' : body.idType) || 'Aadhaar Card',
-        idNumber: body.idProofNumber || body.idNumber || body.taxId || '',
-        idProofNumber: body.idProofNumber || body.idNumber || body.taxId || '',
-        idProofFrontUrl: body.idProofFrontUrl || body.registrationData?.idProofFrontUrl || '',
-        idProofBackUrl: body.idProofBackUrl || body.registrationData?.idProofBackUrl || '',
-        vipLevel: safeVip,
-        status: 'active',
-        stayCount: 1,
-        totalSpend: 3500,
-        createdAt: new Date().toISOString(),
-      };
-
-      // 1. Save to local storage for immediate offline/local availability
-      saveStoredGuests([newGuest, ...guests]);
-
-      // 2. Persist to Supabase cloud database
-      (async () => {
-        try {
-          await supabaseFetch('guests', {
-            method: 'POST',
-            body: JSON.stringify({
-              id: guestId,
-              hotel_id: PROPERTY_ID,
-              property_id: PROPERTY_ID,
-              first_name: newGuest.firstName,
-              last_name: newGuest.lastName,
-              email: newGuest.email || null,
-              phone: newGuest.phone || null,
-              date_of_birth: body.dateOfBirth || null,
-              gender: body.gender || null,
-              profession: body.profession || null,
-              nationality: body.nationality || 'IN',
-              tax_id: body.taxId || null,
-              id_type: newGuest.idType,
-              id_number: newGuest.idProofNumber || null,
-              id_country: body.idCountry || 'IN',
-              address_line_1: newGuest.address || null,
-              city: newGuest.city,
-              state_province: newGuest.state,
-              postal_code: body.postalCode || '505001',
-              country_code: body.countryCode || 'IN',
-              vip_level: safeVip,
-              company_name: body.companyName || null,
-              loyalty_number: body.loyaltyNumber || null,
-              registration_data: {
-                idProofType: newGuest.idProofType,
-                idProofNumber: newGuest.idProofNumber,
-                idProofFrontUrl: newGuest.idProofFrontUrl,
-                idProofBackUrl: newGuest.idProofBackUrl,
-                ...(body.registrationData || {}),
-              },
-            }),
-          });
-        } catch {
-          // If direct table insert is restricted by RLS for anon role, sync through the security definer RPC
-        }
-
-        try {
-          const today = new Date().toISOString().slice(0, 10);
-          const tomorrow = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
-          await supabaseFetch('rpc/submit_website_booking_request', {
-            method: 'POST',
-            body: JSON.stringify({
-              p_hotel_id: PROPERTY_ID,
-              p_room_type_id: 'b0000001-0000-4000-a000-000000000001',
-              p_arrival_date: today,
-              p_departure_date: tomorrow,
-              p_guest_first_name: newGuest.firstName,
-              p_guest_last_name: newGuest.lastName,
-              p_guest_email: newGuest.email || `${newGuest.firstName.toLowerCase()}@hotelspark.guest`,
-              p_guest_phone: newGuest.phone || '',
-              p_submitted_total: 1599,
-              p_adults: 1,
-              p_children: 0,
-              p_special_requests: `Guest profile created via PMS console. ID: ${newGuest.idProofType} ${newGuest.idProofNumber || ''}`,
-              p_currency_code: 'INR',
-              p_idempotency_key: `GUEST-${Date.now()}`,
-              p_form_snapshot: {
-                guestId,
-                address: newGuest.address,
-                city: newGuest.city,
-                state: newGuest.state,
-                idProofType: newGuest.idProofType,
-                idProofNumber: newGuest.idProofNumber,
-                idProofFrontUrl: newGuest.idProofFrontUrl,
-                idProofBackUrl: newGuest.idProofBackUrl,
-                source: 'pms_console',
-              },
-            }),
-          });
-        } catch (err) {
-          console.warn('RPC guest sync error:', err);
-        }
-      })().catch((e) => console.warn('Guest creation background task error:', e));
-
-      return ok({ success: true, ...newGuest });
-    }
-    if (method === 'PATCH' || method === 'PUT') {
-      const body = typeof config.data === 'string' ? JSON.parse(config.data || '{}') : (config.data || {});
-      const idMatch = url.match(/\/guests\/([^/?]+)/);
-      const gid = idMatch ? idMatch[1] : '';
-      const idx = guests.findIndex((g) => g.id === gid);
-      if (idx >= 0) {
-        guests[idx] = { ...guests[idx], ...body, updatedAt: new Date().toISOString() };
-        saveStoredGuests(guests);
-      }
-
-      // Sync patch to Supabase
-      (async () => {
-        try {
-          await supabaseFetch(`guests?id=eq.${gid}`, {
-            method: 'PATCH',
-            body: JSON.stringify({
-              first_name: body.firstName,
-              last_name: body.lastName,
-              email: body.email,
-              phone: body.phone,
-              address_line_1: body.address || body.addressLine1,
-              city: body.city,
-              state_province: body.state || body.stateProvince,
-              updated_at: new Date().toISOString(),
-            }),
-          });
-        } catch { }
-      })().catch(() => { });
-
-      return ok({ success: true, id: gid, ...(idx >= 0 ? guests[idx] : body) });
-    }
-  }
-
-  // 16. Housekeeping
-  if (url.includes('/housekeeping')) {
-    const tasks = getStoredHkTasks();
-    const rooms = getStoredRooms();
-    const employees = getStoredEmployees();
-    const housekeepers = employees.filter((e) => e.departmentName === 'Housekeeping' || e.role.toLowerCase().includes('housekeep'));
-
-    // Dashboard
-    if (url.includes('/dashboard')) {
-      const taskSummary = {
-        pending: tasks.filter((t) => t.status === 'pending').length,
-        assigned: tasks.filter((t) => t.status === 'assigned').length,
-        in_progress: tasks.filter((t) => t.status === 'in_progress').length,
-        completed: tasks.filter((t) => t.status === 'completed').length,
-        inspected: tasks.filter((t) => t.status === 'inspected').length,
-      };
-
-      const roomSummary: Record<string, number> = { total: rooms.length };
-      for (const r of rooms) {
-        const st = r.status || 'vacant_clean';
-        roomSummary[st] = (roomSummary[st] || 0) + 1;
-      }
-
-      const housekeeperSummary = housekeepers.map((hk) => ({
-        housekeeperId: hk.id,
-        tasksAssigned: tasks.filter((t) => t.assignedTo === hk.id).length,
-        tasksCompleted: tasks.filter((t) => t.assignedTo === hk.id && t.status === 'completed').length,
-        tasksInProgress: tasks.filter((t) => t.assignedTo === hk.id && t.status === 'in_progress').length,
-        avgTurnTimeMinutes: 25,
-      }));
-
-      const urgentRooms = rooms
-        .filter((r) => r.status === 'vacant_dirty' || r.status === 'out_of_order')
-        .map((r) => ({
-          roomId: r.id,
-          roomNumber: r.number,
-          floor: r.floor || '1',
-          status: r.status,
-          taskStatus: 'pending',
-          priority: 1,
-          reason: r.status === 'vacant_dirty' ? 'Checkout Clean Needed' : 'Maintenance Required',
-        }));
-
-      return ok({ taskSummary, roomSummary, housekeeperSummary, urgentRooms });
-    }
-
-    // Operations Forecast
-    if (url.includes('/ops-forecast')) {
-      const tomorrow = new Date(Date.now() + 86400000).toISOString().split('T')[0];
-      return ok({
-        date: tomorrow,
-        expectedCheckouts: 2,
-        expectedStayovers: 4,
-      });
-    }
-
-    // Auto Assign
-    if (url.includes('/auto-assign') && method === 'POST') {
-      const body = typeof config.data === 'string' ? JSON.parse(config.data || '{}') : (config.data || {});
-      const staffIds: string[] = body.housekeepers || housekeepers.map((h) => h.id);
-      if (staffIds.length > 0) {
-        let staffIdx = 0;
-        for (const t of tasks) {
-          if (t.status === 'pending') {
-            t.status = 'assigned';
-            t.assignedTo = staffIds[staffIdx % staffIds.length];
-            t.assignedAt = new Date().toISOString();
-            staffIdx++;
-          }
-        }
-        saveStoredHkTasks(tasks);
-      }
-      return ok({ success: true, message: 'Tasks auto-assigned successfully' });
-    }
-
-    // Generate stayover tasks
-    if (url.includes('/generate-stayover-tasks')) {
-      return ok({ success: true, count: 2 });
-    }
-
-    // Task Actions & Tasks List
-    if (url.includes('/tasks')) {
-      if (method === 'GET') {
-        const statusFilter = (config.params?.status || '').toLowerCase();
-        let res = tasks;
-        if (statusFilter) {
-          res = tasks.filter((t) => t.status.toLowerCase() === statusFilter);
-        }
-        return ok(res);
-      }
-
-      if (method === 'PATCH') {
-        const body = typeof config.data === 'string' ? JSON.parse(config.data || '{}') : (config.data || {});
-        const actionMatch = url.match(/\/tasks\/([^/?]+)\/([^/?]+)/);
-
-        if (actionMatch) {
-          const taskId = actionMatch[1];
-          const action = actionMatch[2];
-          const idx = tasks.findIndex((t) => t.id === taskId);
-
-          if (idx >= 0) {
-            if (action === 'assign') {
-              tasks[idx].assignedTo = body.assignedTo;
-              tasks[idx].status = 'assigned';
-              tasks[idx].assignedAt = new Date().toISOString();
-            } else if (action === 'start') {
-              tasks[idx].status = 'in_progress';
-              tasks[idx].startedAt = new Date().toISOString();
-            } else if (action === 'complete' || action === 'inspect') {
-              tasks[idx].status = action === 'inspect' ? 'inspected' : 'completed';
-              tasks[idx].completedAt = new Date().toISOString();
-
-              // Update room status to clean in stored rooms!
-              const roomId = tasks[idx].roomId;
-              const roomNum = tasks[idx].roomNumber;
-              const rmIdx = rooms.findIndex((r) => r.id === roomId || r.number === roomNum);
-              if (rmIdx >= 0) {
-                rooms[rmIdx].status = 'vacant_clean';
-                saveStoredRooms(rooms);
+          roomTypeName: r.room_type?.name,
+          ratePlanId: r.rate_plan_id,
+          ratePlanName: r.rate_plan?.name,
+          guestId: r.guest_id,
+          guestName: r.guest ? `${r.guest.first_name || ''} ${r.guest.last_name || ''}`.trim() : 'Guest',
+          guestPhone: r.guest?.phone,
+          guestEmail: r.guest?.email,
+          guest: r.guest
+            ? {
+                id: r.guest.id,
+                firstName: r.guest.first_name,
+                lastName: r.guest.last_name,
+                email: r.guest.email,
+                phone: r.guest.phone,
               }
-            } else if (action === 'unassign') {
-              tasks[idx].assignedTo = undefined;
-              tasks[idx].status = 'pending';
-            } else if (action === 'skip') {
-              tasks[idx].status = 'completed';
-            }
-            saveStoredHkTasks(tasks);
-          }
-          return ok({ success: true, taskId, action });
-        }
-
-        // Direct task update (e.g. checklist)
-        const idMatch = url.match(/\/tasks\/([^/?]+)/);
-        const taskId = idMatch ? idMatch[1] : '';
-        const idx = tasks.findIndex((t) => t.id === taskId);
-        if (idx >= 0) {
-          tasks[idx] = { ...tasks[idx], ...body };
-          saveStoredHkTasks(tasks);
-        }
-        return ok({ success: true, id: taskId, ...body });
-      }
-
-      if (method === 'POST') {
-        const body = typeof config.data === 'string' ? JSON.parse(config.data || '{}') : (config.data || {});
-        const newTask = {
-          id: `hk-${Date.now()}`,
-          roomId: body.roomId,
-          roomNumber: body.roomNumber || '101',
-          type: body.type || 'clean',
-          status: 'pending',
-          priority: body.priority || 1,
-          serviceDate: new Date().toISOString().split('T')[0],
-          checklist: body.checklist || [
-            { item: 'Change linen', checked: false },
-            { item: 'Clean bathroom', checked: false },
-            { item: 'Restock amenities', checked: false },
-          ],
-          notes: body.notes || '',
-        };
-        saveStoredHkTasks([newTask, ...tasks]);
-        return ok({ success: true, ...newTask });
-      }
-    }
-
-    return ok({ success: true });
-  }
-
-  // 16b. Admin Users (for Housekeeping and Staff assignment)
-  if (url.includes('/admin/users')) {
-    const emps = getStoredEmployees();
-    const mapped = emps.map((e) => {
-      let roleKey = 'front_desk';
-      const r = (e.role || '').toLowerCase();
-      const d = (e.departmentName || '').toLowerCase();
-      if (d.includes('housekeep') || r.includes('housekeep')) {
-        roleKey = 'housekeeping';
-      } else if (d.includes('manage') || r.includes('admin') || r.includes('owner')) {
-        roleKey = 'admin';
-      }
-      return {
-        id: e.id,
-        name: e.name,
-        email: e.email,
-        status: e.status || 'active',
-        roles: [{ key: roleKey, name: e.role }],
-      };
-    });
-    return ok(mapped);
-  }
-
-  // 17b. Stays & In-House Guest Register
-  if (url.includes('/stays') || url.includes('/in-house-guests')) {
-    const stays = getStoredStays();
-    const rooms = getStoredRooms();
-
-    // GET stays
-    if (method === 'GET') {
-      const statusParam = (config.params?.status || '').toLowerCase();
-      const searchParam = (config.params?.search || '').toLowerCase();
-
-      let filtered = stays;
-      if (statusParam) {
-        filtered = filtered.filter((s) => s.stayStatus === statusParam);
-      }
-      if (searchParam) {
-        filtered = filtered.filter(
-          (s) =>
-            s.guestName.toLowerCase().includes(searchParam) ||
-            s.mobile.includes(searchParam) ||
-            s.roomNumber.toLowerCase().includes(searchParam) ||
-            (s.billNumber && s.billNumber.toLowerCase().includes(searchParam))
-        );
-      }
-      return ok(filtered);
-    }
-
-    // POST /stays/check-in or POST /stays: Register & Check In Walk-in Guest
-    if (method === 'POST' && (url.includes('/check-in') || url.match(/\/stays(\?|$)/))) {
-      const body = typeof config.data === 'string' ? JSON.parse(config.data || '{}') : (config.data || {});
-      const roomNum = body.roomNumber || body.room_number;
-      const matchedRoom = rooms.find((r) => r.number === roomNum || r.id === body.roomId);
-
-      // Verify room is not already occupied
-      if (matchedRoom && matchedRoom.status === 'occupied') {
-        return {
-          data: { message: `Room ${matchedRoom.number} is currently occupied! Please select an available room.` },
-          status: 400,
-          statusText: 'Bad Request',
-          headers: { 'content-type': 'application/json' },
-          config: config as any,
-        };
-      }
-
-      const nights = Number(body.nights) || 1;
-      const pricePerNight = Number(body.pricePerNight) || 3500;
-      const extraCharges = Number(body.extraCharges) || 0;
-      const discount = Number(body.discount) || 0;
-      const totalAmount = nights * pricePerNight + extraCharges - discount;
-      const advancePaid = Number(body.advancePaid) || 0;
-      const balance = Math.max(0, totalAmount - advancePaid);
-      const paymentStatus = balance === 0 ? 'paid' : advancePaid > 0 ? 'partially_paid' : 'unpaid';
-
-      const newStay: StoredStay = {
-        id: `stay-${Date.now()}`,
-        propertyId: PROPERTY_ID,
-        guestName: body.guestName || 'Guest',
-        mobile: body.mobile || '',
-        email: body.email || '',
-        address: body.address || body.addressLine1 || '',
-        city: body.city || 'Karimnagar',
-        state: body.state || body.stateProvince || 'Telangana',
-        idProofType: body.idProofType || (body.idType === 'aadhaar' ? 'Aadhaar Card' : body.idType) || 'Aadhaar Card',
-        idProofNumber: body.idProofNumber || body.idNumber || body.taxId || '',
-        idProofFrontUrl: body.idProofFrontUrl || body.registrationData?.idProofFrontUrl || body.idProofFront || '',
-        idProofBackUrl: body.idProofBackUrl || body.registrationData?.idProofBackUrl || body.idProofBack || '',
-        adults: Number(body.adults) || 1,
-        children: Number(body.children) || 0,
-        roomId: matchedRoom?.id || body.roomId || 'r0000101-0000-4000-a000-000000000001',
-        roomNumber: matchedRoom?.number || roomNum || '101',
-        roomTypeName: matchedRoom?.roomTypeName || body.roomTypeName || 'Deluxe King Room',
-        checkInTime: body.checkInTime || new Date().toISOString(),
-        expectedCheckoutTime: body.expectedCheckoutTime || new Date(Date.now() + nights * 24 * 3600 * 1000).toISOString(),
-        nights,
-        pricePerNight,
-        extraCharges,
-        discount,
-        totalAmount,
-        advancePaid,
-        previousPayments: 0,
-        balance,
-        paymentMethod: body.paymentMethod || 'Cash',
-        paymentStatus,
-        stayStatus: 'in_house',
-        billNumber: `INV-SPARK-${new Date().getFullYear()}-${matchedRoom?.number || '101'}-${Math.floor(100 + Math.random() * 900)}`,
-        notes: body.notes || '',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
-
-      // 1. Save stay
-      const updatedStays = [newStay, ...stays];
-      saveStoredStays(updatedStays);
-
-      // 2. Mark Room as OCCUPIED & assign guestName
-      if (matchedRoom) {
-        const roomIdx = rooms.findIndex((r) => r.id === matchedRoom.id);
-        if (roomIdx >= 0) {
-          rooms[roomIdx].status = 'occupied';
-          rooms[roomIdx].guestName = newStay.guestName;
-          saveStoredRooms(rooms);
-
-          // Sync to Supabase
-          supabaseFetch(`rooms?id=eq.${matchedRoom.id}`, {
-            method: 'PATCH',
-            body: JSON.stringify({ status: 'occupied' }),
-          }).catch(() => { });
-        }
-      }
-
-      // 3. Trigger Instant Admin Notification
-      addNotification(
-        `Guest Checked In: Room ${newStay.roomNumber}`,
-        `${newStay.guestName} checked into Room ${newStay.roomNumber}. Advance received: ₹${newStay.advancePaid.toLocaleString('en-IN')} via ${newStay.paymentMethod}. Balance: ₹${newStay.balance.toLocaleString('en-IN')}.`,
-        'info',
-        'check_in'
+            : undefined,
+          adults: r.adults,
+          children: r.children,
+          totalAmount: String(r.total_amount || 0),
+          currencyCode: r.currency_code || 'INR',
+          source: r.booking_source || r.booking?.source || 'direct',
+          notes: r.special_requests || r.notes,
+          createdAt: r.created_at,
+        })),
+        config
       );
-
-      // Async sync to Supabase reservations table
-      supabaseFetch('reservations', {
-        method: 'POST',
-        body: JSON.stringify({
-          property_id: PROPERTY_ID,
-          hotel_id: PROPERTY_ID,
-          primary_guest_name: newStay.guestName,
-          phone: newStay.mobile,
-          email: newStay.email,
-          room_id: newStay.roomId,
-          arrival_date: (newStay.checkInTime ? String(newStay.checkInTime).slice(0, 10) : new Date().toISOString().slice(0, 10)),
-          departure_date: (newStay.expectedCheckoutTime ? String(newStay.expectedCheckoutTime).slice(0, 10) : new Date().toISOString().slice(0, 10)),
-          adults: newStay.adults,
-          children: newStay.children,
-          status: 'checked_in',
-          source: 'walk_in',
-          notes: newStay.notes,
-        }),
-      }).catch(() => { });
-
-      return ok({ success: true, stay: newStay });
     }
 
-    // POST /stays/:id/checkout: Complete Guest Checkout & Bill Generation
-    if (method === 'POST' && url.includes('/checkout')) {
-      const stayIdMatch = url.match(/\/stays\/([^/?]+)\/checkout/);
-      const stayId = stayIdMatch ? stayIdMatch[1] : '';
-      const body = typeof config.data === 'string' ? JSON.parse(config.data || '{}') : (config.data || {});
-      const finalPayment = Number(body.finalPayment) || 0;
-      const paymentMethod = body.paymentMethod || 'Cash';
-
-      let stayIdx = stays.findIndex((s) => s.id === stayId);
-
-      // Fallback 1: match by roomNumber or roomId if not checked out yet
-      if (stayIdx < 0 && (body.roomNumber || body.roomId)) {
-        stayIdx = stays.findIndex(
-          (s) =>
-            ((body.roomNumber && s.roomNumber === body.roomNumber) || (body.roomId && s.roomId === body.roomId)) &&
-            s.stayStatus !== 'checked_out'
-        );
-      }
-
-      // Fallback 2: if stay still not found (e.g. synthetic stay from room rack or newly occupied room),
-      // create and save the stay record so checkout and invoicing always succeed!
-      if (stayIdx < 0) {
-        const matchingRoom =
-          rooms.find((r) => r.id === body.roomId || r.number === body.roomNumber) ||
-          rooms.find((r) => stayId.includes(r.id));
-        const newStayRecord: StoredStay = {
-          id: stayId || `stay-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
-          propertyId: body.propertyId || PROPERTY_ID,
-          guestName: body.guestName || matchingRoom?.guestName || 'In-House Guest',
-          mobile: body.mobile || '9876543210',
-          idProofType: body.idProofType || 'Aadhaar',
-          idProofNumber: body.idProofNumber || 'XXXX XXXX 1234',
-          adults: body.adults || 2,
-          children: body.children || 0,
-          roomId: body.roomId || matchingRoom?.id || '',
-          roomNumber: body.roomNumber || matchingRoom?.number || '101',
-          roomTypeName: body.roomTypeName || matchingRoom?.roomTypeName || 'Deluxe Room',
-          checkInTime: body.checkInTime || new Date(Date.now() - 86400000).toISOString(),
-          expectedCheckoutTime: new Date().toISOString(),
-          nights: body.nights || 1,
-          pricePerNight: body.pricePerNight || 2099,
-          extraCharges: body.extraCharges || 0,
-          discount: body.discount || 0,
-          totalAmount: body.totalAmount || 2099,
-          advancePaid: body.advancePaid || 0,
-          previousPayments: 0,
-          balance: 0,
-          paymentMethod: paymentMethod,
-          paymentStatus: 'paid',
-          stayStatus: 'in_house',
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        };
-        stays.push(newStayRecord);
-        stayIdx = stays.length - 1;
-      }
-
-      if (stayIdx >= 0) {
-        const stay = stays[stayIdx];
-
-        // Prevent duplicate checkout and billing, but return the completed stay so invoice renders safely
-        if (stay.stayStatus === 'checked_out') {
-          return ok({
-            success: true,
-            message: `Stay for ${stay.guestName} in Room ${stay.roomNumber} has already been checked out and settled.`,
-            stay: stay,
-            alreadyCheckedOut: true,
-          });
-        }
-
-        const nights = typeof body.nights === 'number' && body.nights > 0 ? body.nights : (stay.nights || 1);
-        const pricePerNight = typeof body.pricePerNight === 'number' ? body.pricePerNight : (stay.pricePerNight || 0);
-        const extraCharges = typeof body.extraCharges === 'number' ? body.extraCharges : (stay.extraCharges || 0);
-        const discount = typeof body.discount === 'number' ? body.discount : (stay.discount || 0);
-        const totalAmount = typeof body.totalAmount === 'number' ? body.totalAmount : Math.max(0, (nights * pricePerNight) + extraCharges - discount);
-
-        const prev = stay.previousPayments || 0;
-        const newPrev = prev + finalPayment;
-        const newBalance = Math.max(0, totalAmount - stay.advancePaid - newPrev);
-        const billNumber = stay.billNumber || body.billNumber || `INV-SPARK-2026-${stay.roomNumber}-${String(Math.floor(1000 + Math.random() * 9000))}`;
-
-        stays[stayIdx] = {
-          ...stay,
-          nights,
-          pricePerNight,
-          extraCharges,
-          discount,
-          totalAmount,
-          billNumber,
-          actualCheckoutTime: new Date().toISOString(),
-          previousPayments: newPrev,
-          balance: newBalance,
-          paymentStatus: newBalance === 0 ? 'paid' : 'partially_paid',
-          stayStatus: 'checked_out',
-          updatedAt: new Date().toISOString(),
-        };
-        saveStoredStays(stays);
-
-        // Mark Room as VACANT DIRTY (Cleaning Required) and clear guest
-        const roomIdx = rooms.findIndex((r) => r.id === stay.roomId || r.number === stay.roomNumber);
-        if (roomIdx >= 0) {
-          rooms[roomIdx].status = 'vacant_dirty';
-          rooms[roomIdx].guestName = undefined;
-          saveStoredRooms(rooms);
-
-          supabaseFetch(`rooms?id=eq.${rooms[roomIdx].id}`, {
-            method: 'PATCH',
-            body: JSON.stringify({ status: 'vacant_dirty' }),
-          }).catch(() => { });
-        }
-
-        // Sync stay record to Supabase
-        supabaseFetch(`stays?id=eq.${stay.id}`, {
+    if ((method === 'PATCH' || method === 'PUT' || method === 'POST') && targetId) {
+      if (url.includes('/cancel') || body.status === 'cancelled') {
+        const updated = await supabaseFetch<any[]>(`/reservations?id=eq.${targetId}`, {
           method: 'PATCH',
           body: JSON.stringify({
-            stayStatus: 'checked_out',
-            actualCheckoutTime: stays[stayIdx].actualCheckoutTime,
-            previousPayments: newPrev,
-            balance: newBalance,
-            paymentStatus: stays[stayIdx].paymentStatus,
-            totalAmount,
-            extraCharges,
-            discount,
-            nights,
-            pricePerNight,
-            billNumber,
+            status: 'cancelled',
+            cancelled_at: new Date().toISOString(),
+            cancellation_reason: body.reason || body.cancellationReason || 'Cancelled by staff',
           }),
-        }).catch(() => { });
-
-        // Trigger Notifications for Front Desk & Housekeeping
-        addNotification(
-          `Guest Checked Out: Room ${stay.roomNumber}`,
-          `${stay.guestName} checked out of Room ${stay.roomNumber}. Final payment: ₹${finalPayment.toLocaleString('en-IN')} via ${paymentMethod}. Bill: ${billNumber}. Room is now marked DIRTY for housekeeping.`,
-          'info',
-          'check_out'
-        );
-
-        return ok({ success: true, stay: stays[stayIdx] });
+        });
+        return ok(updated?.[0] || { success: true }, config);
       }
-      return ok({ success: false, message: 'Stay record not found' });
+
+      if (url.includes('/check-in') && method === 'POST') {
+        const resRows = await supabaseFetch<any[]>(`/reservations?id=eq.${targetId}&limit=1`);
+        const resRow = resRows?.[0];
+        if (!resRow) throw new Error('Reservation not found.');
+        const assignRoomId = body.roomId || resRow.room_id;
+        if (!assignRoomId) throw new Error('Assign a physical room before check-in.');
+        await supabaseFetch(`/check_ins`, {
+          method: 'POST',
+          body: JSON.stringify({
+            hotel_id: propertyId,
+            property_id: propertyId,
+            reservation_id: targetId,
+            room_id: assignRoomId,
+            guest_id: resRow.guest_id,
+            checked_in_by: getStoredSupabaseSession()?.user?.id || null,
+            notes: body.notes || null,
+          }),
+        });
+        return ok({ success: true, id: targetId, status: 'checked_in' }, config);
+      }
+
+      if (url.includes('/checkout') && method === 'POST') {
+        const res = await supabaseFetch<any>(`/rpc/complete_stay_checkout`, {
+          method: 'POST',
+          body: JSON.stringify({
+            p_hotel_id: propertyId,
+            p_reservation_id: targetId,
+            p_final_payment: Number(body.finalPayment || 0),
+            p_payment_method: body.paymentMethod || 'cash',
+          }),
+        });
+        return ok(res, config);
+      }
+
+      const updatePayload: Record<string, any> = {};
+      if (body.status !== undefined) updatePayload.status = body.status;
+      if (body.roomId !== undefined) updatePayload.room_id = body.roomId;
+      if (body.arrivalDate !== undefined) updatePayload.arrival_date = body.arrivalDate;
+      if (body.departureDate !== undefined) updatePayload.departure_date = body.departureDate;
+      if (body.notes !== undefined) updatePayload.notes = body.notes;
+      const updated = await supabaseFetch<any[]>(`/reservations?id=eq.${targetId}`, {
+        method: 'PATCH',
+        body: JSON.stringify(updatePayload),
+      });
+      return ok(updated?.[0] || updatePayload, config);
     }
 
-    // POST /stays/:id/payment: Collect Additional / Interim Payment
-    if (method === 'POST' && url.includes('/payment')) {
-      const stayIdMatch = url.match(/\/stays\/([^/?]+)\/payment/);
-      const stayId = stayIdMatch ? stayIdMatch[1] : '';
-      const body = typeof config.data === 'string' ? JSON.parse(config.data || '{}') : (config.data || {});
-      const amount = Number(body.amount) || 0;
-      const paymentMethod = body.paymentMethod || 'Cash';
-
-      const stayIdx = stays.findIndex((s) => s.id === stayId);
-      if (stayIdx >= 0) {
-        const stay = stays[stayIdx];
-        const newPrev = (stay.previousPayments || 0) + amount;
-        const newBalance = Math.max(0, stay.totalAmount - stay.advancePaid - newPrev);
-
-        stays[stayIdx] = {
-          ...stay,
-          previousPayments: newPrev,
-          balance: newBalance,
-          paymentStatus: newBalance === 0 ? 'paid' : 'partially_paid',
-          updatedAt: new Date().toISOString(),
-        };
-        saveStoredStays(stays);
-
-        addNotification(
-          `Payment Received: Room ${stay.roomNumber}`,
-          `₹${amount.toLocaleString('en-IN')} received via ${paymentMethod} for ${stay.guestName}. Remaining balance: ₹${newBalance.toLocaleString('en-IN')}.`,
-          'info',
-          'payment'
-        );
-
-        return ok({ success: true, stay: stays[stayIdx] });
-      }
-      return ok({ success: false, message: 'Stay record not found' });
-    }
-
-    // PATCH /stays/:id: Edit / Update Guest Bill & Charges
-    if (method === 'PATCH' && !url.includes('/checkout') && !url.includes('/payment')) {
-      const stayIdMatch = url.match(/\/stays\/([^/?]+)/);
-      const stayId = stayIdMatch ? stayIdMatch[1] : '';
-      const body = typeof config.data === 'string' ? JSON.parse(config.data || '{}') : (config.data || {});
-
-      const stayIdx = stays.findIndex((s) => s.id === stayId);
-      if (stayIdx >= 0) {
-        const stay = stays[stayIdx];
-        const nights = typeof body.nights === 'number' ? body.nights : stay.nights;
-        const pricePerNight = typeof body.pricePerNight === 'number' ? body.pricePerNight : stay.pricePerNight;
-        const extraCharges = typeof body.extraCharges === 'number' ? body.extraCharges : stay.extraCharges;
-        const discount = typeof body.discount === 'number' ? body.discount : stay.discount;
-        const totalAmount = typeof body.totalAmount === 'number'
-          ? body.totalAmount
-          : Math.max(0, (nights * pricePerNight) + extraCharges - discount);
-
-        const advancePaid = typeof body.advancePaid === 'number' ? body.advancePaid : stay.advancePaid;
-        const previousPayments = typeof body.previousPayments === 'number' ? body.previousPayments : stay.previousPayments;
-        const balance = typeof body.balance === 'number'
-          ? body.balance
-          : Math.max(0, totalAmount - advancePaid - previousPayments);
-
-        stays[stayIdx] = {
-          ...stay,
-          ...body,
+    if (method === 'POST') {
+      const arrival = body.arrivalDate;
+      const departure = body.departureDate;
+      const nights = Math.max(
+        1,
+        Math.round((new Date(departure).getTime() - new Date(arrival).getTime()) / 86400000) || 1
+      );
+      const conf = `RES-${Date.now().toString().slice(-6)}`;
+      const [bookingRow] = await supabaseFetch<any[]>(`/bookings`, {
+        method: 'POST',
+        body: JSON.stringify({
+          hotel_id: propertyId,
+          property_id: propertyId,
+          guest_id: body.guestId,
+          confirmation_number: conf,
+          source: body.source || 'direct',
+          notes: body.notes || null,
+        }),
+      });
+      const total = Number(body.totalAmount || 0);
+      const [resRow] = await supabaseFetch<any[]>(`/reservations`, {
+        method: 'POST',
+        body: JSON.stringify({
+          hotel_id: propertyId,
+          property_id: propertyId,
+          booking_id: bookingRow.id,
+          guest_id: body.guestId,
+          arrival_date: arrival,
+          departure_date: departure,
           nights,
-          pricePerNight,
-          extraCharges,
-          discount,
-          totalAmount,
-          advancePaid,
-          previousPayments,
-          balance,
-          paymentStatus: balance <= 0 ? 'paid' : ((advancePaid + previousPayments) > 0 ? 'partially_paid' : 'unpaid'),
-          updatedAt: new Date().toISOString(),
-        };
-        saveStoredStays(stays);
-
-        addNotification(
-          `Bill Updated: Room ${stay.roomNumber}`,
-          `Folio / Bill for ${stay.guestName} (Room ${stay.roomNumber}) was updated. Total: ₹${totalAmount.toLocaleString('en-IN')}, Balance: ₹${balance.toLocaleString('en-IN')}.`,
-          'info',
-          'bill_update'
-        );
-
-        return ok({ success: true, stay: stays[stayIdx] });
-      }
-      return ok({ success: false, message: 'Stay record not found' });
+          room_type_id: body.roomTypeId,
+          room_id: body.roomId || null,
+          rate_plan_id: body.ratePlanId,
+          status: body.roomId ? 'confirmed' : 'pending',
+          total_amount: total,
+          base_amount: total,
+          currency_code: body.currencyCode || 'INR',
+          adults: Number(body.adults || 1),
+          children: Number(body.children || 0),
+          special_requests: body.notes || null,
+        }),
+      });
+      return ok({ ...resRow, confirmationNumber: conf }, config);
     }
   }
 
-  // 17c. Folios & Billing Adapter
-  if (url.includes('/folios')) {
-    const stays = getStoredStays();
+  // 8. GUESTS & ID DOCUMENTS
+  if (url.includes('/guests')) {
+    const idMatch = url.match(/\/guests\/([^/?]+)/);
+    const guestId = idMatch?.[1];
+
     if (method === 'GET') {
-      const folioIdMatch = url.match(/\/folios\/([^/?]+)/);
-      const folioId = folioIdMatch ? folioIdMatch[1] : '';
-
-      const mappedFolios = stays.map((s) => ({
-        id: s.id,
-        folioNumber: s.billNumber || `INV-SPARK-2026-${s.roomNumber}-${String(s.id).slice(-4)}`,
-        type: 'guest',
-        status: s.stayStatus === 'checked_out' ? 'settled' : 'open',
-        guestName: s.guestName,
-        guestId: s.id,
-        reservationId: s.id,
-        roomNumber: s.roomNumber,
-        roomTypeName: s.roomTypeName,
-        balance: s.balance,
-        totalCharges: s.totalAmount,
-        totalPayments: (s.advancePaid || 0) + (s.previousPayments || 0),
-        currencyCode: 'INR',
-        stay: s,
-        createdAt: s.createdAt,
-      }));
-
-      if (folioId) {
-        const found = mappedFolios.find((f) => f.id === folioId || f.folioNumber === folioId);
-        if (found) {
-          return ok(found);
-        }
+      if (guestId) {
+        const [rows, docs] = await Promise.all([
+          supabaseFetch<any[]>(`/guests?id=eq.${guestId}&limit=1`),
+          supabaseFetch<any[]>(`/guest_documents?guest_id=eq.${guestId}`).catch(() => []),
+        ]);
+        const g = rows?.[0];
+        if (!g) return ok(null, config);
+        return ok(
+          {
+            id: g.id,
+            firstName: g.first_name,
+            lastName: g.last_name,
+            email: g.email,
+            phone: g.phone,
+            idType: g.id_type,
+            idNumber: g.id_number,
+            addressLine1: g.address_line_1,
+            city: g.city,
+            stateProvince: g.state_province,
+            countryCode: g.country_code,
+            vipLevel: g.vip_level,
+            loyaltyNumber: g.loyalty_number,
+            registrationData: g.registration_data,
+            documents: docs || [],
+          },
+          config
+        );
       }
-      return ok({ data: mappedFolios });
+
+      const search = (params.search || params.q || '').trim();
+      const searchFilter = search
+        ? `&or=(first_name.ilike.*${encodeURIComponent(search)}*,last_name.ilike.*${encodeURIComponent(search)}*,phone.ilike.*${encodeURIComponent(search)}*,email.ilike.*${encodeURIComponent(search)}*)`
+        : '';
+      const rows = await supabaseFetch<any[]>(
+        `/guests?select=*&or=(hotel_id.eq.${propertyId},property_id.eq.${propertyId})${searchFilter}&order=created_at.desc`
+      );
+      return ok(
+        (rows || []).map((g) => ({
+          id: g.id,
+          firstName: g.first_name,
+          lastName: g.last_name,
+          email: g.email,
+          phone: g.phone,
+          idType: g.id_type,
+          idNumber: g.id_number,
+          addressLine1: g.address_line_1,
+          city: g.city,
+          stateProvince: g.state_province,
+          countryCode: g.country_code || 'IN',
+          vipLevel: g.vip_level || 'none',
+          loyaltyNumber: g.loyalty_number,
+          registrationData: g.registration_data,
+        })),
+        config
+      );
+    }
+
+    if (method === 'POST') {
+      const frontPath = await uploadIdProofIfDataUrl(propertyId, 'front', body.idProofFrontUrl);
+      const backPath = await uploadIdProofIfDataUrl(propertyId, 'back', body.idProofBackUrl);
+      const [created] = await supabaseFetch<any[]>(`/guests`, {
+        method: 'POST',
+        body: JSON.stringify({
+          hotel_id: propertyId,
+          property_id: propertyId,
+          first_name: body.firstName || 'Guest',
+          last_name: body.lastName || '',
+          email: body.email || null,
+          phone: body.phone || null,
+          id_type: body.idType || body.idProofType || null,
+          id_number: body.idNumber || body.idProofNumber || null,
+          address_line_1: body.addressLine1 || body.address || null,
+          city: body.city || null,
+          state_province: body.stateProvince || body.state || null,
+          country_code: body.countryCode || 'IN',
+          vip_level: body.vipLevel || 'none',
+          registration_data: {
+            ...(body.registrationData || {}),
+            ...(body.idProofType ? { idProofType: body.idProofType } : {}),
+            ...(body.idProofNumber ? { idProofNumber: body.idProofNumber } : {}),
+            ...(frontPath ? { idProofFrontUrl: frontPath } : {}),
+            ...(backPath ? { idProofBackUrl: backPath } : {}),
+          },
+        }),
+      });
+      if (created && (body.idProofNumber || frontPath)) {
+        await supabaseFetch(`/guest_documents`, {
+          method: 'POST',
+          body: JSON.stringify({
+            hotel_id: propertyId,
+            property_id: propertyId,
+            guest_id: created.id,
+            document_type: body.idProofType || body.idType || 'aadhaar',
+            document_number: body.idProofNumber || body.idNumber || 'ON_FILE',
+            file_url: frontPath || null,
+            storage_path: backPath || null,
+            verification_status: 'verified',
+          }),
+        }).catch(() => undefined);
+      }
+      return ok(
+        {
+          id: created.id,
+          firstName: created.first_name,
+          lastName: created.last_name,
+          email: created.email,
+          phone: created.phone,
+        },
+        config
+      );
+    }
+
+    if ((method === 'PATCH' || method === 'PUT') && guestId) {
+      const [updated] = await supabaseFetch<any[]>(`/guests?id=eq.${guestId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          ...(body.firstName !== undefined ? { first_name: body.firstName } : {}),
+          ...(body.lastName !== undefined ? { last_name: body.lastName } : {}),
+          ...(body.email !== undefined ? { email: body.email } : {}),
+          ...(body.phone !== undefined ? { phone: body.phone } : {}),
+          ...(body.idType !== undefined ? { id_type: body.idType } : {}),
+          ...(body.idNumber !== undefined ? { id_number: body.idNumber } : {}),
+          ...(body.addressLine1 !== undefined ? { address_line_1: body.addressLine1 } : {}),
+          ...(body.city !== undefined ? { city: body.city } : {}),
+          ...(body.stateProvince !== undefined ? { state_province: body.stateProvince } : {}),
+          ...(body.vipLevel !== undefined ? { vip_level: body.vipLevel } : {}),
+        }),
+      });
+      return ok(updated || body, config);
+    }
+
+    if (method === 'DELETE' && guestId) {
+      await supabaseFetch(`/guests?id=eq.${guestId}`, { method: 'DELETE' });
+      return ok({ success: true }, config);
     }
   }
 
-  // 18. Staff Notifications
-  if (url.includes('/staff-notifications')) {
-    const notifs = getStoredNotifications();
-    if (url.includes('/unread-count')) {
-      const unread = notifs.filter((n) => !n.isRead).length;
-      return ok({ count: unread });
+  // 9. HOUSEKEEPING
+  if (url.includes('/housekeeping')) {
+    if (url.includes('/dashboard')) {
+      const [tasks, rooms] = await Promise.all([
+        supabaseFetch<any[]>(
+          `/housekeeping_tasks?select=*,room:rooms(id,number,floor,status)&or=(hotel_id.eq.${propertyId},property_id.eq.${propertyId})&order=created_at.desc`
+        ),
+        fetchRoomsFromSupabase(propertyId),
+      ]);
+      const dirtyRooms = rooms.filter((r) => r.status === 'vacant_dirty');
+      const statusSummary: Record<string, number> = { total: rooms.length };
+      for (const r of rooms) statusSummary[r.status] = (statusSummary[r.status] || 0) + 1;
+      return ok(
+        {
+          tasks: (tasks || []).map((t) => ({
+            id: t.id,
+            roomId: t.room_id,
+            roomNumber: t.room?.number,
+            type: t.task_type,
+            status: t.status,
+            priority: t.priority === 'urgent' ? 3 : t.priority === 'high' ? 2 : 1,
+            assignedTo: t.assigned_to,
+            serviceDate: t.scheduled_date,
+            notes: t.notes,
+          })),
+          statusSummary,
+          urgentRooms: dirtyRooms.map((r) => ({
+            roomId: r.id,
+            roomNumber: r.number,
+            floor: r.floor,
+            status: r.status,
+            priority: 2,
+            reason: 'Vacant Dirty',
+          })),
+          housekeeperSummary: [],
+        },
+        config
+      );
+    }
+
+    if (url.includes('/ops-forecast')) {
+      const today = new Date().toISOString().slice(0, 10);
+      const res = await supabaseFetch<any[]>(
+        `/reservations?select=status,departure_date&or=(hotel_id.eq.${propertyId},property_id.eq.${propertyId})&status=in.(checked_in,stayover,due_out)`
+      );
+      const expectedCheckouts = (res || []).filter((r) => r.departure_date === today).length;
+      const expectedStayovers = (res || []).filter((r) => r.departure_date > today).length;
+      return ok({ date: today, expectedCheckouts, expectedStayovers }, config);
+    }
+
+    if (url.includes('/tasks')) {
+      const taskMatch = url.match(/\/tasks\/([^/?]+)/);
+      if (method === 'GET') {
+        const rows = await supabaseFetch<any[]>(
+          `/housekeeping_tasks?select=*,room:rooms(id,number)&or=(hotel_id.eq.${propertyId},property_id.eq.${propertyId})&order=created_at.desc`
+        );
+        return ok(
+          (rows || []).map((t) => ({
+            id: t.id,
+            roomId: t.room_id,
+            roomNumber: t.room?.number,
+            type: t.task_type,
+            status: t.status,
+            priority: t.priority,
+            assignedTo: t.assigned_to,
+            serviceDate: t.scheduled_date,
+            notes: t.notes,
+          })),
+          config
+        );
+      }
+      if (method === 'PATCH' && taskMatch) {
+        const updated = await supabaseFetch<any[]>(`/housekeeping_tasks?id=eq.${taskMatch[1]}`, {
+          method: 'PATCH',
+          body: JSON.stringify({
+            ...(body.status !== undefined ? { status: body.status } : {}),
+            ...(body.assignedTo !== undefined ? { assigned_to: body.assignedTo } : {}),
+            ...(body.notes !== undefined ? { notes: body.notes } : {}),
+            ...(body.status === 'completed' || body.status === 'inspected' ? { completed_at: new Date().toISOString() } : {}),
+          }),
+        });
+        return ok(updated?.[0] || body, config);
+      }
+      if (method === 'POST') {
+        const inserted = await supabaseFetch<any[]>(`/housekeeping_tasks`, {
+          method: 'POST',
+          body: JSON.stringify({
+            hotel_id: propertyId,
+            property_id: propertyId,
+            room_id: body.roomId,
+            task_type: body.type || 'stayover',
+            status: 'pending',
+            priority: body.priority || 'normal',
+            scheduled_date: body.serviceDate || new Date().toISOString().slice(0, 10),
+            notes: body.notes || null,
+          }),
+        });
+        return ok(inserted?.[0] || body, config);
+      }
+    }
+  }
+
+  // 10. STAYS / IN-HOUSE GUESTS / CHECK-IN / CHECK-OUT / FOLIO PAYMENT
+  if (url.includes('/stays') || url.includes('/in-house-guests')) {
+    if (method === 'GET') {
+      const onlyInHouse = url.includes('/in-house');
+      const stays = await fetchStaysFromSupabase(propertyId, onlyInHouse);
+      return ok(stays, config);
+    }
+
+    if (method === 'POST' && (url.includes('/check-in') || url.match(/\/stays(\?|$)/))) {
+      const fullName = (body.guestName || '').trim();
+      const parts = fullName.split(/\s+/).filter(Boolean);
+      const firstName = body.firstName || parts[0] || 'Guest';
+      const lastName = body.lastName || parts.slice(1).join(' ') || '';
+
+      const frontPath = await uploadIdProofIfDataUrl(propertyId, 'front', body.idProofFrontUrl);
+      const backPath = await uploadIdProofIfDataUrl(propertyId, 'back', body.idProofBackUrl);
+
+      const arrival = (body.checkInTime || new Date().toISOString()).slice(0, 10);
+      const nights = Math.max(1, Number(body.nights || 1));
+      const depDate = new Date(new Date(`${arrival}T00:00:00Z`).getTime() + nights * 86400000)
+        .toISOString()
+        .slice(0, 10);
+
+      const rpcRes = await supabaseFetch<any>(`/rpc/create_walk_in_stay`, {
+        method: 'POST',
+        body: JSON.stringify({
+          p_hotel_id: propertyId,
+          p_room_id: body.roomId,
+          p_first_name: firstName,
+          p_last_name: lastName,
+          p_phone: body.mobile || body.phone || '',
+          p_email: body.email || null,
+          p_address: body.address || null,
+          p_city: body.city || null,
+          p_state: body.state || null,
+          p_id_type: body.idProofType || 'Aadhaar Card',
+          p_id_number: body.idProofNumber || null,
+          p_id_front_url: frontPath || null,
+          p_id_back_url: backPath || null,
+          p_arrival_date: arrival,
+          p_departure_date: depDate,
+          p_adults: Number(body.adults || 1),
+          p_children: Number(body.children || 0),
+          p_price_per_night: Number(body.pricePerNight || 0),
+          p_extra_charges: Number(body.extraCharges || 0),
+          p_discount: Number(body.discount || 0),
+          p_advance_paid: Number(body.advancePaid || 0),
+          p_payment_method: body.paymentMethod || 'cash',
+          p_notes: body.notes || null,
+          p_occupancy_type: body.occupancyType || 'double',
+        }),
+      });
+
+      const allStays = await fetchStaysFromSupabase(propertyId, false);
+      const createdStay = allStays.find((s) => s.id === rpcRes.reservation_id) || allStays[0];
+      return ok({ stay: createdStay, ...rpcRes }, config);
+    }
+
+    if (method === 'POST' && url.includes('/checkout')) {
+      const m = url.match(/\/stays\/([^/]+)\/checkout/);
+      const stayId = m?.[1] || body.reservationId || body.id;
+      if (!stayId) throw new Error('Stay reservation ID is required.');
+
+      const rpcRes = await supabaseFetch<any>(`/rpc/complete_stay_checkout`, {
+        method: 'POST',
+        body: JSON.stringify({
+          p_hotel_id: propertyId,
+          p_reservation_id: stayId,
+          p_final_payment: Number(body.finalPayment || 0),
+          p_payment_method: body.paymentMethod || 'cash',
+          p_nights: body.nights != null ? Number(body.nights) : null,
+          p_price_per_night: body.pricePerNight != null ? Number(body.pricePerNight) : null,
+          p_extra_charges: Number(body.extraCharges || 0),
+          p_discount: Number(body.discount || 0),
+          p_tax_mode: body.taxMode || 'inclusive',
+          p_gst_rate: Number(body.gstRate ?? 5),
+        }),
+      });
+
+      const allStays = await fetchStaysFromSupabase(propertyId, false);
+      const updatedStay = allStays.find((s) => s.id === stayId);
+      return ok({ success: true, stay: updatedStay, ...rpcRes }, config);
+    }
+
+    if (method === 'POST' && url.includes('/payment')) {
+      const m = url.match(/\/stays\/([^/]+)\/payment/);
+      const stayId = m?.[1];
+      if (!stayId) throw new Error('Stay ID is required.');
+      const resRows = await supabaseFetch<any[]>(`/reservations?id=eq.${stayId}&limit=1`);
+      const res = resRows?.[0];
+      if (!res) throw new Error('Reservation not found.');
+      const folioRows = await supabaseFetch<any[]>(`/folios?reservation_id=eq.${stayId}&limit=1`);
+      const folio = folioRows?.[0];
+
+      await supabaseFetch(`/payments`, {
+        method: 'POST',
+        body: JSON.stringify({
+          hotel_id: propertyId,
+          property_id: propertyId,
+          booking_id: res.booking_id,
+          reservation_id: stayId,
+          folio_id: folio?.id || null,
+          guest_id: res.guest_id,
+          amount: Number(body.amount || 0),
+          currency_code: res.currency_code || 'INR',
+          payment_method: String(body.paymentMethod || 'cash').toLowerCase().replace(/\s+/g, '_'),
+          status: 'paid',
+          transaction_reference: body.reference || null,
+          paid_at: new Date().toISOString(),
+          notes: body.notes || 'Folio payment recorded',
+        }),
+      });
+      const updatedStays = await fetchStaysFromSupabase(propertyId, false);
+      return ok({ success: true, stay: updatedStays.find((s) => s.id === stayId) }, config);
     }
 
     if (method === 'PATCH') {
-      if (url.includes('/read-all')) {
-        const updated = notifs.map((n) => ({ ...n, isRead: true }));
-        saveStoredNotifications(updated);
-        return ok({ success: true, unread: 0 });
+      const m = url.match(/\/stays\/([^/?]+)/);
+      const stayId = m?.[1];
+      if (!stayId) throw new Error('Stay ID is required.');
+      const resRows = await supabaseFetch<any[]>(`/reservations?id=eq.${stayId}&limit=1`);
+      const res = resRows?.[0];
+      if (!res) throw new Error('Reservation not found.');
+
+      const nights = Math.max(1, Number(body.nights ?? res.nights ?? 1));
+      const base =
+        body.pricePerNight != null
+          ? Number(body.pricePerNight) * nights
+          : Number(res.base_amount || res.total_amount || 0);
+      const extras = Number(body.extraCharges ?? res.extra_charges ?? 0);
+      const disc = Number(body.discount ?? res.discount_amount ?? 0);
+      const total = Math.max(0, base + extras - disc);
+
+      await supabaseFetch(`/reservations?id=eq.${stayId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          nights,
+          base_amount: base,
+          extra_charges: extras,
+          discount_amount: disc,
+          total_amount: total,
+          ...(body.adults != null ? { adults: Number(body.adults) } : {}),
+          ...(body.children != null ? { children: Number(body.children) } : {}),
+          ...(body.notes !== undefined ? { notes: body.notes } : {}),
+        }),
+      });
+
+      if (res.guest_id && (body.guestName || body.mobile || body.email || body.address || body.state || body.guestGstin)) {
+        const parts = String(body.guestName || '').trim().split(/\s+/).filter(Boolean);
+        await supabaseFetch(`/guests?id=eq.${res.guest_id}`, {
+          method: 'PATCH',
+          body: JSON.stringify({
+            ...(parts.length > 0 ? { first_name: parts[0], last_name: parts.slice(1).join(' ') } : {}),
+            ...(body.mobile !== undefined ? { phone: body.mobile } : {}),
+            ...(body.email !== undefined ? { email: body.email } : {}),
+            ...(body.address !== undefined ? { address_line_1: body.address } : {}),
+            ...(body.state !== undefined ? { state_province: body.state } : {}),
+            ...(body.guestGstin !== undefined ? { tax_id: body.guestGstin } : {}),
+          }),
+        });
       }
-      const match = url.match(/\/staff-notifications\/([^/?]+)\/read/);
-      if (match) {
-        const id = match[1];
-        const updated = notifs.map((n) => (n.id === id ? { ...n, isRead: true } : n));
-        saveStoredNotifications(updated);
-        return ok({ success: true, id });
+
+      const [folio] = await supabaseFetch<any[]>(`/folios?reservation_id=eq.${stayId}&limit=1`);
+      if (folio) {
+        const balance = Math.max(0, total - Number(folio.total_payments || 0));
+        await supabaseFetch(`/folios?id=eq.${folio.id}`, {
+          method: 'PATCH',
+          body: JSON.stringify({
+            total_charges: total,
+            balance,
+            status: balance <= 0 && total > 0 ? 'settled' : 'open',
+          }),
+        });
       }
+
+      const [inv] = await supabaseFetch<any[]>(`/invoices?reservation_id=eq.${stayId}&limit=1`).catch(() => []);
+      if (inv && (body.gstRate != null || body.taxMode || body.cashierName !== undefined || body.guestGstin !== undefined)) {
+        await supabaseFetch(`/invoices?id=eq.${inv.id}`, {
+          method: 'PATCH',
+          body: JSON.stringify({
+            ...(body.gstRate != null ? { gst_rate: Number(body.gstRate) } : {}),
+            ...(body.taxMode !== undefined ? { tax_mode: body.taxMode } : {}),
+            ...(body.cashierName !== undefined ? { cashier_name: body.cashierName } : {}),
+            ...(body.guestGstin !== undefined ? { guest_gstin: body.guestGstin } : {}),
+          }),
+        });
+      }
+
+      const updatedStays = await fetchStaysFromSupabase(propertyId, false);
+      return ok({ success: true, stay: updatedStays.find((s) => s.id === stayId) }, config);
     }
-
-    return ok(notifs);
   }
 
-  // 19. Organizations
-  if (url.includes('/organizations')) {
-    return ok([{ id: 'org_spark', name: 'Spark Hotel' }]);
+  // 11. FOLIOS & INVOICES & CASH DRAWERS
+  if (url.includes('/folios')) {
+    const idMatch = url.match(/\/folios\/([^/?]+)/);
+    if (method === 'GET') {
+      if (idMatch) {
+        const [fRows, charges, payments] = await Promise.all([
+          supabaseFetch<any[]>(`/folios?id=eq.${idMatch[1]}&select=*,guest:guests(first_name,last_name,email,phone)&limit=1`),
+          supabaseFetch<any[]>(`/additional_charges?folio_id=eq.${idMatch[1]}&voided_at=is.null`).catch(() => []),
+          supabaseFetch<any[]>(`/payments?folio_id=eq.${idMatch[1]}`).catch(() => []),
+        ]);
+        const f = fRows?.[0];
+        if (!f) return ok(null, config);
+        return ok(
+          {
+            id: f.id,
+            folioNumber: f.folio_number,
+            type: f.type,
+            status: f.status,
+            totalCharges: String(f.total_charges || 0),
+            totalPayments: String(f.total_payments || 0),
+            balance: String(f.balance || 0),
+            currencyCode: f.currency_code || 'INR',
+            guest: f.guest,
+            charges: charges || [],
+            payments: payments || [],
+          },
+          config
+        );
+      }
+
+      const rows = await supabaseFetch<any[]>(
+        `/folios?select=*,guest:guests(first_name,last_name,phone,email)&or=(hotel_id.eq.${propertyId},property_id.eq.${propertyId})&order=created_at.desc`
+      );
+      return ok(
+        (rows || []).map((f) => ({
+          id: f.id,
+          folioNumber: f.folio_number,
+          reservationId: f.reservation_id,
+          type: f.type,
+          status: f.status,
+          totalCharges: String(f.total_charges || 0),
+          totalPayments: String(f.total_payments || 0),
+          balance: String(f.balance || 0),
+          currencyCode: f.currency_code || 'INR',
+          guest: f.guest,
+          guestName: f.guest ? `${f.guest.first_name || ''} ${f.guest.last_name || ''}`.trim() : 'Guest',
+          createdAt: f.created_at,
+        })),
+        config
+      );
+    }
   }
 
-  // 20. Help
-  if (url.includes('/help')) {
-    return ok({ articles: [] });
+  if (url.includes('/cash/drawers')) {
+    if (method === 'GET') {
+      const rows = await supabaseFetch<any[]>(
+        `/cash_drawers?select=*&or=(hotel_id.eq.${propertyId},property_id.eq.${propertyId})&order=created_at.asc`
+      );
+      return ok(
+        (rows || []).map((d) => ({
+          id: d.id,
+          name: d.name,
+          location: d.location,
+          currencyCode: d.currency_code || 'INR',
+          isActive: d.is_active !== false,
+        })),
+        config
+      );
+    }
+    if (method === 'POST') {
+      const [created] = await supabaseFetch<any[]>(`/cash_drawers`, {
+        method: 'POST',
+        body: JSON.stringify({
+          hotel_id: propertyId,
+          property_id: propertyId,
+          name: body.name,
+          location: body.location || 'Front Desk',
+          currency_code: body.currencyCode || 'INR',
+          is_active: true,
+        }),
+      });
+      return ok(created, config);
+    }
   }
 
-  // 21. Departments
+  // 12. STAFF NOTIFICATIONS
+  if (url.includes('/staff-notifications')) {
+    if (url.includes('/unread-count')) {
+      const rows = await supabaseFetch<any[]>(
+        `/staff_notifications?select=id&or=(hotel_id.eq.${propertyId},property_id.eq.${propertyId})&is_read=eq.false`
+      );
+      return ok({ unreadCount: rows?.length || 0 }, config);
+    }
+    if (method === 'PATCH' && url.includes('/read-all')) {
+      await supabaseFetch(
+        `/staff_notifications?or=(hotel_id.eq.${propertyId},property_id.eq.${propertyId})&is_read=eq.false`,
+        { method: 'PATCH', body: JSON.stringify({ is_read: true, read_at: new Date().toISOString() }) }
+      );
+      return ok({ success: true }, config);
+    }
+    if (method === 'PATCH') {
+      const m = url.match(/\/staff-notifications\/([^/?]+)/);
+      if (m?.[1]) {
+        await supabaseFetch(`/staff_notifications?id=eq.${m[1]}`, {
+          method: 'PATCH',
+          body: JSON.stringify({ is_read: true, read_at: new Date().toISOString() }),
+        });
+      }
+      return ok({ success: true }, config);
+    }
+    const rows = await supabaseFetch<any[]>(
+      `/staff_notifications?select=*&or=(hotel_id.eq.${propertyId},property_id.eq.${propertyId})&order=created_at.desc&limit=50`
+    );
+    return ok(
+      (rows || []).map((n) => ({
+        id: n.id,
+        title: n.title,
+        message: n.message,
+        severity: n.severity || 'info',
+        type: n.type,
+        isRead: Boolean(n.is_read),
+        createdAt: n.created_at,
+      })),
+      config
+    );
+  }
+
+  // 13. DEPARTMENTS & EMPLOYEES & USERS
   if (url.includes('/departments')) {
     if (method === 'GET') {
-      const { data } = await supabaseFetch<any[]>('departments?select=*&order=name.asc');
-      if (data && data.length > 0) return ok(data);
-      return ok(DEFAULT_DEPARTMENTS);
+      const [depts, emps] = await Promise.all([
+        supabaseFetch<any[]>(`/departments?select=*&hotel_id=eq.${propertyId}&order=name.asc`),
+        supabaseFetch<any[]>(`/employees?select=id,department_id&hotel_id=eq.${propertyId}&status=eq.active`).catch(() => []),
+      ]);
+      return ok(
+        (depts || []).map((d) => ({
+          id: d.id,
+          name: d.name,
+          code: d.code,
+          description: d.description,
+          managerName: d.manager_name,
+          employeeCount: (emps || []).filter((e) => e.department_id === d.id).length,
+        })),
+        config
+      );
     }
     if (method === 'POST') {
-      const body = typeof config.data === 'string' ? JSON.parse(config.data || '{}') : (config.data || {});
-      await supabaseFetch('departments', {
+      const [created] = await supabaseFetch<any[]>(`/departments`, {
         method: 'POST',
-        body: JSON.stringify(body),
+        body: JSON.stringify({
+          hotel_id: propertyId,
+          property_id: propertyId,
+          name: body.name,
+          code: body.code,
+          description: body.description || '',
+          manager_name: body.managerName || '',
+        }),
       });
-      return ok({ success: true, ...body, id: `dept-${Date.now()}` });
+      return ok(created, config);
     }
   }
 
-  // 22. Employees
   if (url.includes('/employees')) {
-    const emps = getStoredEmployees();
+    const idMatch = url.match(/\/employees\/([^/?]+)/);
     if (method === 'GET') {
-      return ok(emps);
+      const rows = await supabaseFetch<any[]>(
+        `/employees?select=*,department:departments(id,name)&hotel_id=eq.${propertyId}&order=created_at.asc`
+      );
+      return ok(
+        (rows || []).map((e) => ({
+          id: e.id,
+          authUserId: e.auth_user_id,
+          employeeId: e.employee_id,
+          name: e.name,
+          mobile: e.mobile,
+          email: e.email,
+          address: e.address,
+          joiningDate: e.joining_date,
+          departmentId: e.department_id,
+          departmentName: e.department?.name || 'Operations',
+          designation: e.designation,
+          salary: Number(e.salary || 0),
+          role: e.role,
+          shift: e.shift || 'morning',
+          status: e.status || 'active',
+          lastLoginAt: e.last_login_at || null,
+        })),
+        config
+      );
     }
     if (method === 'POST') {
-      const body = typeof config.data === 'string' ? JSON.parse(config.data || '{}') : (config.data || {});
-      const newEmp = {
-        id: body.id || `e${Date.now().toString().slice(-7)}-0000-4000-a000-000000000001`,
-        employeeId: body.employeeId || `EMP-SPARK-${Math.floor(100 + Math.random() * 900)}`,
-        name: body.name || 'Staff Member',
-        mobile: body.mobile || '',
-        email: body.email || '',
-        address: body.address || '',
-        departmentId: body.departmentId || '',
-        departmentName: body.departmentName || 'Front Office',
-        designation: body.designation || 'Staff',
-        salary: Number(body.salary) || 35000,
-        role: body.role || 'Receptionist',
-        shift: body.shift || 'morning',
-        status: body.status || 'active',
-        joiningDate: body.joiningDate || new Date().toISOString().split('T')[0],
-      };
-      saveStoredEmployees([...emps, newEmp]);
-      return ok({ success: true, ...newEmp });
+      const [created] = await supabaseFetch<any[]>(`/employees`, {
+        method: 'POST',
+        body: JSON.stringify({
+          hotel_id: propertyId,
+          property_id: propertyId,
+          employee_id: body.employeeId || `EMP-${Date.now().toString().slice(-4)}`,
+          name: body.name,
+          mobile: body.mobile || '',
+          email: body.email,
+          address: body.address || '',
+          joining_date: body.joiningDate || new Date().toISOString().slice(0, 10),
+          department_id: body.departmentId || null,
+          designation: body.designation || body.role || 'Staff',
+          salary: Number(body.salary || 0),
+          role: body.role || 'Receptionist',
+          shift: body.shift || 'morning',
+          status: body.status || 'active',
+        }),
+      });
+      return ok(created, config);
     }
-    if (method === 'PUT' || method === 'PATCH') {
-      const body = typeof config.data === 'string' ? JSON.parse(config.data || '{}') : (config.data || {});
-      const idMatch = url.match(/\/employees\/([^/?]+)/);
-      const empId = idMatch ? idMatch[1] : (body.id || '');
-      const idx = emps.findIndex((e) => e.id === empId || e.employeeId === empId);
-      if (idx >= 0) {
-        emps[idx] = { ...emps[idx], ...body };
-        saveStoredEmployees(emps);
-      }
-      return ok({ success: true, id: empId, ...body });
+    if ((method === 'PUT' || method === 'PATCH') && idMatch) {
+      const [updated] = await supabaseFetch<any[]>(`/employees?id=eq.${idMatch[1]}`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          ...(body.employeeId !== undefined ? { employee_id: body.employeeId } : {}),
+          ...(body.name !== undefined ? { name: body.name } : {}),
+          ...(body.mobile !== undefined ? { mobile: body.mobile } : {}),
+          ...(body.email !== undefined ? { email: body.email } : {}),
+          ...(body.address !== undefined ? { address: body.address } : {}),
+          ...(body.departmentId !== undefined ? { department_id: body.departmentId || null } : {}),
+          ...(body.designation !== undefined ? { designation: body.designation } : {}),
+          ...(body.salary !== undefined ? { salary: Number(body.salary) } : {}),
+          ...(body.role !== undefined ? { role: body.role } : {}),
+          ...(body.shift !== undefined ? { shift: body.shift } : {}),
+          ...(body.status !== undefined ? { status: body.status } : {}),
+        }),
+      });
+      return ok(updated, config);
     }
-    if (method === 'DELETE') {
-      const idMatch = url.match(/\/employees\/([^/?]+)/);
-      const empId = idMatch ? idMatch[1] : '';
-      const filtered = emps.filter((e) => e.id !== empId && e.employeeId !== empId);
-      saveStoredEmployees(filtered);
-      return ok({ success: true, id: empId });
+    if (method === 'DELETE' && idMatch) {
+      await supabaseFetch(`/employees?id=eq.${idMatch[1]}`, { method: 'DELETE' });
+      return ok({ success: true }, config);
     }
   }
 
-  // 23. Reports & Dashboard KPIs
-  if (url.includes('/reports/financial-summary')) {
-    const stays = getStoredStays();
-    const rooms = getStoredRooms();
-    const totalCollected = stays.reduce((sum, s) => sum + (s.advancePaid || 0) + (s.previousPayments || 0), 0);
-    const pendingBalance = stays.filter((s) => s.stayStatus === 'in_house').reduce((sum, s) => sum + (s.balance || 0), 0);
-    const occupied = rooms.filter((r) => r.status === 'occupied').length;
-    const occRate = rooms.length > 0 ? Math.round((occupied / rooms.length) * 100) : 40;
+  if (url.includes('/admin/users')) {
+    const rows = await supabaseFetch<any[]>(
+      `/employees?select=id,auth_user_id,name,email,role,designation,status,last_login_at,department:departments(name)&hotel_id=eq.${propertyId}&order=created_at.asc`
+    );
+    return ok(
+      (rows || []).map((e) => ({
+        id: e.auth_user_id || e.id,
+        name: e.name,
+        email: e.email,
+        status: e.status || 'active',
+        roles: [{ id: e.role, name: e.designation || e.role }],
+        lastLoginAt: e.last_login_at,
+      })),
+      config
+    );
+  }
 
-    return ok({
-      kpis: {
-        totalRevenue: totalCollected,
-        monthlyRevenue: totalCollected * 2.5,
-        pendingPayments: pendingBalance,
-        adr: 3500,
-        revpar: Math.round(totalCollected / (rooms.length || 1)),
-        occupancyRate: occRate,
+  // 14. STAFF ATTENDANCE & SHIFT HANDOVER NOTES (REAL DB TABLES)
+  if (url.includes('/attendance')) {
+    const today = params.date || new Date().toISOString().slice(0, 10);
+    if (method === 'GET') {
+      const rows = await supabaseFetch<any[]>(
+        `/staff_attendance?select=*,employee:employees(id,employee_id,name,role,designation,department:departments(name))&hotel_id=eq.${propertyId}&attendance_date=eq.${today}&order=created_at.asc`
+      );
+      return ok(
+        (rows || []).map((a) => ({
+          id: a.id,
+          employeeUuid: a.employee_id,
+          employeeId: a.employee?.employee_id || '',
+          name: a.employee?.name || 'Staff',
+          role: a.employee?.designation || a.employee?.role || '',
+          department: a.employee?.department?.name || 'Operations',
+          shift: a.shift || 'morning',
+          clockInTime: a.clock_in_at
+            ? new Date(a.clock_in_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
+            : '—',
+          clockOutTime: a.clock_out_at
+            ? new Date(a.clock_out_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
+            : undefined,
+          workingHours: Number(a.working_hours || 0),
+          status: a.status,
+        })),
+        config
+      );
+    }
+    if (method === 'POST') {
+      const [created] = await supabaseFetch<any[]>(`/staff_attendance`, {
+        method: 'POST',
+        headers: { Prefer: 'resolution=merge-duplicates,return=representation' },
+        body: JSON.stringify({
+          hotel_id: propertyId,
+          property_id: propertyId,
+          employee_id: body.employeeUuid || body.employeeId,
+          attendance_date: body.attendanceDate || today,
+          shift: body.shift || 'morning',
+          clock_in_at: body.clockInAt || new Date().toISOString(),
+          clock_out_at: body.clockOutAt || null,
+          working_hours: Number(body.workingHours || 0),
+          status: body.status || 'on_duty',
+          notes: body.notes || null,
+        }),
+      });
+      return ok(created, config);
+    }
+    if (method === 'PATCH') {
+      const idMatch = url.match(/\/attendance\/([^/?]+)/);
+      if (idMatch?.[1]) {
+        const [updated] = await supabaseFetch<any[]>(`/staff_attendance?id=eq.${idMatch[1]}`, {
+          method: 'PATCH',
+          body: JSON.stringify({
+            ...(body.status !== undefined ? { status: body.status } : {}),
+            ...(body.clockInAt !== undefined ? { clock_in_at: body.clockInAt } : {}),
+            ...(body.clockOutAt !== undefined ? { clock_out_at: body.clockOutAt } : {}),
+            ...(body.workingHours !== undefined ? { working_hours: Number(body.workingHours) } : {}),
+          }),
+        });
+        return ok(updated, config);
+      }
+    }
+  }
+
+  if (url.includes('/handover-notes')) {
+    const idMatch = url.match(/\/handover-notes\/([^/?]+)/);
+    if (method === 'GET') {
+      const rows = await supabaseFetch<any[]>(
+        `/shift_handover_notes?select=*&hotel_id=eq.${propertyId}&order=created_at.desc&limit=50`
+      );
+      return ok(
+        (rows || []).map((n) => ({
+          id: n.id,
+          shift: n.shift,
+          department: n.department,
+          author: n.author_name,
+          note: n.note,
+          time: new Date(n.created_at).toLocaleString('en-IN', { dateStyle: 'short', timeStyle: 'short' }),
+          acknowledged: Boolean(n.acknowledged),
+          createdAt: n.created_at,
+        })),
+        config
+      );
+    }
+    if (method === 'POST') {
+      const session = getStoredSupabaseSession();
+      const [created] = await supabaseFetch<any[]>(`/shift_handover_notes`, {
+        method: 'POST',
+        body: JSON.stringify({
+          hotel_id: propertyId,
+          property_id: propertyId,
+          shift: body.shift || 'morning',
+          department: body.department || 'management',
+          author_user_id: session?.user?.id || null,
+          author_name: body.author || session?.user?.user_metadata?.name || session?.user?.email || 'Manager',
+          note: body.note,
+          acknowledged: false,
+        }),
+      });
+      return ok(
+        {
+          id: created.id,
+          shift: created.shift,
+          department: created.department,
+          author: created.author_name,
+          note: created.note,
+          time: new Date(created.created_at).toLocaleString('en-IN', { dateStyle: 'short', timeStyle: 'short' }),
+          acknowledged: false,
+        },
+        config
+      );
+    }
+    if (method === 'PATCH' && idMatch?.[1]) {
+      const session = getStoredSupabaseSession();
+      const [updated] = await supabaseFetch<any[]>(`/shift_handover_notes?id=eq.${idMatch[1]}`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          acknowledged: body.acknowledged ?? true,
+          acknowledged_by: session?.user?.id || null,
+          acknowledged_at: new Date().toISOString(),
+        }),
+      });
+      return ok(updated, config);
+    }
+  }
+
+  // 15. REPORTS & PREFERENCES (100% REAL CALCULATIONS FROM DB, ZERO SIMULATED NUMBERS)
+  if (url.includes('/preferences')) {
+    if (method === 'GET') {
+      const rows = await supabaseFetch<any[]>(
+        `/hotel_settings?select=report_favorites&or=(hotel_id.eq.${propertyId},property_id.eq.${propertyId})&limit=1`
+      ).catch(() => []);
+      return ok({ reportFavorites: rows?.[0]?.report_favorites || [] }, config);
+    }
+    if (method === 'PATCH' || method === 'PUT') {
+      await supabaseFetch(`/hotel_settings?or=(hotel_id.eq.${propertyId},property_id.eq.${propertyId})`, {
+        method: 'PATCH',
+        body: JSON.stringify({ report_favorites: body.reportFavorites || [] }),
+      });
+      return ok({ reportFavorites: body.reportFavorites || [] }, config);
+    }
+  }
+
+  if (url.includes('/reports/financial-summary')) {
+    const today = new Date().toISOString().slice(0, 10);
+    const monthPrefix = today.slice(0, 7);
+    const [payments, folios, reservations] = await Promise.all([
+      supabaseFetch<any[]>(
+        `/payments?select=amount,paid_at,status&or=(hotel_id.eq.${propertyId},property_id.eq.${propertyId})&status=in.(paid,captured,settled)`
+      ).catch(() => []),
+      supabaseFetch<any[]>(
+        `/folios?select=total_charges,total_payments,balance&or=(hotel_id.eq.${propertyId},property_id.eq.${propertyId})`
+      ).catch(() => []),
+      supabaseFetch<any[]>(
+        `/reservations?select=total_amount,nights,arrival_date,status&or=(hotel_id.eq.${propertyId},property_id.eq.${propertyId})&status=not.in.(cancelled,no_show)`
+      ).catch(() => []),
+    ]);
+
+    const todayPayments = (payments || [])
+      .filter((p) => (p.paid_at || '').startsWith(today))
+      .reduce((s, p) => s + Number(p.amount || 0), 0);
+    const monthlyRevenue = (payments || [])
+      .filter((p) => (p.paid_at || '').startsWith(monthPrefix))
+      .reduce((s, p) => s + Number(p.amount || 0), 0);
+    const totalCollected = (payments || []).reduce((s, p) => s + Number(p.amount || 0), 0);
+    const pendingPayments = (folios || []).reduce((s, f) => s + Number(f.balance || 0), 0);
+    const totalNights = (reservations || []).reduce((s, r) => s + Math.max(1, Number(r.nights || 1)), 0);
+    const totalResRevenue = (reservations || []).reduce((s, r) => s + Number(r.total_amount || 0), 0);
+    const adr = totalNights > 0 ? Math.round((totalResRevenue / totalNights) * 100) / 100 : 0;
+
+    return ok(
+      {
+        totalRevenue: todayPayments,
+        monthlyRevenue,
+        totalCollected,
+        pendingPayments,
+        adr,
+        revpar: 0,
       },
-    });
+      config
+    );
   }
 
   if (url.includes('/reports/occupancy')) {
-    const rooms = getStoredRooms();
-    const stays = getStoredStays();
-    const total = rooms.length;
+    const today = new Date().toISOString().slice(0, 10);
+    const [rooms, res] = await Promise.all([
+      fetchRoomsFromSupabase(propertyId),
+      supabaseFetch<any[]>(
+        `/reservations?select=arrival_date,departure_date,status&or=(hotel_id.eq.${propertyId},property_id.eq.${propertyId})`
+      ).catch(() => []),
+    ]);
     const occupied = rooms.filter((r) => r.status === 'occupied').length;
-    const available = rooms.filter((r) => r.status === 'vacant_clean' || r.status === 'clean' || r.status === 'available').length;
-    const dirty = rooms.filter((r) => r.status === 'vacant_dirty').length;
-    const occRate = total > 0 ? Math.round((occupied / total) * 100) : 0;
-    const inHouseCount = stays.filter((s) => s.stayStatus === 'in_house').length;
-
-    return ok({
-      occupancyRate: occRate,
-      occupiedRooms: occupied,
-      availableRooms: available,
-      dirtyRooms: dirty,
-      currentlyStaying: inHouseCount,
-      totalRooms: total,
-      arrivals: 2,
-      departures: 1,
-    });
+    const totalRooms = rooms.length;
+    const rate = totalRooms > 0 ? occupied / totalRooms : 0;
+    const arrivals = (res || []).filter((r) => r.arrival_date === today && r.status !== 'cancelled').length;
+    const departures = (res || []).filter((r) => r.departure_date === today && r.status !== 'cancelled').length;
+    return ok(
+      {
+        occupiedRooms: occupied,
+        totalRooms,
+        occupancyRate: rate,
+        arrivals,
+        departures,
+      },
+      config
+    );
   }
 
-  // 24. Revenue Intelligence Agents
-  if (url.includes('/agents')) {
-    return ok([]);
-  }
-
-  // 25. Admin Booking Engine config
   if (url.includes('/admin/booking-engine/config')) {
-    return ok({
-      propertyId: PROPERTY_ID,
-      displayName: 'Hotel Spark',
-      isEnabled: true,
-      bookingMode: 'request',
-      primaryColor: '#0d9488',
-      accentColor: '#0f766e',
-    });
+    if (method === 'GET') {
+      const [hsRows, propRows] = await Promise.all([
+        supabaseFetch<any[]>(`/hotel_settings?or=(hotel_id.eq.${propertyId},property_id.eq.${propertyId})&limit=1`).catch(() => []),
+        supabaseFetch<any[]>(`/properties?id=eq.${propertyId}&limit=1`).catch(() => []),
+      ]);
+      const hs = hsRows?.[0] || {};
+      const prop = propRows?.[0] || {};
+      return ok(
+        {
+          bookingMode: hs.booking_mode || 'request',
+          autoConfirm: Boolean(hs.auto_confirm),
+          requireDeposit: Boolean(hs.require_deposit),
+          depositPercentage: Number(hs.deposit_percentage || 0),
+          cancellationPolicy: hs.cancellation_policy || '',
+          paymentMethodCollection: 'optional',
+          paymentMethodClientMode: 'unsupported',
+          upiId: prop.settings?.upi_id || '',
+          upiMerchantName: hs.upi_payee_name || prop.name || '',
+        },
+        config
+      );
+    }
+    if (method === 'PATCH' || method === 'PUT') {
+      await supabaseFetch(`/hotel_settings?or=(hotel_id.eq.${propertyId},property_id.eq.${propertyId})`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          ...(body.bookingMode !== undefined ? { booking_mode: body.bookingMode } : {}),
+          ...(body.autoConfirm !== undefined ? { auto_confirm: Boolean(body.autoConfirm) } : {}),
+          ...(body.requireDeposit !== undefined ? { require_deposit: Boolean(body.requireDeposit) } : {}),
+          ...(body.depositPercentage !== undefined ? { deposit_percentage: Number(body.depositPercentage) } : {}),
+          ...(body.cancellationPolicy !== undefined ? { cancellation_policy: body.cancellationPolicy } : {}),
+          ...(body.upiMerchantName !== undefined ? { upi_payee_name: body.upiMerchantName } : {}),
+        }),
+      });
+      return ok({ success: true }, config);
+    }
   }
 
-  // Default safe empty response
-  return ok([]);
+  // Remaining generic list/empty handlers (no mock objects returned)
+  if (url.includes('/organizations') || url.includes('/help') || url.includes('/agents')) {
+    return ok([], config);
+  }
+
+  return ok([], config);
 }

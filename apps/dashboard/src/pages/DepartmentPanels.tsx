@@ -32,9 +32,6 @@ import { useProperty } from '../context/PropertyContext';
 import { useToast } from '../components/ui/Toast';
 import { useDepartment, DEPARTMENTS_INFO, type DepartmentKey } from '../context/DepartmentContext';
 import {
-  getStoredStays,
-  getStoredRooms,
-  saveStoredRooms,
   type StoredStay,
   type StoredRoom,
 } from '../lib/supabaseAdapter';
@@ -48,27 +45,8 @@ interface ShiftHandoverNote {
   author: string;
   time: string;
   note: string;
-  status: 'pending' | 'acknowledged';
+  acknowledged?: boolean;
 }
-
-const DEFAULT_HANDOVER_NOTES: ShiftHandoverNote[] = [
-  {
-    id: 'note-001',
-    shift: 'morning',
-    author: 'Ramesh Rao (Front Office Mgr)',
-    time: 'Today, 01:45 PM',
-    note: 'Room 103 guest Anil Kumar Goud completed checkout smoothly. Room 201 guest requested extra clean towels and laundry pickup at 4:30 PM.',
-    status: 'acknowledged',
-  },
-  {
-    id: 'note-002',
-    shift: 'evening',
-    author: 'Priya Sharma (Senior Receptionist)',
-    time: 'Today, 05:15 PM',
-    note: 'Walk-in check-in for Room 202 completed with Aadhaar verification. Cash drawer balanced at ₹7,500. Night shift please run EOD report by 11:30 PM.',
-    status: 'pending',
-  },
-];
 
 export default function DepartmentPanels() {
   const { propertyId } = useProperty();
@@ -82,15 +60,6 @@ export default function DepartmentPanels() {
   const [checkoutStay, setCheckoutStay] = useState<StoredStay | null>(null);
   const [newHandoverText, setNewHandoverText] = useState('');
   const [selectedShiftForNote, setSelectedShiftForNote] = useState<'morning' | 'evening' | 'night'>('evening');
-  const [handoverNotes, setHandoverNotes] = useState<ShiftHandoverNote[]>(() => {
-    try {
-      const saved = localStorage.getItem('hotel_spark_handover_notes');
-      if (saved) return JSON.parse(saved);
-    } catch {
-      // ignore
-    }
-    return DEFAULT_HANDOVER_NOTES;
-  });
 
   // Determine current active shift by wall-clock hour
   const currentHour = new Date().getHours();
@@ -101,7 +70,7 @@ export default function DepartmentPanels() {
       ? 'evening'
       : 'night';
 
-  // Load Stays
+  // Load Stays, Rooms, Employees & Handover Notes from Supabase
   const { data: staysData } = useQuery({
     queryKey: ['stays', propertyId],
     queryFn: () => api.get('/v1/stays', { params: { propertyId } }).then((r) => r.data),
@@ -109,11 +78,9 @@ export default function DepartmentPanels() {
   });
   const allStays: StoredStay[] = useMemo(() => {
     const raw = staysData?.data ?? staysData;
-    if (Array.isArray(raw) && raw.length > 0) return raw;
-    return getStoredStays();
+    return Array.isArray(raw) ? raw : [];
   }, [staysData]);
 
-  // Load Rooms
   const { data: roomsData } = useQuery({
     queryKey: ['rooms', propertyId],
     queryFn: () => api.get('/v1/rooms', { params: { propertyId } }).then((r) => r.data),
@@ -121,9 +88,26 @@ export default function DepartmentPanels() {
   });
   const rooms: StoredRoom[] = useMemo(() => {
     const raw = roomsData?.data ?? roomsData;
-    if (Array.isArray(raw) && raw.length > 0) return raw;
-    return getStoredRooms();
+    return Array.isArray(raw) ? raw : [];
   }, [roomsData]);
+
+  const { data: employeesData } = useQuery({
+    queryKey: ['employees', propertyId],
+    queryFn: () => api.get('/v1/employees', { params: { propertyId } }).then((r) => r.data),
+    enabled: !!propertyId,
+  });
+  const employees: any[] = Array.isArray(employeesData?.data ?? employeesData)
+    ? (employeesData?.data ?? employeesData)
+    : [];
+
+  const { data: notesData } = useQuery({
+    queryKey: ['handover-notes', propertyId],
+    queryFn: () => api.get('/v1/handover-notes', { params: { propertyId } }).then((r) => r.data),
+    enabled: !!propertyId,
+  });
+  const handoverNotes: ShiftHandoverNote[] = Array.isArray(notesData?.data ?? notesData)
+    ? (notesData?.data ?? notesData)
+    : [];
 
   // In-House stays
   const inHouseStays = useMemo(() => {
@@ -148,31 +132,37 @@ export default function DepartmentPanels() {
   const oooRooms = rooms.filter((r) => r.status === 'out_of_order');
 
   // Toggle room cleaning status mutation
-  const toggleRoomStatus = (roomId: string, nextStatus: string) => {
-    const updated = rooms.map((r) => (r.id === roomId ? { ...r, status: nextStatus } : r));
-    saveStoredRooms(updated);
-    queryClient.invalidateQueries({ queryKey: ['rooms'] });
-    toast('success', `Room status updated to ${nextStatus.replace('_', ' ')}.`);
+  const toggleRoomStatus = async (roomId: string, nextStatus: string) => {
+    try {
+      await api.patch(`/v1/rooms/${roomId}`, { propertyId, status: nextStatus });
+      queryClient.invalidateQueries({ queryKey: ['rooms'] });
+      toast('success', `Room status updated to ${nextStatus.replace('_', ' ')}.`);
+    } catch (err: any) {
+      toast('error', err?.message || 'Failed to update room status.');
+    }
   };
 
   // Add handover note
-  const handleAddHandoverNote = (e: React.FormEvent) => {
+  const handleAddHandoverNote = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newHandoverText.trim()) return;
-    const newNote: ShiftHandoverNote = {
-      id: `note-${Date.now()}`,
-      shift: selectedShiftForNote,
-      author: 'Current In-Charge (Admin)',
-      time: `Today, ${new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}`,
-      note: newHandoverText.trim(),
-      status: 'pending',
-    };
-    const updatedNotes = [newNote, ...handoverNotes];
-    setHandoverNotes(updatedNotes);
-    localStorage.setItem('hotel_spark_handover_notes', JSON.stringify(updatedNotes));
-    setNewHandoverText('');
-    toast('success', 'Shift handover note recorded successfully.');
+    try {
+      await api.post('/v1/handover-notes', {
+        propertyId,
+        shift: selectedShiftForNote,
+        department: activeDepartment,
+        note: newHandoverText.trim(),
+      });
+      setNewHandoverText('');
+      queryClient.invalidateQueries({ queryKey: ['handover-notes'] });
+      toast('success', 'Shift handover note saved to database.');
+    } catch (err: any) {
+      toast('error', err?.message || 'Failed to save shift handover note.');
+    }
   };
+
+  const shiftEmployees = (shift: 'morning' | 'evening' | 'night') =>
+    employees.filter((e) => e.shift === shift && e.status === 'active');
 
   return (
     <div className="space-y-6">
@@ -345,7 +335,7 @@ export default function DepartmentPanels() {
             {currentShiftKey} Shift
           </div>
           <div className="text-[11px] text-telivity-slate mt-1 flex items-center justify-between">
-            <span>In-Charge: <strong>{currentShiftKey === 'morning' ? 'Ramesh Rao' : currentShiftKey === 'evening' ? 'Priya Sharma' : 'Raju Nayak'}</strong></span>
+            <span>In-Charge: <strong>{shiftEmployees(currentShiftKey)[0]?.name || 'Unassigned'}</strong></span>
             <span className="text-purple-700 font-bold flex items-center gap-0.5">Open Panel <ChevronRight size={12} /></span>
           </div>
         </div>
@@ -393,7 +383,7 @@ export default function DepartmentPanels() {
                 <h2 className="text-base font-bold text-telivity-navy flex items-center gap-2">
                   Front Desk & Reception Panel
                   <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-teal-100 text-teal-800">
-                    Dept Head: Ramesh Rao
+                    Active In-House: {inHouseStays.length}
                   </span>
                 </h2>
                 <p className="text-xs text-telivity-mid-grey">
@@ -676,16 +666,16 @@ export default function DepartmentPanels() {
               <p className="text-[11px] text-telivity-mid-grey mt-0.5">06:00 AM — 02:00 PM</p>
               <div className="mt-3 pt-2 border-t border-gray-200 text-xs space-y-1">
                 <div className="flex justify-between">
-                  <span className="text-telivity-mid-grey">Manager In-Charge:</span>
-                  <strong className="text-telivity-navy">Ramesh Rao</strong>
+                  <span className="text-telivity-mid-grey">Shift Lead:</span>
+                  <strong className="text-telivity-navy">{shiftEmployees('morning')[0]?.name || 'Unassigned'}</strong>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-telivity-mid-grey">Staff on Duty:</span>
-                  <strong className="text-telivity-navy">4 Employees</strong>
+                  <strong className="text-telivity-navy">{shiftEmployees('morning').length} Employees</strong>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-telivity-mid-grey">Cash Drawer Count:</span>
-                  <strong className="text-emerald-700">₹7,500 Verified</strong>
+                  <span className="text-telivity-mid-grey">Occupied Rooms:</span>
+                  <strong className="text-emerald-700">{occupiedRooms.length} Rooms</strong>
                 </div>
               </div>
             </div>
@@ -715,16 +705,16 @@ export default function DepartmentPanels() {
               <p className="text-[11px] text-telivity-mid-grey mt-0.5">02:00 PM — 10:00 PM</p>
               <div className="mt-3 pt-2 border-t border-gray-200 text-xs space-y-1">
                 <div className="flex justify-between">
-                  <span className="text-telivity-mid-grey">Manager In-Charge:</span>
-                  <strong className="text-telivity-navy">Priya Sharma</strong>
+                  <span className="text-telivity-mid-grey">Shift Lead:</span>
+                  <strong className="text-telivity-navy">{shiftEmployees('evening')[0]?.name || 'Unassigned'}</strong>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-telivity-mid-grey">Staff on Duty:</span>
-                  <strong className="text-telivity-navy">3 Employees</strong>
+                  <strong className="text-telivity-navy">{shiftEmployees('evening').length} Employees</strong>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-telivity-mid-grey">Expected Check-Ins:</span>
-                  <strong className="text-teal-700">2 Arrivals</strong>
+                  <span className="text-telivity-mid-grey">In-House Guests:</span>
+                  <strong className="text-teal-700">{inHouseStays.length} Active</strong>
                 </div>
               </div>
             </div>
@@ -754,16 +744,16 @@ export default function DepartmentPanels() {
               <p className="text-[11px] text-telivity-mid-grey mt-0.5">10:00 PM — 06:00 AM</p>
               <div className="mt-3 pt-2 border-t border-gray-200 text-xs space-y-1">
                 <div className="flex justify-between">
-                  <span className="text-telivity-mid-grey">Manager In-Charge:</span>
-                  <strong className="text-telivity-navy">Raju Nayak</strong>
+                  <span className="text-telivity-mid-grey">Shift Lead:</span>
+                  <strong className="text-telivity-navy">{shiftEmployees('night')[0]?.name || 'Unassigned'}</strong>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-telivity-mid-grey">Staff on Duty:</span>
-                  <strong className="text-telivity-navy">2 Employees</strong>
+                  <strong className="text-telivity-navy">{shiftEmployees('night').length} Employees</strong>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-telivity-mid-grey">Night Audit Status:</span>
-                  <strong className="text-purple-700">Ready for Run</strong>
+                  <span className="text-telivity-mid-grey">Clean Rooms:</span>
+                  <strong className="text-purple-700">{cleanRooms.length} / {rooms.length}</strong>
                 </div>
               </div>
             </div>

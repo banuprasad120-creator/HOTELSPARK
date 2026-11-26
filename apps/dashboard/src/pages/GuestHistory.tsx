@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 import { api } from '../lib/api';
 import { useProperty } from '../context/PropertyContext';
-import { getStoredStays, type StoredStay } from '../lib/supabaseAdapter';
+import type { StoredStay } from '../lib/supabaseAdapter';
 import BillInvoiceModal from '../components/billing/BillInvoiceModal';
 import AadhaarViewerModal from '../components/guests/AadhaarViewerModal';
 
@@ -27,7 +27,7 @@ export default function GuestHistory() {
   const [invoiceStay, setInvoiceStay] = useState<StoredStay | null>(null);
   const [aadhaarStay, setAadhaarStay] = useState<StoredStay | null>(null);
 
-  // Load stays
+  // Load stays from Supabase
   const { data: staysData } = useQuery({
     queryKey: ['stays', propertyId],
     queryFn: () => api.get('/v1/stays', { params: { propertyId } }).then((r) => r.data),
@@ -36,8 +36,7 @@ export default function GuestHistory() {
 
   const stays: StoredStay[] = useMemo(() => {
     const raw = staysData?.data ?? staysData;
-    if (Array.isArray(raw) && raw.length > 0) return raw;
-    return getStoredStays();
+    return Array.isArray(raw) ? raw : [];
   }, [staysData]);
 
   // Filter only checked-out previous stays
@@ -131,7 +130,7 @@ export default function GuestHistory() {
                     <td className="py-3 px-4">
                       <div className="font-bold text-telivity-navy text-sm">{stay.guestName}</div>
                       <div className="text-[11px] text-telivity-mid-grey">
-                        {stay.city || 'Karimnagar'}, {stay.state || 'Telangana'} • ID: {stay.idProofType.split(' ')[0]}
+                        {stay.city || 'Karimnagar'}, {stay.state || 'Telangana'} • ID: {stay.idProofType ? stay.idProofType.split(' ')[0] : 'ID'}
                       </div>
                     </td>
 

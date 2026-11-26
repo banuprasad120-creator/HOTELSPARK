@@ -30,9 +30,6 @@ import { api } from '../lib/api';
 import { useProperty } from '../context/PropertyContext';
 import { useToast } from '../components/ui/Toast';
 import {
-  getStoredStays,
-  getStoredRooms,
-  saveStoredRooms,
   type StoredStay,
   type StoredRoom,
 } from '../lib/supabaseAdapter';
@@ -62,8 +59,7 @@ export default function FrontOfficePanel() {
   });
   const allStays: StoredStay[] = useMemo(() => {
     const raw = staysData?.data ?? staysData;
-    if (Array.isArray(raw) && raw.length > 0) return raw;
-    return getStoredStays();
+    return Array.isArray(raw) ? raw : [];
   }, [staysData]);
 
   // Load Rooms
@@ -74,8 +70,7 @@ export default function FrontOfficePanel() {
   });
   const rooms: StoredRoom[] = useMemo(() => {
     const raw = roomsData?.data ?? roomsData;
-    if (Array.isArray(raw) && raw.length > 0) return raw;
-    return getStoredRooms();
+    return Array.isArray(raw) ? raw : [];
   }, [roomsData]);
 
   const inHouseStays = useMemo(() => {
@@ -102,10 +97,10 @@ export default function FrontOfficePanel() {
   const dirtyRooms = rooms.filter((r) => r.status === 'vacant_dirty' || r.status === 'dirty');
 
   const todayStr = new Date().toISOString().slice(0, 10);
-  const todayCheckIns = allStays.filter((s) => s.checkInTime && s.checkInTime.startsWith(todayStr)).length || 2;
+  const todayCheckIns = allStays.filter((s) => s.checkInTime && s.checkInTime.startsWith(todayStr)).length;
   const todayCheckOuts = allStays.filter(
     (s) => (s.actualCheckoutTime && s.actualCheckoutTime.startsWith(todayStr)) || s.stayStatus === 'checked_out'
-  ).length || 1;
+  ).length;
 
   return (
     <div className="space-y-6">
@@ -168,7 +163,9 @@ export default function FrontOfficePanel() {
           <div className="bg-white/10 backdrop-blur-xs p-3 rounded-xl border border-white/10">
             <span className="text-teal-100 text-xs block font-medium">In-House Guests</span>
             <strong className="text-xl font-bold text-white mt-0.5 block">{inHouseStays.length} Rooms Active</strong>
-            <span className="text-[10px] text-teal-200">Occupancy: {Math.round((occupiedRooms.length / 28) * 100)}% of 28 Rooms</span>
+            <span className="text-[10px] text-teal-200">
+              Occupancy: {rooms.length > 0 ? Math.round((occupiedRooms.length / rooms.length) * 100) : 0}% of {rooms.length} Rooms
+            </span>
           </div>
 
           <div className="bg-white/10 backdrop-blur-xs p-3 rounded-xl border border-white/10">
@@ -196,7 +193,7 @@ export default function FrontOfficePanel() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <DoorOpen size={18} className="text-telivity-teal" />
-            <h2 className="text-sm font-bold text-telivity-navy">Quick Room Availability Rack (28 Rooms — Front Desk)</h2>
+            <h2 className="text-sm font-bold text-telivity-navy">Quick Room Availability Rack ({rooms.length} Rooms — Front Desk)</h2>
           </div>
           <div className="flex flex-wrap items-center gap-1.5 text-xs">
             <span className="flex items-center gap-1 text-emerald-700 font-semibold bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
@@ -209,7 +206,7 @@ export default function FrontOfficePanel() {
               <span className="w-2 h-2 rounded-full bg-amber-500" /> Dirty ({dirtyRooms.length})
             </span>
             <span className="flex items-center gap-1 text-slate-700 font-semibold bg-slate-100 px-2 py-0.5 rounded-md">
-              Total 28 Rooms
+              Total {rooms.length} Rooms
             </span>
           </div>
         </div>

@@ -46,20 +46,23 @@ export default function AdminLogin() {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setLoading(true);
 
-    setTimeout(() => {
-      const res = login(email, password);
+    try {
+      const res = await login(email, password);
       if (!res.success) {
         setError(res.error || 'Invalid credentials');
-        setLoading(false);
       } else {
         redirectByRole(res.user);
       }
-    }, 250);
+    } catch (err: any) {
+      setError(err?.message || 'Unable to sign in right now.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -101,18 +104,18 @@ export default function AdminLogin() {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
-              Email Address / Staff ID
+              Staff Email Address
             </label>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
                 <Mail size={16} />
               </div>
               <input
-                type="text"
+                type="email"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="e.g. ADM001 or admin@sparkhotel.com"
+                placeholder="staff@sparkhotel.com"
                 className="w-full pl-10 pr-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:bg-white focus:outline-none focus:border-teal-600 focus:ring-1 focus:ring-teal-600 transition"
               />
             </div>

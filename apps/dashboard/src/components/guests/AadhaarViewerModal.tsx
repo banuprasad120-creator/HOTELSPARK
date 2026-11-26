@@ -155,7 +155,10 @@ export default function AadhaarViewerModal({
 
   // Check role authorization: only authorized hotel staff can access ID documents
   const isAuthorized =
-    hasRole('admin', 'general_manager', 'front_desk', 'night_auditor') ||
+    hasRole('admin') ||
+    hasRole('general_manager') ||
+    hasRole('front_desk') ||
+    hasRole('night_auditor') ||
     user?.roles?.includes('admin') ||
     user?.roles?.includes('owner');
 

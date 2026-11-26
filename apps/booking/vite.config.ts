@@ -6,8 +6,8 @@ import path from 'path';
 //  - index.html  → standalone SPA
 //  - src/embed.ts → small script a host page loads to mount the widget into
 //                   a <div id="haip-booking" data-booking-key="pk_..."></div>
-export default defineConfig({
-  base: '/booking/',
+export default defineConfig(({ command }) => ({
+  base: command === 'serve' ? '/booking/' : process.env.VITE_BASE || '/',
   root: path.resolve(__dirname),
   plugins: [
     react(),
@@ -52,6 +52,7 @@ export default defineConfig({
     },
   },
   build: {
+    outDir: 'dist',
     rollupOptions: {
       input: {
         main: path.resolve(__dirname, 'index.html'),
@@ -74,4 +75,4 @@ export default defineConfig({
       },
     },
   },
-});
+}));

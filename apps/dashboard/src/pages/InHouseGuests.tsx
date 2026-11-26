@@ -24,7 +24,7 @@ import {
 import { api } from '../lib/api';
 import { useProperty } from '../context/PropertyContext';
 import { useToast } from '../components/ui/Toast';
-import { getStoredStays, type StoredStay } from '../lib/supabaseAdapter';
+import type { StoredStay } from '../lib/supabaseAdapter';
 import AddGuestModal from '../components/front-desk/AddGuestModal';
 import CheckoutModal from '../components/front-desk/CheckOutModal';
 import BillInvoiceModal from '../components/billing/BillInvoiceModal';
@@ -45,7 +45,7 @@ export default function InHouseGuests() {
   const [paymentAmount, setPaymentAmount] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<'Cash' | 'UPI' | 'Card' | 'Bank Transfer'>('Cash');
 
-  // Load stays
+  // Load stays from Supabase
   const { data: staysData, isLoading } = useQuery({
     queryKey: ['stays', propertyId],
     queryFn: () => api.get('/v1/stays', { params: { propertyId } }).then((r) => r.data),
@@ -54,8 +54,7 @@ export default function InHouseGuests() {
 
   const stays: StoredStay[] = useMemo(() => {
     const raw = staysData?.data ?? staysData;
-    if (Array.isArray(raw) && raw.length > 0) return raw;
-    return getStoredStays();
+    return Array.isArray(raw) ? raw : [];
   }, [staysData]);
 
   // Filter only in-house active guests
@@ -206,7 +205,7 @@ export default function InHouseGuests() {
                     <td className="py-3 px-4">
                       <div className="font-bold text-telivity-navy text-sm">{guest.guestName}</div>
                       <div className="text-[11px] text-telivity-mid-grey">
-                        {guest.city || 'Karimnagar'}, {guest.state || 'Telangana'} • {guest.adults}A {guest.children > 0 ? `${guest.children}C` : ''}
+                        {guest.city || 'Karimnagar'}, {guest.state || 'Telangana'} • {guest.adults ?? 1}A {(guest.children ?? 0) > 0 ? `${guest.children}C` : ''}
                       </div>
                     </td>
 

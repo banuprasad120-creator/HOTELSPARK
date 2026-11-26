@@ -29,15 +29,10 @@ import { api } from '../lib/api';
 import { useProperty } from '../context/PropertyContext';
 import { useToast } from '../components/ui/Toast';
 import {
-  getStoredRooms,
-  saveStoredRooms,
-  getStoredStays,
-  getStoredTariffConfig,
-  saveStoredTariffConfig,
+  EMPTY_TARIFF_CONFIG,
   type StoredRoom,
   type StoredStay,
   type HotelTariffConfig,
-  type RoomCategoryTariff,
 } from '../lib/supabaseAdapter';
 import WalkInCheckInModal from '../components/front-desk/WalkInCheckInModal';
 
@@ -49,95 +44,8 @@ interface StaffMember {
   shift: string;
   salary: number;
   mobile: string;
-  status: 'active' | 'on_leave';
+  status: string;
 }
-
-const DEFAULT_STAFF: StaffMember[] = [
-  {
-    id: 'emp-01',
-    name: 'Banu Prasad',
-    role: 'Hotel Admin / Owner',
-    department: 'Management',
-    shift: 'General (09:00 - 18:00)',
-    salary: 120000,
-    mobile: '+91 98897 53200',
-    status: 'active',
-  },
-  {
-    id: 'emp-02',
-    name: 'Ramesh Rao',
-    role: 'Front Office Manager',
-    department: 'Front Office',
-    shift: 'Morning (06:00 - 14:00)',
-    salary: 55000,
-    mobile: '+91 98760 11223',
-    status: 'active',
-  },
-  {
-    id: 'emp-03',
-    name: 'Suresh Goud',
-    role: 'Night Shift Manager',
-    department: 'Operations',
-    shift: 'Night (22:00 - 06:00)',
-    salary: 45000,
-    mobile: '+91 98760 44556',
-    status: 'active',
-  },
-  {
-    id: 'emp-04',
-    name: 'Sunil Kumar',
-    role: 'Accountant & Cashier',
-    department: 'Finance',
-    shift: 'General (10:00 - 18:00)',
-    salary: 40000,
-    mobile: '+91 98760 55667',
-    status: 'active',
-  },
-  {
-    id: 'emp-05',
-    name: 'Priya Sharma',
-    role: 'Senior Receptionist',
-    department: 'Front Office',
-    shift: 'Evening (14:00 - 22:00)',
-    salary: 35000,
-    mobile: '+91 98760 22334',
-    status: 'active',
-  },
-  {
-    id: 'emp-06',
-    name: 'Kavitha Devi',
-    role: 'Housekeeping Supervisor',
-    department: 'Housekeeping',
-    shift: 'Morning (07:00 - 15:00)',
-    salary: 32000,
-    mobile: '+91 98760 33445',
-    status: 'active',
-  },
-  {
-    id: 'emp-07',
-    name: 'Raju Nayak',
-    role: 'Room Attendant',
-    department: 'Housekeeping',
-    shift: 'Evening (14:00 - 22:00)',
-    salary: 25000,
-    mobile: '+91 98760 66778',
-    status: 'active',
-  },
-];
-
-interface TariffPlan {
-  category: string;
-  code: string;
-  basePrice: number;
-  roomsCount: number;
-  gstRate: number;
-}
-
-const DEFAULT_TARIFFS: TariffPlan[] = [
-  { category: 'Deluxe King Room', code: 'DLX-KNG', basePrice: 3500, roomsCount: 6, gstRate: 12 },
-  { category: 'Executive Suite', code: 'EXE-STE', basePrice: 6500, roomsCount: 2, gstRate: 12 },
-  { category: 'Standard Queen Room', code: 'STD-QEN', basePrice: 2500, roomsCount: 2, gstRate: 12 },
-];
 
 export default function AdminPanel() {
   const { propertyId } = useProperty();
@@ -146,20 +54,36 @@ export default function AdminPanel() {
   const { toast } = useToast();
 
   const [walkInOpen, setWalkInOpen] = useState(false);
-  const [tariffConfig, setTariffConfig] = useState<HotelTariffConfig>(() => getStoredTariffConfig());
 
-  // Staff State with persistence
-  const [staffList, setStaffList] = useState<StaffMember[]>(() => {
-    try {
-      const saved = localStorage.getItem('spark_admin_staff');
-      if (saved) return JSON.parse(saved);
-    } catch {
-      // ignore
-    }
-    return DEFAULT_STAFF;
+  const { data: tariffData } = useQuery<HotelTariffConfig>({
+    queryKey: ['tariff-config', propertyId],
+    queryFn: () => api.get('/v1/tariff-config', { params: { propertyId } }).then((r) => r.data),
+    enabled: !!propertyId,
   });
+  const tariffConfig: HotelTariffConfig = tariffData ?? EMPTY_TARIFF_CONFIG;
 
-  // Load Rooms
+  // Load Staff from Supabase
+  const { data: staffData } = useQuery({
+    queryKey: ['employees', propertyId],
+    queryFn: () => api.get('/v1/employees', { params: { propertyId } }).then((r) => r.data),
+    enabled: !!propertyId,
+  });
+  const staffList: StaffMember[] = useMemo(() => {
+    const raw = staffData?.data ?? staffData;
+    if (!Array.isArray(raw)) return [];
+    return raw.map((e: any) => ({
+      id: e.id,
+      name: e.name,
+      role: e.designation || e.role,
+      department: e.departmentName || 'Operations',
+      shift: e.shift || 'morning',
+      salary: Number(e.salary || 0),
+      mobile: e.mobile || '',
+      status: e.status || 'active',
+    }));
+  }, [staffData]);
+
+  // Load Rooms from Supabase
   const { data: roomsData } = useQuery({
     queryKey: ['rooms', propertyId],
     queryFn: () => api.get('/v1/rooms', { params: { propertyId } }).then((r) => r.data),
@@ -167,11 +91,10 @@ export default function AdminPanel() {
   });
   const rooms: StoredRoom[] = useMemo(() => {
     const raw = roomsData?.data ?? roomsData;
-    if (Array.isArray(raw) && raw.length > 0) return raw;
-    return getStoredRooms();
+    return Array.isArray(raw) ? raw : [];
   }, [roomsData]);
 
-  // Load Stays
+  // Load Stays from Supabase
   const { data: staysData } = useQuery({
     queryKey: ['stays', propertyId],
     queryFn: () => api.get('/v1/stays', { params: { propertyId } }).then((r) => r.data),
@@ -179,37 +102,42 @@ export default function AdminPanel() {
   });
   const allStays: StoredStay[] = useMemo(() => {
     const raw = staysData?.data ?? staysData;
-    if (Array.isArray(raw) && raw.length > 0) return raw;
-    return getStoredStays();
+    return Array.isArray(raw) ? raw : [];
   }, [staysData]);
 
-  // Financial aggregates
+  // Financial aggregates from real records only (0 when empty)
   const occupiedRooms = rooms.filter((r) => r.status === 'occupied');
-  const cleanRooms = rooms.filter((r) => r.status === 'vacant_clean' || r.status === 'clean' || r.status === 'available');
-  const dirtyRooms = rooms.filter((r) => r.status === 'vacant_dirty' || r.status === 'dirty');
   const inHouseStays = allStays.filter((s) => s.stayStatus === 'in_house');
 
   const totalGrossRevenue = useMemo(() => {
-    return allStays.reduce((acc, s) => acc + (s.totalAmount || 0), 0) || 43500;
+    return allStays.reduce((acc, s) => acc + (s.totalAmount || 0), 0);
   }, [allStays]);
 
   const totalCollectedAdvance = useMemo(() => {
-    return allStays.reduce((acc, s) => acc + (s.advancePaid || 0), 0) || 31000;
+    return allStays.reduce((acc, s) => acc + (s.advancePaid || 0), 0);
   }, [allStays]);
 
   const totalUncollectedBalance = useMemo(() => {
-    return inHouseStays.reduce((acc, s) => acc + (s.balance || 0), 0) || 12500;
+    return inHouseStays.reduce((acc, s) => acc + (s.balance || 0), 0);
   }, [inHouseStays]);
 
+  const totalAdr = useMemo(() => {
+    const totalNights = allStays.reduce((acc, s) => acc + Math.max(1, s.nights || 1), 0);
+    return totalNights > 0 ? Math.round(totalGrossRevenue / totalNights) : 0;
+  }, [allStays, totalGrossRevenue]);
+
   const monthlyPayrollTotal = useMemo(() => {
-    return staffList.reduce((acc, s) => acc + s.salary, 0);
+    return staffList.filter((s) => s.status === 'active').reduce((acc, s) => acc + s.salary, 0);
   }, [staffList]);
 
-  const handleToggleRoomStatus = (roomId: string, nextStatus: string) => {
-    const updated = rooms.map((r) => (r.id === roomId ? { ...r, status: nextStatus } : r));
-    saveStoredRooms(updated);
-    queryClient.invalidateQueries({ queryKey: ['rooms'] });
-    toast('success', `Room status updated by Admin.`);
+  const handleToggleRoomStatus = async (roomId: string, nextStatus: string) => {
+    try {
+      await api.patch(`/v1/rooms/${roomId}`, { propertyId, status: nextStatus });
+      queryClient.invalidateQueries({ queryKey: ['rooms'] });
+      toast('success', `Room status updated by Admin.`);
+    } catch (err: any) {
+      toast('error', err?.message || 'Failed to update room status.');
+    }
   };
 
   return (
@@ -290,17 +218,17 @@ export default function AdminPanel() {
           <div className="bg-white/5 backdrop-blur-xs p-3 rounded-xl border border-white/10">
             <span className="text-slate-300 text-[11px] block font-medium">Room Occupancy</span>
             <strong className="text-lg font-bold text-white mt-0.5 block">
-              {occupiedRooms.length} / 28 Rooms
+              {occupiedRooms.length} / {rooms.length} Rooms
             </strong>
             <span className="text-[10px] text-teal-300 font-semibold">
-              {Math.round((occupiedRooms.length / 28) * 100)}% Occupancy
+              {rooms.length > 0 ? Math.round((occupiedRooms.length / rooms.length) * 100) : 0}% Occupancy
             </span>
           </div>
 
           <div className="bg-white/5 backdrop-blur-xs p-3 rounded-xl border border-white/10">
             <span className="text-slate-300 text-[11px] block font-medium">Average Daily Rate</span>
-            <strong className="text-lg font-bold text-white mt-0.5 block">₹3,500</strong>
-            <span className="text-[10px] text-slate-400">Target: ₹3,200</span>
+            <strong className="text-lg font-bold text-white mt-0.5 block">₹{totalAdr.toLocaleString('en-IN')}</strong>
+            <span className="text-[10px] text-slate-400">From live stay records</span>
           </div>
 
           <div className="bg-white/5 backdrop-blur-xs p-3 rounded-xl border border-white/10">
@@ -308,7 +236,7 @@ export default function AdminPanel() {
             <strong className="text-lg font-bold text-purple-300 mt-0.5 block">
               ₹{monthlyPayrollTotal.toLocaleString('en-IN')}
             </strong>
-            <span className="text-[10px] text-purple-200">7 Active Staff</span>
+            <span className="text-[10px] text-purple-200">{staffList.filter((s) => s.status === 'active').length} Active Staff</span>
           </div>
         </div>
       </div>
@@ -319,10 +247,10 @@ export default function AdminPanel() {
           <div>
             <h2 className="text-base font-bold text-telivity-navy flex items-center gap-2">
               <IndianRupee size={20} className="text-amber-600" />
-              Official Room Categories & Pricing (28-Room Inventory)
+              Room Categories & Pricing ({rooms.length}-Room Inventory)
             </h2>
             <p className="text-xs text-telivity-mid-grey">
-              Official hotel pricing schedule: Single & Double occupancy in INR per night. Extra person charge: ₹399/night.
+              Pricing schedule loaded from Supabase rate plans. Extra person charge: ₹{tariffConfig.extraPersonCharge}/night.
             </p>
           </div>
           <button
@@ -330,7 +258,7 @@ export default function AdminPanel() {
             onClick={() => navigate('/tariff-settings')}
             className="text-xs font-bold text-telivity-teal hover:underline flex items-center gap-1 px-3 py-1.5 rounded-xl bg-teal-50 border border-teal-200"
           >
-            ⚙️ Configure Tariffs & Inventory (28 Rooms) →
+            ⚙️ Configure Tariffs & Inventory ({rooms.length} Rooms) →
           </button>
         </div>
 
@@ -385,7 +313,7 @@ export default function AdminPanel() {
           <div>
             <h2 className="text-base font-bold text-telivity-navy flex items-center gap-2">
               <DoorOpen size={20} className="text-telivity-teal" />
-              Room Inventory & Admin Override Rack (28 Rooms)
+              Room Inventory & Admin Override Rack ({rooms.length} Rooms)
             </h2>
             <p className="text-xs text-telivity-mid-grey">
               Real-time room status with direct admin overrides (Available / Occupied / Dirty / Out of Order).
@@ -600,15 +528,15 @@ export default function AdminPanel() {
           <div className="p-4 rounded-xl border border-gray-200 bg-gray-50/60">
             <span className="text-[11px] text-telivity-mid-grey font-medium block">GSTIN Registration</span>
             <strong className="text-sm font-bold text-telivity-navy block mt-1 tracking-wider">
-              36ABCDE1234F1Z5
+              {tariffConfig.gstin || 'Not configured'}
             </strong>
-            <span className="text-[10px] text-emerald-700 font-semibold mt-1 inline-block">Active • Telangana State</span>
+            <span className="text-[10px] text-emerald-700 font-semibold mt-1 inline-block">Configured in Hotel Settings</span>
           </div>
 
           <div className="p-4 rounded-xl border border-gray-200 bg-gray-50/60">
             <span className="text-[11px] text-telivity-mid-grey font-medium block">SAC Code (Accommodation)</span>
             <strong className="text-sm font-bold text-telivity-navy block mt-1">
-              996311 (Hotel Stay Services)
+              {tariffConfig.hsnSac || '996311'} (Hotel Stay Services)
             </strong>
             <span className="text-[10px] text-telivity-mid-grey mt-1 inline-block">Standard Hotel SAC</span>
           </div>
@@ -616,9 +544,11 @@ export default function AdminPanel() {
           <div className="p-4 rounded-xl border border-gray-200 bg-gray-50/60">
             <span className="text-[11px] text-telivity-mid-grey font-medium block">GST Slab Rate</span>
             <strong className="text-sm font-bold text-telivity-navy block mt-1">
-              12% GST (6% CGST + 6% SGST)
+              {tariffConfig.gstPercentage}% GST ({tariffConfig.gstPercentage / 2}% CGST + {tariffConfig.gstPercentage / 2}% SGST)
             </strong>
-            <span className="text-[10px] text-emerald-700 font-semibold mt-1 inline-block">Tax Included in Tariff</span>
+            <span className="text-[10px] text-emerald-700 font-semibold mt-1 inline-block">
+              {tariffConfig.isTaxInclusive ? 'Tax Included in Tariff' : 'Tax Exclusive'}
+            </span>
           </div>
 
           <div className="p-4 rounded-xl border border-gray-200 bg-gray-50/60 flex flex-col justify-between">

@@ -52,7 +52,10 @@ if (fs.existsSync(indexHtml)) {
 
 const assetsDir = path.join(distDir, 'assets');
 const adminAssetsDir = path.join(adminDir, 'assets');
-if (fs.existsSync(assetsDir) && !fs.existsSync(adminAssetsDir)) {
+if (fs.existsSync(assetsDir)) {
+  if (fs.existsSync(adminAssetsDir)) {
+    fs.rmSync(adminAssetsDir, { recursive: true, force: true });
+  }
   fs.cpSync(assetsDir, adminAssetsDir, { recursive: true });
 }
 

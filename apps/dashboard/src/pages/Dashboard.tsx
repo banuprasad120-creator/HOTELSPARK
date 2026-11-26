@@ -154,24 +154,30 @@ export default function Dashboard() {
 
   const allStays = Array.isArray(staysData?.data) ? staysData.data : (Array.isArray(staysData) ? staysData : []);
   const inHouseStays = allStays.filter((s: any) => s.stayStatus === 'in_house');
-  const stayingGuestsCount = inHouseStays.reduce((acc: number, s: any) => acc + (s.adults || 1) + (s.children || 0), 0) || (inHouseStays.length > 0 ? inHouseStays.length * 2 : 7);
-  const todayCheckInsCount = allStays.filter((s: any) => s.checkInTime && s.checkInTime.startsWith(today)).length || 2;
-  const todayCheckOutsCount = allStays.filter((s: any) => (s.actualCheckoutTime && s.actualCheckoutTime.startsWith(today)) || (s.expectedCheckoutTime && s.expectedCheckoutTime.startsWith(today) && s.stayStatus === 'checked_out')).length || 1;
+  const stayingGuestsCount = inHouseStays.reduce((acc: number, s: any) => acc + (s.adults || 1) + (s.children || 0), 0);
+  const todayCheckInsCount = allStays.filter((s: any) => s.checkInTime && s.checkInTime.startsWith(today)).length;
+  const todayCheckOutsCount = allStays.filter(
+    (s: any) =>
+      (s.actualCheckoutTime && s.actualCheckoutTime.startsWith(today)) ||
+      (s.expectedCheckoutTime && s.expectedCheckoutTime.startsWith(today) && s.stayStatus === 'checked_out')
+  ).length;
   const todayCollection = allStays.reduce((acc: number, s: any) => {
     let sum = 0;
     if (s.checkInTime && s.checkInTime.startsWith(today)) sum += (s.advancePaid || 0);
     if (s.actualCheckoutTime && s.actualCheckoutTime.startsWith(today)) sum += (s.finalPayment || 0);
     return acc + sum;
-  }, 0) || 12500;
-  const unpaidBalances = inHouseStays.reduce((acc: number, s: any) => acc + (s.balance || 0), 0) || 3500;
+  }, 0);
+  const unpaidBalances = inHouseStays.reduce((acc: number, s: any) => acc + (s.balance || 0), 0);
 
-  // Room Inventory Calculation from actual records
-  const totalRoomsCount = rooms.length > 0 ? rooms.length : 10;
-  const occupiedCount = rooms.filter((r: any) => r.status === 'occupied').length || (inHouseStays.length > 0 ? inHouseStays.length : 4);
-  const availableCount = rooms.filter((r: any) => r.status === 'vacant_clean' || r.status === 'clean' || r.status === 'available').length || 4;
-  const reservedCount = rooms.filter((r: any) => r.status === 'reserved').length || (onlineBookingsList.length > 0 ? 1 : 0);
-  const dirtyCount = rooms.filter((r: any) => r.status === 'vacant_dirty' || r.status === 'dirty').length || 1;
-  const maintenanceCount = rooms.filter((r: any) => r.status === 'out_of_order' || r.status === 'maintenance').length || 1;
+  // Room Inventory Calculation from actual DB records (0 when empty)
+  const totalRoomsCount = rooms.length;
+  const occupiedCount = rooms.filter((r: any) => r.status === 'occupied').length;
+  const availableCount = rooms.filter(
+    (r: any) => r.status === 'vacant_clean' || r.status === 'clean' || r.status === 'available' || r.status === 'guest_ready'
+  ).length;
+  const reservedCount = rooms.filter((r: any) => r.status === 'reserved').length;
+  const dirtyCount = rooms.filter((r: any) => r.status === 'vacant_dirty' || r.status === 'dirty').length;
+  const maintenanceCount = rooms.filter((r: any) => r.status === 'out_of_order' || r.status === 'out_of_service' || r.status === 'maintenance').length;
 
   const roomData = roomSummary?.data ?? roomSummary ?? [];
   const chartData = [
@@ -448,29 +454,29 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <KpiCard
           title="Occupancy"
-          value={formatOccupancyPercent(occ.occupancyRate ?? Math.round((occupiedCount / totalRoomsCount) * 100))}
+          value={formatOccupancyPercent(occ.occupancyRate ?? (totalRoomsCount > 0 ? occupiedCount / totalRoomsCount : 0))}
           subtitle={`${occupiedCount} of ${totalRoomsCount} rooms occupied`}
           icon={Percent}
-          numericValue={occ.occupancyRate != null ? Number(occ.occupancyRate) : 70}
+          numericValue={occ.occupancyRate != null ? Number(occ.occupancyRate) : totalRoomsCount > 0 ? Math.round((occupiedCount / totalRoomsCount) * 100) : 0}
           threshold={thr.occupancyRate}
         />
         <KpiCard
           title="Today's Revenue"
-          value={formatMoney(kpis.totalRevenue ?? 28500, currencyCode)}
+          value={formatMoney(kpis.totalRevenue ?? todayCollection ?? 0, currencyCode)}
           subtitle="Room charges + F&B + Taxes"
           icon={IndianRupee}
-          numericValue={kpis.totalRevenue != null ? Number(kpis.totalRevenue) : 28500}
+          numericValue={kpis.totalRevenue != null ? Number(kpis.totalRevenue) : todayCollection}
           threshold={thr.totalRevenue}
         />
         <KpiCard
           title="Monthly Revenue"
-          value={formatMoney(kpis.monthlyRevenue ?? 85500, currencyCode)}
+          value={formatMoney(kpis.monthlyRevenue ?? 0, currencyCode)}
           subtitle="Month-to-date collection"
           icon={TrendingUp}
         />
         <KpiCard
           title="Pending Payments"
-          value={formatMoney(kpis.pendingPayments ?? 7000, currencyCode)}
+          value={formatMoney(kpis.pendingPayments ?? unpaidBalances ?? 0, currencyCode)}
           subtitle="Pending departure dues"
           icon={AlertCircle}
         />
@@ -498,7 +504,7 @@ export default function Dashboard() {
                   <p className="text-xs text-gray-500">Scheduled guest arrivals</p>
                 </div>
               </div>
-              <span className="text-lg font-bold text-emerald-700">{Array.isArray(arrList) && arrList.length > 0 ? arrList.length : 2}</span>
+              <span className="text-lg font-bold text-emerald-700">{Array.isArray(arrList) && arrList.length > 0 ? arrList.length : todayCheckInsCount}</span>
             </div>
 
             <div className="flex items-center justify-between p-3 rounded-lg bg-amber-50/50 border border-amber-100">
@@ -511,7 +517,7 @@ export default function Dashboard() {
                   <p className="text-xs text-gray-500">Scheduled departures</p>
                 </div>
               </div>
-              <span className="text-lg font-bold text-amber-700">{Array.isArray(depList) && depList.length > 0 ? depList.length : 1}</span>
+              <span className="text-lg font-bold text-amber-700">{Array.isArray(depList) && depList.length > 0 ? depList.length : todayCheckOutsCount}</span>
             </div>
 
             <div className="flex items-center justify-between p-3 rounded-lg bg-teal-50/50 border border-teal-100">
@@ -524,7 +530,7 @@ export default function Dashboard() {
                   <p className="text-xs text-gray-500">Direct front desk check-ins</p>
                 </div>
               </div>
-              <span className="text-lg font-bold text-teal-700">3</span>
+              <span className="text-lg font-bold text-teal-700">{allStays.filter((s: any) => s.source === 'walk_in').length}</span>
             </div>
 
             <div className="flex items-center justify-between p-3 rounded-lg bg-blue-50/50 border border-blue-100">
@@ -537,7 +543,7 @@ export default function Dashboard() {
                   <p className="text-xs text-gray-500">Website & direct inquiries</p>
                 </div>
               </div>
-              <span className="text-lg font-bold text-blue-700">{onlineBookingsList.length > 0 ? onlineBookingsList.length : 4}</span>
+              <span className="text-lg font-bold text-blue-700">{onlineBookingsList.length}</span>
             </div>
           </div>
         </div>

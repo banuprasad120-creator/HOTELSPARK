@@ -14,21 +14,11 @@ import type {
   SearchRequest,
   SearchResponse,
   SearchRoomType,
-  SearchRate,
   SellableServicesResponse,
   SubmitBookingRequest,
   BookingRequestAcknowledgement,
   PaymentReturnStatus,
 } from './types';
-
-/**
- * Tiny API client for the public booking engine. Authenticates ONLY with the
- * publishable booking key (`x-booking-key`). No propertyId is ever sent — the
- * server derives it from the key.
- *
- * baseURL is `/api/v1/booking-engine` (same-origin demo). `VITE_API_BASE`
- * overrides the origin for cross-origin embeds.
- */
 
 let bookingKey = '';
 
@@ -41,554 +31,486 @@ export function getBookingKey(): string {
   return bookingKey;
 }
 
+const DEFAULT_HOTEL_ID = 'a0000001-0000-4000-a000-000000000001';
 const origin = (import.meta.env.VITE_API_BASE ?? '').replace(/\/$/, '');
-const isStaticHosting = !origin || (typeof window !== 'undefined' && (
-  window.location.hostname.includes('netlify.app') ||
-  window.location.hostname.includes('vercel.app') ||
-  window.location.hostname.includes('hotelspark')
-));
+const isStaticHosting =
+  !origin ||
+  (typeof window !== 'undefined' &&
+    (window.location.hostname.includes('netlify.app') ||
+      window.location.hostname.includes('vercel.app') ||
+      window.location.hostname.includes('hotelspark') ||
+      window.location.port === '5174' ||
+      !window.location.port));
 
 export const api = axios.create({
   baseURL: `${origin}/api/v1/booking-engine`,
   headers: { 'Content-Type': 'application/json' },
 });
 
-// Initialise the key eagerly so the first request is authenticated.
 setBookingKey(resolveBookingKey());
 
-const DEFAULT_HOTEL_SPARK_CONFIG: BookingConfig = {
-  propertyId: 'a0000001-0000-4000-a000-000000000001',
-  isEnabled: true,
-  displayName: 'Hotel Spark',
-  primaryColor: '#0d9488',
-  accentColor: '#0f766e',
-  depositPolicy: {
-    type: 'none',
-    refundable: true,
-  },
-  sellableRoomTypeIds: [
-    'b0000001-0000-4000-a000-000000000001', // Budget
-    'b0000002-0000-4000-a000-000000000002', // Deluxe Room
-    'b0000003-0000-4000-a000-000000000003', // Executive Room
-    'b0000004-0000-4000-a000-000000000004', // Suite
-    // Legacy aliases
-    'b0000002-0000-4000-a000-000000000001',
-    'b0000003-0000-4000-a000-000000000001',
-  ],
-  sellableRatePlanIds: [
-    'c0000001-0000-4000-a000-000000000001',
-    'c0000002-0000-4000-a000-000000000002',
-    'c0000003-0000-4000-a000-000000000003',
-    'c0000004-0000-4000-a000-000000000004',
-  ],
-  bookingMode: 'request',
-  paymentMethodCollection: 'optional',
-  paymentMethodClientMode: 'mock',
-  formQuestions: [],
-};
+export interface PublicCatalogResponse {
+  hotel: {
+    id: string;
+    name: string;
+    code: string;
+    description?: string;
+    city?: string;
+    stateProvince?: string;
+    currencyCode?: string;
+    phone?: string;
+    email?: string;
+    settings?: { upi_id?: string; upi_merchant_name?: string };
+  };
+  settings: {
+    bookingMode?: 'request' | 'instant';
+    autoConfirm?: boolean;
+    requireDeposit?: boolean;
+    depositPercentage?: number;
+    cancellationPolicy?: string;
+    gstPercentage?: number;
+    taxInclusive?: boolean;
+    extraPersonCharge?: number;
+    upiQrString?: string;
+    upiPayeeName?: string;
+  };
+  roomTypes: Array<{
+    id: string;
+    name: string;
+    code: string;
+    description?: string;
+    maxOccupancy: number;
+    defaultOccupancy?: number;
+    bedType?: string;
+    squareMeters?: number;
+    amenities: string[];
+    roomCount: number;
+    images: string[];
+    ratePlans: Array<{
+      id: string;
+      name: string;
+      code: string;
+      description?: string;
+      baseRate: number;
+      singleOccupancyRate?: number | null;
+      doubleOccupancyRate?: number | null;
+      extraPersonCharge?: number;
+      gstPercentage?: number;
+      taxInclusive?: boolean;
+      currencyCode?: string;
+    }>;
+  }>;
+}
 
-const ROOM_IMAGES: Record<string, string[]> = {
-  'b0000001-0000-4000-a000-000000000001': [
-    'https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=800&q=80',
-    'https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=800&q=80',
-  ],
-  'b0000002-0000-4000-a000-000000000002': [
-    'https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=800&q=80',
-    'https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=800&q=80',
-  ],
-  'b0000003-0000-4000-a000-000000000003': [
-    'https://images.unsplash.com/photo-1566665797739-1674de7a421a?auto=format&fit=crop&w=800&q=80',
-    'https://images.unsplash.com/photo-1595526114035-0d45ed16cfbf?auto=format&fit=crop&w=800&q=80',
-  ],
-  'b0000004-0000-4000-a000-000000000004': [
-    'https://images.unsplash.com/photo-1618773928121-c32242e63f39?auto=format&fit=crop&w=800&q=80',
-    'https://images.unsplash.com/photo-1578683010236-d716f9a3f461?auto=format&fit=crop&w=800&q=80',
-  ],
-  'b0000002-0000-4000-a000-000000000001': [
-    'https://images.unsplash.com/photo-1618773928121-c32242e63f39?auto=format&fit=crop&w=800&q=80',
-  ],
-  'b0000003-0000-4000-a000-000000000001': [
-    'https://images.unsplash.com/photo-1566665797739-1674de7a421a?auto=format&fit=crop&w=800&q=80',
-  ],
-};
+async function fetchPublicCatalogFromSupabase(): Promise<PublicCatalogResponse | null> {
+  try {
+    const rpcCatalog = await supabaseFetch<PublicCatalogResponse>('rpc/get_public_hotel_catalog', {
+      method: 'POST',
+      body: JSON.stringify({ p_hotel_id: DEFAULT_HOTEL_ID }),
+    });
+    if (rpcCatalog && rpcCatalog.hotel) return rpcCatalog;
+  } catch {
+    // Fallback to direct public catalog tables (properties, room_types, rate_plans, room_images)
+  }
+
+  const [props, rts, plans, imgs] = await Promise.all([
+    supabaseFetch<any[]>(`properties?id=eq.${DEFAULT_HOTEL_ID}&is_active=eq.true&limit=1`).catch(() => []),
+    supabaseFetch<any[]>(`room_types?or=(hotel_id.eq.${DEFAULT_HOTEL_ID},property_id.eq.${DEFAULT_HOTEL_ID})&is_active=eq.true&order=sort_order.asc`).catch(() => []),
+    supabaseFetch<any[]>(`rate_plans?or=(hotel_id.eq.${DEFAULT_HOTEL_ID},property_id.eq.${DEFAULT_HOTEL_ID})&is_active=eq.true`).catch(() => []),
+    supabaseFetch<any[]>(`room_images?or=(hotel_id.eq.${DEFAULT_HOTEL_ID},property_id.eq.${DEFAULT_HOTEL_ID})&order=is_primary.desc,sort_order.asc`).catch(() => []),
+  ]);
+
+  const p = props?.[0];
+  if (!p) return null;
+
+  return {
+    hotel: {
+      id: p.id,
+      name: p.name,
+      code: p.code,
+      description: p.description,
+      city: p.city,
+      stateProvince: p.state_province,
+      currencyCode: p.currency_code || 'INR',
+      phone: p.phone,
+      email: p.email,
+      settings: p.settings || {},
+    },
+    settings: {
+      bookingMode: p.settings?.require_approval === false ? 'instant' : 'request',
+      gstPercentage: 5,
+      taxInclusive: true,
+      extraPersonCharge: 399,
+      cancellationPolicy: 'Free cancellation up to 24 hours before check-in.',
+    },
+    roomTypes: (rts || [])
+      .filter((rt) => (plans || []).some((rp) => rp.room_type_id === rt.id))
+      .map((rt) => {
+        const typePlans = (plans || []).filter((rp) => rp.room_type_id === rt.id);
+        const typeImages = (imgs || []).filter((i) => i.room_type_id === rt.id).map((i) => i.url);
+        return {
+          id: rt.id,
+          name: rt.name,
+          code: rt.code,
+          description: rt.description,
+          maxOccupancy: Number(rt.max_occupancy || 2),
+          defaultOccupancy: Number(rt.default_occupancy || 2),
+          bedType: rt.bed_type || 'queen',
+          squareMeters: rt.square_meters,
+          amenities: Array.isArray(rt.amenities) ? rt.amenities : [],
+          roomCount: 0,
+          images: typeImages,
+          ratePlans: typePlans.map((rp) => ({
+            id: rp.id,
+            name: rp.name,
+            code: rp.code,
+            description: rp.description,
+            baseRate: Number(rp.base_rate || rp.base_amount || 0),
+            singleOccupancyRate: rp.single_occupancy_rate != null ? Number(rp.single_occupancy_rate) : null,
+            doubleOccupancyRate: rp.double_occupancy_rate != null ? Number(rp.double_occupancy_rate) : null,
+            extraPersonCharge: Number(rp.extra_person_charge ?? 399),
+            gstPercentage: Number(rp.gst_percentage ?? 5),
+            taxInclusive: rp.tax_inclusive !== false,
+            currencyCode: rp.currency_code || 'INR',
+          })),
+        };
+      }),
+  };
+}
+
+function pickNightlyRate(
+  rp: {
+    baseRate: number;
+    singleOccupancyRate?: number | null;
+    doubleOccupancyRate?: number | null;
+  } | undefined,
+  adults: number
+): number {
+  if (!rp) return 0;
+  if (adults === 1 && rp.singleOccupancyRate != null) return Number(rp.singleOccupancyRate);
+  if (adults >= 2 && rp.doubleOccupancyRate != null) return Number(rp.doubleOccupancyRate);
+  return Number(rp.doubleOccupancyRate ?? rp.singleOccupancyRate ?? rp.baseRate ?? 0);
+}
 
 async function searchSupabase(body: SearchRequest): Promise<SearchResponse> {
+  const catalog = await fetchPublicCatalogFromSupabase();
+  if (!catalog) {
+    throw new Error('Hotel catalog is unavailable right now.');
+  }
+
   const checkInDate = new Date(body.checkIn);
   const checkOutDate = new Date(body.checkOut);
   const nights = Math.max(
     1,
-    Math.round((checkOutDate.getTime() - checkInDate.getTime()) / (1000 * 60 * 60 * 24)),
+    Math.round((checkOutDate.getTime() - checkInDate.getTime()) / (1000 * 60 * 60 * 24))
   );
+  const adults = Number(body.adults) || 1;
 
-  const isSingle = (body.adults || 2) === 1;
-  const deluxeRate = isSingle ? 1799 : 2099;
-  const execRate = isSingle ? 2199 : 2499;
+  const roomTypes: SearchRoomType[] = (
+    await Promise.all(
+      catalog.roomTypes.map(async (rt) => {
+        let availableCount = rt.roomCount || 0;
+        try {
+          const avail = await supabaseFetch<any[]>('rpc/revalidate_room_availability', {
+            method: 'POST',
+            body: JSON.stringify({
+              p_hotel_id: catalog.hotel.id,
+              p_room_type_id: rt.id,
+              p_arrival_date: body.checkIn,
+              p_departure_date: body.checkOut,
+            }),
+          });
+          if (Array.isArray(avail)) {
+            availableCount = avail.filter((x) => x.is_available).length;
+          }
+        } catch {
+          /* keep catalog count */
+        }
 
-  // Official Hotel Spark Karimnagar 28 Rooms Catalog & Tariffs
-  const officialRooms: SearchRoomType[] = [
-    {
-      roomTypeId: 'b0000001-0000-4000-a000-000000000001',
-      roomTypeName: 'Budget',
-      name: 'Budget Room',
-      description: 'Comfortable compact room optimized for single traveler convenience with essential amenities. Rooms: 2006, 3006, 4006.',
-      maxOccupancy: 1,
-      bedType: 'single',
-      amenities: ['AC', 'Single Bed', 'Smart TV', 'High-speed Wi-Fi', 'Room Service'],
-      available: 3,
-      images: ROOM_IMAGES['b0000001-0000-4000-a000-000000000001'] || [
-        'https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=800&q=80',
-      ],
-      rates: [
-        {
-          ratePlanId: 'c0000001-0000-4000-a000-000000000001',
-          ratePlanName: 'Best Available Rate',
-          ratePlanCode: 'BAR-BGT',
-          rateType: 'bar',
-          totalAmount: 1599 * nights,
-          currencyCode: 'INR',
-          available: true,
-          cancellationPolicy: {
-            type: 'flexible',
-            description: 'Free cancellation up to 24 hours before check-in.',
-          },
-        },
-      ],
-    },
-    {
-      roomTypeId: 'b0000002-0000-4000-a000-000000000002',
-      roomTypeName: 'Deluxe Room',
-      name: 'Deluxe Room',
-      description: 'Elegant deluxe room with plush bedding, dedicated workspace, and private ensuite bath. 12 rooms across Floors 2, 3 & 4.',
-      maxOccupancy: 2,
-      bedType: 'double',
-      amenities: ['AC', 'Double Bed', 'Smart TV', 'High-speed Wi-Fi', 'Work Desk', 'Tea Maker', 'Balcony'],
-      available: 12,
-      images: ROOM_IMAGES['b0000002-0000-4000-a000-000000000002'] || [
-        'https://images.unsplash.com/photo-1591088398332-8a7791972843?auto=format&fit=crop&w=800&q=80',
-      ],
-      rates: [
-        {
-          ratePlanId: 'c0000002-0000-4000-a000-000000000002',
-          ratePlanName: 'Best Available Rate',
-          ratePlanCode: 'BAR-DLX',
-          rateType: 'bar',
-          totalAmount: deluxeRate * nights,
-          currencyCode: 'INR',
-          available: true,
-          cancellationPolicy: {
-            type: 'flexible',
-            description: 'Free cancellation up to 24 hours before check-in.',
-          },
-        },
-      ],
-    },
-    {
-      roomTypeId: 'b0000003-0000-4000-a000-000000000003',
-      roomTypeName: 'Executive Room',
-      name: 'Executive Room',
-      description: 'Sophisticated executive room featuring panoramic views, ergonomic desk and seating area. 11 rooms across Floors 2, 3 & 4.',
-      maxOccupancy: 3,
-      bedType: 'queen',
-      amenities: ['AC', 'Queen Bed', 'Safe', 'Minibar', 'City View', 'Smart TV', 'High-speed Wi-Fi'],
-      available: 11,
-      images: ROOM_IMAGES['b0000003-0000-4000-a000-000000000003'] || [
-        'https://images.unsplash.com/photo-1566665797739-1674de7a421a?auto=format&fit=crop&w=800&q=80',
-      ],
-      rates: [
-        {
-          ratePlanId: 'c0000003-0000-4000-a000-000000000003',
-          ratePlanName: 'Best Available Rate',
-          ratePlanCode: 'BAR-EXE',
-          rateType: 'bar',
-          totalAmount: execRate * nights,
-          currencyCode: 'INR',
-          available: true,
-          cancellationPolicy: {
-            type: 'flexible',
-            description: 'Free cancellation up to 24 hours before check-in.',
-          },
-        },
-      ],
-    },
-    {
-      roomTypeId: 'b0000004-0000-4000-a000-000000000004',
-      roomTypeName: 'Suite',
-      name: 'Signature Suite',
-      description: 'Spacious signature suite featuring a master bedroom, living hall, luxury bathtub and pantry. Rooms: 2010, 3010.',
-      maxOccupancy: 4,
-      bedType: 'king',
-      amenities: ['AC', 'King Bed', 'Living Area', 'Bathtub', 'Minibar', 'Smart TV', 'High-speed Wi-Fi', 'Balcony'],
-      available: 2,
-      images: ROOM_IMAGES['b0000004-0000-4000-a000-000000000004'] || [
-        'https://images.unsplash.com/photo-1618773928121-c32242e63f39?auto=format&fit=crop&w=800&q=80',
-      ],
-      rates: [
-        {
-          ratePlanId: 'c0000004-0000-4000-a000-000000000004',
-          ratePlanName: 'Best Available Rate',
-          ratePlanCode: 'BAR-SUT',
-          rateType: 'bar',
-          totalAmount: 2799 * nights,
-          currencyCode: 'INR',
-          available: true,
-          cancellationPolicy: {
-            type: 'flexible',
-            description: 'Free cancellation up to 24 hours before check-in.',
-          },
-        },
-      ],
-    },
-  ];
+        if (availableCount <= 0) return null;
+
+        const rates = rt.ratePlans.map((rp) => {
+          const perNight = pickNightlyRate(rp, adults);
+          return {
+            ratePlanId: rp.id,
+            ratePlanName: rp.name,
+            ratePlanCode: rp.code,
+            rateType: 'bar',
+            totalAmount: perNight * nights,
+            currencyCode: rp.currencyCode || catalog.hotel.currencyCode || 'INR',
+            available: true,
+            cancellationPolicy: {
+              type: 'flexible',
+              description: catalog.settings.cancellationPolicy || 'Free cancellation up to 24 hours before check-in.',
+            },
+          };
+        });
+
+        const item: SearchRoomType = {
+          roomTypeId: rt.id,
+          roomTypeName: rt.name,
+          name: rt.name,
+          description: rt.description,
+          maxOccupancy: rt.maxOccupancy,
+          bedType: rt.bedType,
+          amenities: rt.amenities,
+          available: availableCount,
+          images: rt.images,
+          rates,
+        };
+        return item;
+      })
+    )
+  ).filter((x): x is SearchRoomType => Boolean(x && Array.isArray(x.rates) && x.rates.length > 0));
 
   return {
-    propertyId: 'a0000001-0000-4000-a000-000000000001',
+    propertyId: catalog.hotel.id,
     checkIn: body.checkIn,
     checkOut: body.checkOut,
     branding: {
-      displayName: 'Hotel Spark',
+      displayName: catalog.hotel.name,
       primaryColor: '#0d9488',
       accentColor: '#0f766e',
     },
     results: [
       {
-        sourcePropertyId: 'a0000001-0000-4000-a000-000000000001',
-        propertyName: 'Hotel Spark',
+        sourcePropertyId: catalog.hotel.id,
+        propertyName: catalog.hotel.name,
         starRating: 4,
-        roomTypes: officialRooms,
+        roomTypes,
       },
     ],
   };
 }
 
 async function quoteSupabase(body: QuoteRequest): Promise<QuoteResponse> {
+  const catalog = await fetchPublicCatalogFromSupabase();
+  if (!catalog) {
+    throw new Error('Unable to load hotel pricing from database.');
+  }
+  const rt = catalog.roomTypes.find((r) => r.id === body.roomTypeId);
+  if (!rt) {
+    throw new Error('Selected room category not found in database.');
+  }
+  const rp = rt.ratePlans.find((p) => p.id === body.ratePlanId) || rt.ratePlans[0];
+  if (!rp) {
+    throw new Error('No active rate plan configured for this room category.');
+  }
+
   const checkInDate = new Date(body.checkIn);
   const checkOutDate = new Date(body.checkOut);
   const nights = Math.max(
     1,
-    Math.round((checkOutDate.getTime() - checkInDate.getTime()) / (1000 * 60 * 60 * 24)),
+    Math.round((checkOutDate.getTime() - checkInDate.getTime()) / (1000 * 60 * 60 * 24))
   );
-  const adults = Number(body.adults) || 2;
-  const isSingle = adults === 1;
+  const adults = Number(body.adults) || 1;
+  const ratePerNight = pickNightlyRate(rp, adults);
+  const extraPerNight = Number(rp.extraPersonCharge ?? catalog.settings.extraPersonCharge ?? 0);
+  const extraPersons = Math.max(0, adults - (rt.defaultOccupancy || 2));
+  const extraCharges = extraPersons * extraPerNight * nights;
+  const roomSubtotal = ratePerNight * nights + extraCharges;
+  const gstPct = Number(rp.gstPercentage ?? catalog.settings.gstPercentage ?? 5);
+  const taxInclusive = rp.taxInclusive ?? catalog.settings.taxInclusive ?? true;
 
-  let ratePerNight = 2099;
-  const rt = body.roomTypeId || '';
+  let taxableBase: number;
+  let tax: number;
+  let grandTotal: number;
 
-  if (rt.endsWith('0001') || rt.includes('bgt') || rt.toLowerCase().includes('budget')) {
-    ratePerNight = 1599;
-  } else if (rt.endsWith('0002') || rt.includes('dlx') || rt.toLowerCase().includes('deluxe')) {
-    ratePerNight = isSingle ? 1799 : 2099;
-  } else if (rt.endsWith('0003') || rt.includes('exe') || rt.toLowerCase().includes('executive')) {
-    ratePerNight = isSingle ? 2199 : 2499;
-  } else if (rt.endsWith('0004') || rt.includes('sut') || rt.toLowerCase().includes('suite')) {
-    ratePerNight = 2799;
+  if (taxInclusive) {
+    grandTotal = roomSubtotal;
+    taxableBase = Math.round((grandTotal / (1 + gstPct / 100)) * 100) / 100;
+    tax = Math.round((grandTotal - taxableBase) * 100) / 100;
+  } else {
+    taxableBase = roomSubtotal;
+    tax = Math.round(taxableBase * (gstPct / 100) * 100) / 100;
+    grandTotal = taxableBase + tax;
   }
-
-  // Extra persons charge (₹399 per night)
-  let extraCharges = 0;
-  if (adults > 2) {
-    extraCharges = (adults - 2) * 399 * nights;
-  }
-
-  const roomSubtotal = (ratePerNight * nights) + extraCharges;
-  const tax = Math.round(roomSubtotal * 0.12);
-  const grandTotal = roomSubtotal + tax;
 
   const lineItems = Array.from({ length: nights }, (_, i) => {
     const d = new Date(checkInDate.getTime() + i * 86400000);
     return {
       date: d.toISOString().split('T')[0],
       rate: ratePerNight.toFixed(2),
-      tax: (ratePerNight * 0.12).toFixed(2),
+      tax: (tax / nights).toFixed(2),
     };
   });
 
   return {
     nights,
-    currencyCode: 'INR',
+    currencyCode: rp.currencyCode || catalog.hotel.currencyCode || 'INR',
     lineItems,
-    roomTotal: roomSubtotal.toFixed(2),
+    roomTotal: taxableBase.toFixed(2),
     taxTotal: tax.toFixed(2),
     grandTotal: grandTotal.toFixed(2),
-    depositPolicy: { type: 'none', refundable: false },
+    depositPolicy: { type: 'none', refundable: true },
     depositDue: '0.00',
     cancellationPolicy: {
-      type: 'strict',
-      description: 'Non-refundable room reservations.',
+      type: 'flexible',
+      description: catalog.settings.cancellationPolicy || 'Free cancellation up to 24 hours before check-in.',
     },
   };
 }
 
-function saveLocalDirectBooking(booking: any) {
-  try {
-    if (typeof window !== 'undefined' && window.localStorage) {
-      const existingStr = window.localStorage.getItem('hotel_spark_direct_bookings');
-      const existing = existingStr ? JSON.parse(existingStr) : [];
-      const updated = [booking, ...existing.filter((b: any) => b.id !== booking.id && b.reference !== booking.reference)];
-      window.localStorage.setItem('hotel_spark_direct_bookings', JSON.stringify(updated));
-    }
-  } catch (e) {
-    console.warn('Could not cache booking to localStorage:', e);
-  }
-}
-
 async function bookSupabase(body: BookRequest): Promise<BookResponse> {
-  const refCode = `SPARK-${Date.now().toString(36).toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`;
-  const nights = Math.max(
-    1,
-    Math.round((new Date(body.checkOut).getTime() - new Date(body.checkIn).getTime()) / 86400000),
-  );
-  let baseRate = 2099;
-  const rtId = body.roomTypeId || '';
-  const isSingle = (body.adults || 2) === 1;
-  if (rtId.endsWith('0001') || rtId.includes('bgt')) baseRate = 1599;
-  else if (rtId.endsWith('0002') || rtId.includes('dlx')) baseRate = isSingle ? 1799 : 2099;
-  else if (rtId.endsWith('0003') || rtId.includes('exe')) baseRate = isSingle ? 2199 : 2499;
-  else if (rtId.endsWith('0004') || rtId.includes('sut')) baseRate = 2799;
-  try {
-    const plans = await supabaseFetch<any[]>(`rate_plans?room_type_id=eq.${body.roomTypeId}&select=base_amount,base_rate`);
-    if (plans?.[0]?.base_amount || plans?.[0]?.base_rate) {
-      baseRate = Number(plans[0].base_amount || plans[0].base_rate);
-    }
-  } catch (err) {
-    console.warn('Could not fetch live rate plan for room type:', err);
-  }
-  const roomSubtotal = baseRate * nights;
-  const tax = Math.round(roomSubtotal * 0.12);
-  const grandTotal = (roomSubtotal + tax).toFixed(2);
-
-  let reservationId = `req_${Date.now()}`;
-  try {
-    const rpcResult = await supabaseFetch<any>('rpc/submit_website_booking_request', {
-      method: 'POST',
-      body: JSON.stringify({
-        p_hotel_id: 'a0000001-0000-4000-a000-000000000001',
-        p_room_type_id: body.roomTypeId,
-        p_arrival_date: body.checkIn,
-        p_departure_date: body.checkOut,
-        p_guest_first_name: body.guestFirstName,
-        p_guest_last_name: body.guestLastName,
-        p_guest_email: body.guestEmail,
-        p_guest_phone: body.guestPhone || '',
-        p_submitted_total: Math.round(Number(grandTotal)),
-        p_adults: body.adults,
-        p_children: body.children || 0,
-        p_special_requests: body.specialRequests || '',
-        p_currency_code: 'INR',
-        p_idempotency_key: refCode,
-        p_form_snapshot: {
-          paymentToken: body.paymentToken,
-          cardBrand: body.cardBrand,
-          cardLastFour: body.cardLastFour,
-          serviceIds: body.serviceIds,
-        },
-      }),
-    });
-    if (rpcResult?.id) reservationId = rpcResult.id;
-  } catch (err) {
-    console.warn('RPC submit_website_booking_request error:', err);
-  }
-
-  saveLocalDirectBooking({
-    id: reservationId,
-    propertyId: 'a0000001-0000-4000-a000-000000000001',
-    status: 'pending',
-    reference: refCode,
-    submissionIdempotencyKey: refCode,
-    arrivalDate: body.checkIn,
-    departureDate: body.checkOut,
+  const quote = await quoteSupabase({
     roomTypeId: body.roomTypeId,
-    roomTypeName: rtId.endsWith('0001') ? 'Budget' : rtId.endsWith('0003') ? 'Executive Room' : rtId.endsWith('0004') ? 'Suite' : 'Deluxe Room',
-    roomTypeCode: rtId.endsWith('0001') ? 'BGT' : rtId.endsWith('0003') ? 'EXE' : rtId.endsWith('0004') ? 'SUT' : 'DLX',
-    ratePlanId: 'c0000001-0000-4000-a000-000000000001',
-    ratePlanName: 'Best Available Rate',
+    ratePlanId: body.ratePlanId,
+    checkIn: body.checkIn,
+    checkOut: body.checkOut,
     adults: body.adults,
-    children: body.children || 0,
-    guestFirstName: body.guestFirstName,
-    guestLastName: body.guestLastName,
-    guestEmail: body.guestEmail,
-    guestPhone: body.guestPhone || '',
-    specialRequests: body.specialRequests || '',
-    submittedTotal: grandTotal,
-    currencyCode: 'INR',
-    confirmedReservationNumber: null,
-    assignedRoomNumber: null,
-    availableRoomsCount: 4,
-    denialReason: null,
-    decidedAt: null,
-    createdAt: new Date().toISOString(),
+    children: body.children,
   });
 
-  const lineItems = Array.from({ length: nights }, (_, i) => {
-    const d = new Date(new Date(body.checkIn).getTime() + i * 86400000);
-    return {
-      date: d.toISOString().split('T')[0],
-      rate: baseRate.toFixed(2),
-      tax: (baseRate * 0.12).toFixed(2),
-    };
+  const refCode = `SPARK-${Date.now().toString(36).toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`;
+  const rpcResult = await supabaseFetch<any>('rpc/submit_website_booking_request', {
+    method: 'POST',
+    body: JSON.stringify({
+      p_hotel_id: DEFAULT_HOTEL_ID,
+      p_room_type_id: body.roomTypeId,
+      p_arrival_date: body.checkIn,
+      p_departure_date: body.checkOut,
+      p_guest_first_name: body.guestFirstName,
+      p_guest_last_name: body.guestLastName,
+      p_guest_email: body.guestEmail,
+      p_guest_phone: body.guestPhone || '',
+      p_submitted_total: Number(quote.grandTotal),
+      p_adults: body.adults,
+      p_children: body.children || 0,
+      p_special_requests: body.specialRequests || '',
+      p_currency_code: quote.currencyCode,
+      p_idempotency_key: refCode,
+      p_form_snapshot: {
+        paymentToken: body.paymentToken,
+        cardBrand: body.cardBrand,
+        cardLastFour: body.cardLastFour,
+        serviceIds: body.serviceIds,
+      },
+    }),
   });
+
+  const reservationId = rpcResult?.id || refCode;
 
   return {
     success: true,
-    confirmationNumber: refCode,
-    reference: refCode,
+    confirmationNumber: rpcResult?.reference || refCode,
+    reference: rpcResult?.reference || refCode,
     reservationId,
     bookingId: reservationId,
     isPendingApproval: true,
     status: 'pending_approval',
-    message: 'Booking request confirmed! Awaiting hotel front desk check-in confirmation.',
-    currencyCode: 'INR',
-    grandTotal,
-    lineItems,
+    message: rpcResult?.message || 'Booking request submitted successfully! Awaiting hotel front desk confirmation.',
+    currencyCode: quote.currencyCode,
+    grandTotal: quote.grandTotal,
+    lineItems: quote.lineItems,
     deposit: null,
-    cancellationPolicy: 'Free cancellation up to 24 hours prior to check-in.',
+    cancellationPolicy: quote.cancellationPolicy?.description || '',
   };
 }
 
-async function submitRequestSupabase(
-  body: SubmitBookingRequest,
-): Promise<BookingRequestAcknowledgement> {
-  const plans = await supabaseFetch<any[]>(`rate_plans?id=eq.${body.ratePlanId}`);
-  let ratePerNight = 2099;
-  const rtSub = body.roomTypeId || '';
-  if (rtSub.endsWith('0001')) ratePerNight = 1599;
-  else if (rtSub.endsWith('0002')) ratePerNight = (body.adults === 1) ? 1799 : 2099;
-  else if (rtSub.endsWith('0003')) ratePerNight = (body.adults === 1) ? 2199 : 2499;
-  else if (rtSub.endsWith('0004')) ratePerNight = 2799;
-  const nights = Math.max(
-    1,
-    Math.round((new Date(body.checkOut).getTime() - new Date(body.checkIn).getTime()) / 86400000),
-  );
-  const estimatedTotal = Math.round(ratePerNight * nights * 1.12);
-
-  const idempotencyKey = body.idempotencyKey || `REQ-WEB-${Date.now()}`;
-  let reqId = `req_${Date.now()}`;
-
-  try {
-    const rpcResult = await supabaseFetch<any>('rpc/submit_website_booking_request', {
-      method: 'POST',
-      body: JSON.stringify({
-        p_hotel_id: 'a0000001-0000-4000-a000-000000000001',
-        p_room_type_id: body.roomTypeId,
-        p_arrival_date: body.checkIn,
-        p_departure_date: body.checkOut,
-        p_guest_first_name: body.guestFirstName,
-        p_guest_last_name: body.guestLastName,
-        p_guest_email: body.guestEmail,
-        p_guest_phone: body.guestPhone || '',
-        p_submitted_total: estimatedTotal,
-        p_adults: body.adults,
-        p_children: body.children || 0,
-        p_special_requests: body.specialRequests || '',
-        p_currency_code: 'INR',
-        p_idempotency_key: idempotencyKey,
-        p_form_snapshot: body.applicationAnswers || {},
-      }),
-    });
-    if (rpcResult?.id) reqId = rpcResult.id;
-  } catch (err) {
-    console.warn('RPC submit_website_booking_request error:', err);
-  }
-
-  saveLocalDirectBooking({
-    id: reqId,
-    propertyId: 'a0000001-0000-4000-a000-000000000001',
-    status: 'pending',
-    reference: idempotencyKey,
-    submissionIdempotencyKey: idempotencyKey,
-    arrivalDate: body.checkIn,
-    departureDate: body.checkOut,
+async function submitRequestSupabase(body: SubmitBookingRequest): Promise<BookingRequestAcknowledgement> {
+  const quote = await quoteSupabase({
     roomTypeId: body.roomTypeId,
-    roomTypeName: body.roomTypeId.includes('2')
-      ? 'Executive Spark Suite'
-      : body.roomTypeId.includes('3')
-      ? 'Standard Queen Room'
-      : 'Deluxe King Room',
-    roomTypeCode: body.roomTypeId.includes('2') ? 'SUT' : body.roomTypeId.includes('3') ? 'STD' : 'DLX',
-    ratePlanId: body.ratePlanId || 'c0000001-0000-4000-a000-000000000001',
-    ratePlanName: 'Best Available Rate',
+    ratePlanId: body.ratePlanId,
+    checkIn: body.checkIn,
+    checkOut: body.checkOut,
     adults: body.adults,
-    children: body.children || 0,
-    guestFirstName: body.guestFirstName,
-    guestLastName: body.guestLastName,
-    guestEmail: body.guestEmail,
-    guestPhone: body.guestPhone || '',
-    specialRequests: body.specialRequests || '',
-    submittedTotal: String(estimatedTotal),
-    currencyCode: 'INR',
-    confirmedReservationNumber: null,
-    assignedRoomNumber: null,
-    availableRoomsCount: 4,
-    denialReason: null,
-    decidedAt: null,
-    createdAt: new Date().toISOString(),
+    children: body.children,
+  });
+
+  const idempotencyKey = body.idempotencyKey || `REQ-${Date.now()}`;
+  const rpcResult = await supabaseFetch<any>('rpc/submit_website_booking_request', {
+    method: 'POST',
+    body: JSON.stringify({
+      p_hotel_id: DEFAULT_HOTEL_ID,
+      p_room_type_id: body.roomTypeId,
+      p_arrival_date: body.checkIn,
+      p_departure_date: body.checkOut,
+      p_guest_first_name: body.guestFirstName,
+      p_guest_last_name: body.guestLastName,
+      p_guest_email: body.guestEmail,
+      p_guest_phone: body.guestPhone || '',
+      p_submitted_total: Number(quote.grandTotal),
+      p_adults: body.adults,
+      p_children: body.children || 0,
+      p_special_requests: body.specialRequests || '',
+      p_currency_code: quote.currencyCode,
+      p_idempotency_key: idempotencyKey,
+      p_form_snapshot: body.applicationAnswers || {},
+    }),
   });
 
   return {
-    requestId: reqId,
+    requestId: rpcResult?.id || idempotencyKey,
     status: 'pending',
-    message: 'Booking request submitted successfully! Awaiting hotel confirmation.',
+    message: rpcResult?.message || 'Booking request submitted successfully! Awaiting hotel confirmation.',
   };
 }
 
 export const bookingApi = {
+  getPublicCatalog: fetchPublicCatalogFromSupabase,
+
   paymentReturnStatus: async (reference: string): Promise<PaymentReturnStatus> => {
     const { data } = await api.get<PaymentReturnStatus>('/payment-return-status', {
       headers: { 'x-payment-return-reference': reference },
     });
     return data;
   },
+
   config: async (): Promise<BookingConfig> => {
-    if (isStaticHosting) return DEFAULT_HOTEL_SPARK_CONFIG;
-    try {
-      const { data } = await api.get<BookingConfig>('/config');
-      if (data && typeof data === 'object' && !('message' in data)) return data;
-    } catch {
-      // Fallback for static Netlify hosting
+    if (!isStaticHosting) {
+      try {
+        const { data } = await api.get<BookingConfig>('/config');
+        if (data && typeof data === 'object' && !('message' in data)) return data;
+      } catch {
+        /* use public Supabase catalog */
+      }
     }
-    return DEFAULT_HOTEL_SPARK_CONFIG;
+    const catalog = await fetchPublicCatalogFromSupabase();
+    if (!catalog) {
+      throw new Error('Hotel configuration not found in Supabase.');
+    }
+    return {
+      propertyId: catalog.hotel.id,
+      isEnabled: true,
+      displayName: catalog.hotel.name,
+      primaryColor: '#0d9488',
+      accentColor: '#0f766e',
+      depositPolicy: { type: 'none', refundable: true },
+      sellableRoomTypeIds: catalog.roomTypes.map((r) => r.id),
+      sellableRatePlanIds: catalog.roomTypes.flatMap((r) => r.ratePlans.map((p) => p.id)),
+      bookingMode: catalog.settings.bookingMode || 'request',
+      paymentMethodCollection: 'optional',
+      paymentMethodClientMode: 'unsupported',
+      formQuestions: [],
+    };
   },
 
   search: async (body: SearchRequest): Promise<SearchResponse> => {
-    if (isStaticHosting) return searchSupabase(body);
-    try {
+    if (!isStaticHosting) {
       const { data } = await api.post<SearchResponse>('/search', body);
-      if (data && data.results && Array.isArray(data.results) && data.results.length > 0) {
-        return data;
-      }
-    } catch {
-      // Fallback for static Netlify hosting
+      return data;
     }
     return searchSupabase(body);
   },
 
   quote: async (body: QuoteRequest): Promise<QuoteResponse> => {
-    if (isStaticHosting) return quoteSupabase(body);
-    try {
+    if (!isStaticHosting) {
       const { data } = await api.post<QuoteResponse>('/quote', body);
-      if (data && data.grandTotal) return data;
-    } catch {
-      // Fallback for static Netlify hosting
+      return data;
     }
     return quoteSupabase(body);
   },
 
   listServices: async (): Promise<SellableServicesResponse> => {
-    if (isStaticHosting) return { propertyId: 'a0000001-0000-4000-a000-000000000001', data: [] };
-    try {
-      const { data } = await api.get<SellableServicesResponse>('/services');
-      return data;
-    } catch {
-      return { propertyId: 'a0000001-0000-4000-a000-000000000001', data: [] };
-    }
+    if (isStaticHosting) return { propertyId: DEFAULT_HOTEL_ID, data: [] };
+    const { data } = await api.get<SellableServicesResponse>('/services');
+    return data;
   },
 
   book: async (body: BookRequest): Promise<BookResponse> => {
-    if (isStaticHosting) return bookSupabase(body);
-    try {
+    if (!isStaticHosting) {
       const { data } = await api.post<BookResponse>('/book', body);
-      if (data && (data.confirmationNumber || data.bookingId)) return data;
-    } catch {
-      // Fallback for static Netlify hosting
+      return data;
     }
     return bookSupabase(body);
   },
@@ -603,63 +525,48 @@ export const bookingApi = {
   },
 
   createRequestPaymentMethodSetup: async (
-    body: RequestPaymentMethodSetupRequest,
+    body: RequestPaymentMethodSetupRequest
   ): Promise<RequestPaymentMethodSetupResponse> => {
     if (isStaticHosting) {
-      return {
-        setupIntentId: `seti_${Date.now()}`,
-        clientSecret: `seti_secret_${Date.now()}`,
-        clientMode: 'mock',
-      };
+      throw new Error('Online card setup requires configuring Stripe/Redsys/Worldline gateway on the API server.');
     }
-    try {
-      const { data } = await api.post<RequestPaymentMethodSetupResponse>(
-        '/request-payment-method-setup',
-        body,
-      );
-      return data;
-    } catch {
-      return {
-        setupIntentId: `seti_${Date.now()}`,
-        clientSecret: `seti_secret_${Date.now()}`,
-        clientMode: 'mock',
-      };
-    }
+    const { data } = await api.post<RequestPaymentMethodSetupResponse>('/request-payment-method-setup', body);
+    return data;
   },
 
-  submitRequest: async (
-    body: SubmitBookingRequest,
-  ): Promise<BookingRequestAcknowledgement> => {
-    if (isStaticHosting) return submitRequestSupabase(body);
-    try {
+  submitRequest: async (body: SubmitBookingRequest): Promise<BookingRequestAcknowledgement> => {
+    if (!isStaticHosting) {
       const { data } = await api.post<BookingRequestAcknowledgement>('/requests', body);
-      if (data && data.requestId) return data;
-    } catch {
-      // Fallback for static Netlify hosting
+      return data;
     }
     return submitRequestSupabase(body);
   },
 
-  getBooking: async (confirmationNumber: string): Promise<BookingDetails> => {
-    const { data } = await api.get<BookingDetails>(
-      `/bookings/${encodeURIComponent(confirmationNumber)}`,
-    );
-    return data;
+  getBooking: async (confirmationNumber: string, email?: string): Promise<BookingDetails> => {
+    if (!isStaticHosting) {
+      const { data } = await api.get<BookingDetails>(`/bookings/${encodeURIComponent(confirmationNumber)}`);
+      return data;
+    }
+    if (!email) {
+      throw new Error('Guest email is required to look up booking details.');
+    }
+    const res = await supabaseFetch<any>('rpc/get_public_booking_status', {
+      method: 'POST',
+      body: JSON.stringify({ p_reference: confirmationNumber, p_email: email }),
+    });
+    if (!res) throw new Error('Booking not found for that confirmation number and email.');
+    return res;
   },
 
-  cancelBooking: async (
-    confirmationNumber: string,
-    reason?: string,
-  ): Promise<CancelResponse> => {
+  cancelBooking: async (confirmationNumber: string, reason?: string): Promise<CancelResponse> => {
     const { data } = await api.delete<CancelResponse>(
       `/bookings/${encodeURIComponent(confirmationNumber)}`,
-      { data: { reason } },
+      { data: { reason } }
     );
     return data;
   },
 };
 
-/** Extract a human-readable message from an axios/booking-engine error. */
 export function errorMessage(err: unknown): string {
   if (axios.isAxiosError(err)) {
     const data = err.response?.data as { message?: string | string[] } | undefined;

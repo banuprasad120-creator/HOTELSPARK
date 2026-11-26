@@ -82,29 +82,32 @@ if (fs.existsSync(bookingDownloads)) {
   console.log(`\n📲 Copied APK downloads to ${distDownloads}`);
 }
 
-// Ensure apps/booking/vercel.json is properly configured
-const vercelConfig = {
-  headers: [
-    {
-      source: '/downloads/:path*',
-      headers: [
-        { key: 'Content-Type', value: 'application/vnd.android.package-archive' },
-        { key: 'Content-Disposition', value: 'attachment' },
-        { key: 'Cache-Control', value: 'public, max-age=31536000, immutable' }
-      ]
-    }
-  ],
-  rewrites: [
-    { source: '/admin/:path*', destination: '/admin/index.html' },
-    { source: '/admin', destination: '/admin/index.html' },
-    { source: '/:path*', destination: '/index.html' }
-  ]
-};
-fs.writeFileSync(
-  path.join(bookingDir, 'vercel.json'),
-  JSON.stringify(vercelConfig, null, 2),
-  'utf8'
-);
+// Ensure apps/booking/vercel.json exists without overwriting tracked config
+const bookingVercelPath = path.join(bookingDir, 'vercel.json');
+if (!fs.existsSync(bookingVercelPath)) {
+  const vercelConfig = {
+    $schema: 'https://openapi.vercel.sh/vercel.json',
+    framework: 'vite',
+    buildCommand: 'node ../../scripts/build-unified-booking.mjs',
+    outputDirectory: 'dist',
+    headers: [
+      {
+        source: '/downloads/:path*',
+        headers: [
+          { key: 'Content-Type', value: 'application/vnd.android.package-archive' },
+          { key: 'Content-Disposition', value: 'attachment' },
+          { key: 'Cache-Control', value: 'public, max-age=31536000, immutable' }
+        ]
+      }
+    ],
+    rewrites: [
+      { source: '/admin', destination: '/admin/index.html' },
+      { source: '/admin/:path*', destination: '/admin/index.html' },
+      { source: '/:path*', destination: '/index.html' }
+    ]
+  };
+  fs.writeFileSync(bookingVercelPath, JSON.stringify(vercelConfig, null, 2) + '\n', 'utf8');
+}
 
 // 6. Also mirror entire dist to root dist for Vercel root deployments
 const rootDist = path.join(rootDir, 'dist');
@@ -116,6 +119,19 @@ try {
   console.log(`\n📁 Mirrored production dist to root ${rootDist}`);
 } catch (err) {
   console.warn('Warning: Could not mirror to root dist:', err.message);
+}
+
+// 7. Verify critical output entrypoints exist
+const requiredOutputs = [
+  path.join(bookingDist, 'index.html'),
+  path.join(targetAdminDir, 'index.html'),
+  path.join(rootDist, 'index.html'),
+  path.join(rootDist, 'admin', 'index.html'),
+];
+for (const file of requiredOutputs) {
+  if (!fs.existsSync(file)) {
+    throw new Error(`Expected build output missing: ${file}`);
+  }
 }
 
 console.log('\n✅ Unified Booking & Admin build complete!');

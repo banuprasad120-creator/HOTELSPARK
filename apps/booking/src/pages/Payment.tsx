@@ -85,7 +85,6 @@ export function Payment() {
   const isWorldline = config?.paymentMethodClientMode === 'worldline';
 
   const payAtHotel = () => bookMutation.mutate({ paymentToken: 'pay_at_hotel', cardBrand: 'Pay at Desk', cardLastFour: 'CASH' });
-  const payCardDemo = () => bookMutation.mutate({ paymentToken: 'tok_demo', cardBrand: 'Visa Demo', cardLastFour: '4242' });
   const payRedsys = () =>
     bookMutation.mutate({
       paymentToken: 'redsys_redirect',
@@ -275,55 +274,19 @@ export function Payment() {
                 </Elements>
               </>
             ) : (
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-bold text-gray-900">Card Payment</span>
-                  <span className="text-sm font-extrabold text-telivity-navy">
-                    {money(quote.grandTotal, 'INR')}
-                  </span>
-                </div>
-                <div className="space-y-3">
-                  <div>
-                    <label className="text-xs font-semibold text-gray-700">Card Number</label>
-                    <input
-                      type="text"
-                      placeholder="•••• •••• •••• 4242"
-                      defaultValue="4242 •••• •••• 4242"
-                      disabled
-                      className="mt-1 w-full rounded-xl border border-gray-300 bg-gray-50 px-3.5 py-2.5 text-xs text-gray-700 font-mono"
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="text-xs font-semibold text-gray-700">Expires</label>
-                      <input
-                        type="text"
-                        placeholder="MM/YY"
-                        defaultValue="12/28"
-                        disabled
-                        className="mt-1 w-full rounded-xl border border-gray-300 bg-gray-50 px-3.5 py-2.5 text-xs text-gray-700 font-mono"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-xs font-semibold text-gray-700">CVC</label>
-                      <input
-                        type="text"
-                        placeholder="•••"
-                        defaultValue="888"
-                        disabled
-                        className="mt-1 w-full rounded-xl border border-gray-300 bg-gray-50 px-3.5 py-2.5 text-xs text-gray-700 font-mono"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <Button
-                  className="w-full py-3.5 text-sm font-bold"
-                  onClick={payCardDemo}
-                  disabled={bookMutation.isPending}
-                >
-                  {bookMutation.isPending ? 'Processing Card…' : `Pay ${money(quote.grandTotal, 'INR')} & Confirm`}
-                </Button>
+              <div className="space-y-3 text-sm text-gray-600">
+                <p className="font-semibold text-gray-900">Online Card Gateway Unavailable</p>
+                <p>
+                  Card tokenization is not configured yet for this property. Please select{' '}
+                  <button type="button" onClick={() => setActiveTab('upi_qr')} className="text-telivity-teal font-semibold underline">
+                    UPI QR Code
+                  </button>{' '}
+                  or{' '}
+                  <button type="button" onClick={() => setActiveTab('pay_at_hotel')} className="text-telivity-teal font-semibold underline">
+                    Pay at Hotel
+                  </button>{' '}
+                  to submit your booking request.
+                </p>
               </div>
             )}
           </div>

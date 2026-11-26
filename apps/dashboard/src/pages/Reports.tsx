@@ -23,8 +23,6 @@ const REPORT_OPTIONS: { value: ReportType; labelKey: string }[] = [
   { value: 'booking-pace', labelKey: 'bookingPace' },
 ];
 
-const DEMO_FAVORITES_KEY = 'haip.reportFavorites';
-
 export default function Reports() {
   const { t } = useTranslation();
   const { propertyId, isPortfolioMode, properties, currencyCode } = useProperty();
@@ -53,25 +51,13 @@ export default function Reports() {
 
   const favorites: ReportType[] = useMemo(() => {
     const fromApi = (prefsData?.reportFavorites ?? []) as ReportType[];
-    if (fromApi.length) return fromApi.filter((f) => REPORT_OPTIONS.some((o) => o.value === f));
-    try {
-      const raw = localStorage.getItem(DEMO_FAVORITES_KEY);
-      if (raw) return JSON.parse(raw) as ReportType[];
-    } catch {
-      /* ignore */
-    }
-    return [];
+    return Array.isArray(fromApi) ? fromApi.filter((f) => REPORT_OPTIONS.some((o) => o.value === f)) : [];
   }, [prefsData]);
 
   const saveFavorites = useMutation({
     mutationFn: (next: ReportType[]) =>
       api.patch('/v1/admin/me/preferences', { reportFavorites: next }).then((r) => r.data),
-    onSuccess: (_data, next) => {
-      try {
-        localStorage.setItem(DEMO_FAVORITES_KEY, JSON.stringify(next));
-      } catch {
-        /* ignore */
-      }
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['me', 'preferences'] });
     },
   });

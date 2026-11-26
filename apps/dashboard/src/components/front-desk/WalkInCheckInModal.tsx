@@ -25,11 +25,8 @@ import { useProperty } from '../../context/PropertyContext';
 import { formatMoney } from '../../lib/money';
 import Modal from '../ui/Modal';
 import {
-  getStoredTariffConfig,
-  getStoredRooms,
-  DEFAULT_TARIFF_CONFIG,
+  EMPTY_TARIFF_CONFIG,
   type HotelTariffConfig,
-  type RoomCategoryTariff,
 } from '../../lib/supabaseAdapter';
 
 interface WalkInCheckInModalProps {
@@ -54,26 +51,15 @@ interface RoomTypeItem {
   basePrice?: number;
   baseAmount?: number;
   price?: number;
+  singleOccupancyPrice?: number | null;
+  doubleOccupancyPrice?: number | null;
 }
 
 function getRoomTypeRate(rt?: RoomTypeItem, occ: 'single' | 'double' = 'double'): number {
-  if (!rt) return 2099;
-  const name = rt.name.toLowerCase();
-  const code = rt.code?.toUpperCase();
-
-  if (name.includes('budget') || code === 'BGT') {
-    return 1599; // Budget Room Single Occupancy (Double not configured)
-  }
-  if (name.includes('deluxe') || code === 'DLX') {
-    return occ === 'single' ? 1799 : 2099;
-  }
-  if (name.includes('executive') || code === 'EXE') {
-    return occ === 'single' ? 2199 : 2499;
-  }
-  if (name.includes('suite') || code === 'SUT') {
-    return 2799; // Suite Double Occupancy (Single not configured)
-  }
-  return occ === 'single' ? 1799 : 2099;
+  if (!rt) return 0;
+  if (occ === 'single' && rt.singleOccupancyPrice != null) return Number(rt.singleOccupancyPrice);
+  if (occ === 'double' && rt.doubleOccupancyPrice != null) return Number(rt.doubleOccupancyPrice);
+  return Number(rt.doubleOccupancyPrice ?? rt.singleOccupancyPrice ?? rt.basePrice ?? rt.baseAmount ?? rt.baseRate ?? rt.price ?? 0);
 }
 
 export default function WalkInCheckInModal({ open, onClose, onSuccess }: WalkInCheckInModalProps) {
@@ -118,8 +104,8 @@ export default function WalkInCheckInModal({ open, onClose, onSuccess }: WalkInC
   const [occupancyType, setOccupancyType] = useState<'single' | 'double'>('double');
 
   // Payment State
-  const [roomRatePerNight, setRoomRatePerNight] = useState(2099);
-  const [advancePaid, setAdvancePaid] = useState(2099);
+  const [roomRatePerNight, setRoomRatePerNight] = useState(0);
+  const [advancePaid, setAdvancePaid] = useState(0);
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'upi' | 'card' | 'bank_transfer'>('upi');
   const [paymentReference, setPaymentReference] = useState('');
 
@@ -127,7 +113,7 @@ export default function WalkInCheckInModal({ open, onClose, onSuccess }: WalkInC
   const [confirmedBooking, setConfirmedBooking] = useState<any | null>(null);
   const [errorMsg, setErrorMsg] = useState('');
 
-  // Fetch Room Types (Fallback to DEFAULT_TARIFF_CONFIG.categories)
+  // Fetch Room Types from Supabase
   const { data: rawRoomTypes = [] } = useQuery<RoomTypeItem[]>({
     queryKey: ['room-types', propertyId],
     queryFn: async () => {
@@ -137,14 +123,9 @@ export default function WalkInCheckInModal({ open, onClose, onSuccess }: WalkInC
     enabled: open,
   });
 
-  const roomTypes: RoomTypeItem[] = rawRoomTypes.length > 0 ? rawRoomTypes : DEFAULT_TARIFF_CONFIG.categories.map((c) => ({
-    id: c.id,
-    name: c.name,
-    code: c.code,
-    price: c.doubleOccupancyPrice || c.singleOccupancyPrice || 1799,
-  }));
+  const roomTypes: RoomTypeItem[] = Array.isArray(rawRoomTypes) ? rawRoomTypes : [];
 
-  // Fetch Rooms (Fallback to getStoredRooms() so all 28 rooms are available)
+  // Fetch Rooms from Supabase
   const { data: rawRooms = [] } = useQuery<RoomItem[]>({
     queryKey: ['rooms', propertyId],
     queryFn: async () => {
@@ -154,7 +135,16 @@ export default function WalkInCheckInModal({ open, onClose, onSuccess }: WalkInC
     enabled: open,
   });
 
-  const rooms: RoomItem[] = rawRooms.length >= 28 ? rawRooms : (getStoredRooms() as any[]);
+  const { data: tariffData } = useQuery<HotelTariffConfig>({
+    queryKey: ['tariff-config', propertyId],
+    queryFn: async () => {
+      const res = await api.get('/v1/tariff-config', { params: { propertyId } });
+      return res.data;
+    },
+    enabled: open,
+  });
+
+  const rooms: RoomItem[] = Array.isArray(rawRooms) ? rawRooms : [];
 
   // Filter available rooms (prevent overbooking)
   const availableRooms = rooms.filter(
@@ -179,16 +169,15 @@ export default function WalkInCheckInModal({ open, onClose, onSuccess }: WalkInC
     ),
   );
 
-  // Extra Person Charge (₹399 per person per night)
+  // Extra Person Charge from DB settings
+  const tariffConfig = tariffData ?? EMPTY_TARIFF_CONFIG;
   const baseCapacity = effectiveOccupancy === 'single' ? 1 : 2;
   const extraAdultsCount = Math.max(0, adults - baseCapacity);
-  const extraPersonTotal = extraAdultsCount * 399 * nights;
+  const extraPersonTotal = extraAdultsCount * Number(tariffConfig.extraPersonCharge || 0) * nights;
 
   const currentRate = getRoomTypeRate(selectedRoomType, effectiveOccupancy);
   const roomTotal = currentRate * nights;
   const subtotalBeforeTax = roomTotal + extraPersonTotal;
-
-  const tariffConfig = getStoredTariffConfig();
   let taxes: number;
   let grandTotal: number;
 
@@ -245,43 +234,37 @@ export default function WalkInCheckInModal({ open, onClose, onSuccess }: WalkInC
       const assignedRoom = rooms.find((r) => r.id === selectedRoomId);
       const assignedRoomType = roomTypes.find((t) => t.id === selectedRoomTypeId);
 
-      const payload = {
-        propertyId,
-        source: 'walk_in',
-        status: 'checked_in',
-        arrivalDate: checkInDate,
-        departureDate: checkOutDate,
-        roomId: selectedRoomId,
-        roomNumber: assignedRoom?.number || '101',
-        roomTypeName: assignedRoomType?.name || 'Deluxe King Room',
-        guest: {
+      const res = await api.post(
+        '/v1/stays/check-in',
+        {
+          propertyId,
+          guestName: `${firstName.trim()} ${lastName.trim()}`.trim(),
           firstName: firstName.trim(),
           lastName: lastName.trim(),
           mobile: mobile.trim(),
-          email: email.trim() || `${mobile.trim()}@sparkhotel.com`,
+          email: email.trim(),
           address: address.trim(),
           idProofType,
           idProofNumber: idProofNumber.trim(),
           idProofFrontUrl: idProofFrontUrl || undefined,
           idProofBackUrl: idProofBackUrl || undefined,
-        },
-        adults,
-        children,
-        billing: {
-          nightlyRate: currentRate,
+          roomId: selectedRoomId,
+          roomNumber: assignedRoom?.number || '',
+          roomTypeName: assignedRoomType?.name || '',
+          checkInTime: checkInDate,
           nights,
-          roomSubtotal: roomTotal,
-          extraPersonCharges: extraPersonTotal,
-          taxes,
-          grandTotal,
+          adults,
+          children,
+          pricePerNight: currentRate,
+          extraCharges: extraPersonTotal,
+          discount: 0,
           advancePaid,
-          balanceRemaining,
           paymentMethod,
-          paymentReference: paymentReference.trim() || `WALK-IN-${Date.now().toString(36).toUpperCase()}`,
+          occupancyType: effectiveOccupancy,
+          notes: paymentReference.trim() || undefined,
         },
-      };
-
-      const res = await api.post('/v1/reservations', payload, { skipErrorToast: true });
+        { skipErrorToast: true }
+      );
       return res.data;
     },
     onSuccess: (data) => {

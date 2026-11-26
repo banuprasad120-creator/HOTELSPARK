@@ -19,7 +19,7 @@ export default function IcalCalendars() {
   const { hasRole } = useAuth();
   const queryClient = useQueryClient();
   const canManage = hasRole('admin');
-  const canSync = hasRole('admin', 'revenue_manager');
+  const canSync = hasRole('admin') || hasRole('revenue_manager');
   const [draft, setDraft] = useState<Draft | null>(null);
   const [confirm, setConfirm] = useState<Confirm | null>(null);
   const [exportResult, setExportResult] = useState<{ name: string; url: string } | null>(null);

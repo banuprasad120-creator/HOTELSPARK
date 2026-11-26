@@ -28,9 +28,6 @@ import { api } from '../lib/api';
 import { useProperty } from '../context/PropertyContext';
 import { useToast } from '../components/ui/Toast';
 import {
-  getStoredStays,
-  getStoredRooms,
-  saveStoredRooms,
   type StoredStay,
   type StoredRoom,
 } from '../lib/supabaseAdapter';
@@ -44,40 +41,12 @@ interface HandoverNote {
   acknowledged: boolean;
 }
 
-const INITIAL_NOTES: HandoverNote[] = [
-  {
-    id: 'n1',
-    shift: 'morning',
-    author: 'Ramesh Rao (Front Office Mgr)',
-    time: 'Today, 01:45 PM',
-    note: 'Room 103 guest completed checkout smoothly. Room 201 requested fresh towels at 4:30 PM. Cash drawer verified at ₹7,500.',
-    acknowledged: true,
-  },
-  {
-    id: 'n2',
-    shift: 'evening',
-    author: 'Priya Sharma (Senior Receptionist)',
-    time: 'Today, 05:15 PM',
-    note: 'Walk-in check-in for Room 202 completed with Aadhaar verification. Night shift please run EOD report and reconcile POS machine by 11:30 PM.',
-    acknowledged: false,
-  },
-];
-
 export default function ManagerPanel() {
   const { propertyId } = useProperty();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  const [notes, setNotes] = useState<HandoverNote[]>(() => {
-    try {
-      const saved = localStorage.getItem('spark_manager_notes');
-      if (saved) return JSON.parse(saved);
-    } catch {
-      // ignore
-    }
-    return INITIAL_NOTES;
-  });
   const [newNote, setNewNote] = useState('');
   const [selectedShift, setSelectedShift] = useState<'morning' | 'evening' | 'night'>('evening');
 
@@ -90,7 +59,7 @@ export default function ManagerPanel() {
         ? 'evening'
         : 'night';
 
-  // Load Rooms & Stays
+  // Load Rooms, Stays, Employees & Handover Notes from Supabase
   const { data: roomsData } = useQuery({
     queryKey: ['rooms', propertyId],
     queryFn: () => api.get('/v1/rooms', { params: { propertyId } }).then((r) => r.data),
@@ -98,8 +67,7 @@ export default function ManagerPanel() {
   });
   const rooms: StoredRoom[] = useMemo(() => {
     const raw = roomsData?.data ?? roomsData;
-    if (Array.isArray(raw) && raw.length > 0) return raw;
-    return getStoredRooms();
+    return Array.isArray(raw) ? raw : [];
   }, [roomsData]);
 
   const { data: staysData } = useQuery({
@@ -109,9 +77,26 @@ export default function ManagerPanel() {
   });
   const allStays: StoredStay[] = useMemo(() => {
     const raw = staysData?.data ?? staysData;
-    if (Array.isArray(raw) && raw.length > 0) return raw;
-    return getStoredStays();
+    return Array.isArray(raw) ? raw : [];
   }, [staysData]);
+
+  const { data: employeesData } = useQuery({
+    queryKey: ['employees', propertyId],
+    queryFn: () => api.get('/v1/employees', { params: { propertyId } }).then((r) => r.data),
+    enabled: !!propertyId,
+  });
+  const employees: any[] = Array.isArray(employeesData?.data ?? employeesData)
+    ? (employeesData?.data ?? employeesData)
+    : [];
+
+  const { data: notesData } = useQuery({
+    queryKey: ['handover-notes', propertyId],
+    queryFn: () => api.get('/v1/handover-notes', { params: { propertyId } }).then((r) => r.data),
+    enabled: !!propertyId,
+  });
+  const notes: HandoverNote[] = Array.isArray(notesData?.data ?? notesData)
+    ? (notesData?.data ?? notesData)
+    : [];
 
   // Clean / Dirty counters
   const cleanRooms = rooms.filter((r) => r.status === 'vacant_clean' || r.status === 'clean' || r.status === 'available');
@@ -119,37 +104,47 @@ export default function ManagerPanel() {
   const occupiedRooms = rooms.filter((r) => r.status === 'occupied');
   const oooRooms = rooms.filter((r) => r.status === 'out_of_order');
 
-  // Add Handover Note
-  const handlePostNote = (e: React.FormEvent) => {
+  const morningStaff = employees.filter((e) => e.shift === 'morning' && e.status === 'active');
+  const eveningStaff = employees.filter((e) => e.shift === 'evening' && e.status === 'active');
+  const nightStaff = employees.filter((e) => e.shift === 'night' && e.status === 'active');
+
+  // Add Handover Note via Supabase
+  const handlePostNote = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newNote.trim()) return;
-    const noteObj: HandoverNote = {
-      id: `note-${Date.now()}`,
-      shift: selectedShift,
-      author: 'Current Duty Manager',
-      time: `Today, ${new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}`,
-      note: newNote.trim(),
-      acknowledged: false,
-    };
-    const updated = [noteObj, ...notes];
-    setNotes(updated);
-    localStorage.setItem('spark_manager_notes', JSON.stringify(updated));
-    setNewNote('');
-    toast('success', 'Shift handover note posted successfully.');
+    try {
+      await api.post('/v1/handover-notes', {
+        propertyId,
+        shift: selectedShift,
+        department: 'management',
+        note: newNote.trim(),
+      });
+      setNewNote('');
+      queryClient.invalidateQueries({ queryKey: ['handover-notes'] });
+      toast('success', 'Shift handover note saved to database.');
+    } catch (err: any) {
+      toast('error', err?.message || 'Failed to post handover note.');
+    }
   };
 
-  const handleAcknowledge = (id: string) => {
-    const updated = notes.map((n) => (n.id === id ? { ...n, acknowledged: true } : n));
-    setNotes(updated);
-    localStorage.setItem('spark_manager_notes', JSON.stringify(updated));
-    toast('success', 'Handover note acknowledged.');
+  const handleAcknowledge = async (id: string) => {
+    try {
+      await api.patch(`/v1/handover-notes/${id}`, { propertyId, acknowledged: true });
+      queryClient.invalidateQueries({ queryKey: ['handover-notes'] });
+      toast('success', 'Handover note acknowledged.');
+    } catch (err: any) {
+      toast('error', err?.message || 'Failed to acknowledge note.');
+    }
   };
 
-  const toggleRoomStatus = (roomId: string, nextStatus: string) => {
-    const updated = rooms.map((r) => (r.id === roomId ? { ...r, status: nextStatus } : r));
-    saveStoredRooms(updated);
-    queryClient.invalidateQueries({ queryKey: ['rooms'] });
-    toast('success', `Room status updated to ${nextStatus.replace('_', ' ')}.`);
+  const toggleRoomStatus = async (roomId: string, nextStatus: string) => {
+    try {
+      await api.patch(`/v1/rooms/${roomId}`, { propertyId, status: nextStatus });
+      queryClient.invalidateQueries({ queryKey: ['rooms'] });
+      toast('success', `Room status updated to ${nextStatus.replace('_', ' ')}.`);
+    } catch (err: any) {
+      toast('error', err?.message || 'Failed to update room status.');
+    }
   };
 
   return (
@@ -228,9 +223,9 @@ export default function ManagerPanel() {
               </span>
             </div>
             <div className="mt-2 text-xs space-y-0.5 text-purple-100">
-              <p>In-Charge: <strong className="text-white">Ramesh Rao</strong> (Front Office Mgr)</p>
-              <p>Staff on Duty: <strong className="text-white">4 Employees</strong> (Desk + HK)</p>
-              <p>Cash Count: <strong className="text-emerald-300">₹7,500 Reconciled</strong></p>
+              <p>In-Charge: <strong className="text-white">{morningStaff[0]?.name || 'Unassigned'}</strong></p>
+              <p>Staff on Duty: <strong className="text-white">{morningStaff.length} Employees</strong></p>
+              <p>Occupancy: <strong className="text-emerald-300">{occupiedRooms.length} Rooms Occupied</strong></p>
             </div>
           </div>
 
@@ -253,9 +248,9 @@ export default function ManagerPanel() {
               </span>
             </div>
             <div className="mt-2 text-xs space-y-0.5 text-purple-100">
-              <p>In-Charge: <strong className="text-white">Priya Sharma</strong> (Sr Receptionist)</p>
-              <p>Staff on Duty: <strong className="text-white">3 Employees</strong></p>
-              <p>Arrivals Expected: <strong className="text-teal-300">2 Check-Ins</strong></p>
+              <p>In-Charge: <strong className="text-white">{eveningStaff[0]?.name || 'Unassigned'}</strong></p>
+              <p>Staff on Duty: <strong className="text-white">{eveningStaff.length} Employees</strong></p>
+              <p>In-House Stays: <strong className="text-teal-300">{allStays.filter((s) => s.stayStatus === 'in_house').length} Active</strong></p>
             </div>
           </div>
 
@@ -278,9 +273,9 @@ export default function ManagerPanel() {
               </span>
             </div>
             <div className="mt-2 text-xs space-y-0.5 text-purple-100">
-              <p>In-Charge: <strong className="text-white">Raju Nayak</strong> (Supervisor)</p>
-              <p>Staff on Duty: <strong className="text-white">2 Employees</strong> (Night desk + Sec)</p>
-              <p>Audit Checklist: <strong className="text-purple-200">Scheduled 11:30 PM</strong></p>
+              <p>In-Charge: <strong className="text-white">{nightStaff[0]?.name || 'Unassigned'}</strong></p>
+              <p>Staff on Duty: <strong className="text-white">{nightStaff.length} Employees</strong></p>
+              <p>Clean Rooms Ready: <strong className="text-purple-200">{cleanRooms.length} / {rooms.length}</strong></p>
             </div>
           </div>
         </div>
@@ -370,7 +365,7 @@ export default function ManagerPanel() {
           <div>
             <h2 className="text-base font-bold text-telivity-navy flex items-center gap-2">
               <Sparkles size={18} className="text-amber-600" />
-              Room Cleanliness Oversight (28 Rooms — Manager Inspection)
+              Room Cleanliness Oversight ({rooms.length} Rooms — Manager Inspection)
             </h2>
             <p className="text-xs text-telivity-mid-grey">
               Inspect rooms before releasing them to the Front Desk for guest check-in.
@@ -387,7 +382,7 @@ export default function ManagerPanel() {
               Occupied: {occupiedRooms.length}
             </span>
             <span className="font-bold text-purple-700 bg-purple-50 px-2 py-1 rounded-md border border-purple-200">
-              Total: 28 Rooms
+              Total: {rooms.length} Rooms
             </span>
           </div>
         </div>

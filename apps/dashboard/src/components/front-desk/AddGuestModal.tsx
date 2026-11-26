@@ -15,7 +15,7 @@ import {
 import { api } from '../../lib/api';
 import { useProperty } from '../../context/PropertyContext';
 import { useToast } from '../ui/Toast';
-import { getStoredRooms, type StoredRoom } from '../../lib/supabaseAdapter';
+import type { StoredRoom } from '../../lib/supabaseAdapter';
 
 interface AddGuestModalProps {
   isOpen: boolean;
@@ -29,17 +29,22 @@ export default function AddGuestModal({ isOpen, onClose, onSuccess, preselectedR
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  // Load rooms to populate available rooms dropdown
+  // Load rooms from Supabase
   const { data: roomsData } = useQuery({
     queryKey: ['rooms', propertyId],
     queryFn: () => api.get('/v1/rooms', { params: { propertyId } }).then((r) => r.data),
     enabled: !!propertyId,
   });
 
+  const { data: tariffData } = useQuery({
+    queryKey: ['tariff-config', propertyId],
+    queryFn: () => api.get('/v1/tariff-config', { params: { propertyId } }).then((r) => r.data),
+    enabled: !!propertyId,
+  });
+
   const rooms: StoredRoom[] = useMemo(() => {
     const raw = roomsData?.data ?? roomsData;
-    if (Array.isArray(raw) && raw.length > 0) return raw;
-    return getStoredRooms();
+    return Array.isArray(raw) ? raw : [];
   }, [roomsData]);
 
   const availableRooms = useMemo(() => {
@@ -51,8 +56,8 @@ export default function AddGuestModal({ isOpen, onClose, onSuccess, preselectedR
   const [mobile, setMobile] = useState('');
   const [email, setEmail] = useState('');
   const [address, setAddress] = useState('');
-  const [city, setCity] = useState('Karimnagar');
-  const [state, setState] = useState('Telangana');
+  const [city, setCity] = useState('');
+  const [state, setState] = useState('');
   const [adults, setAdults] = useState(1);
   const [children, setChildren] = useState(0);
 
@@ -68,7 +73,7 @@ export default function AddGuestModal({ isOpen, onClose, onSuccess, preselectedR
       const match = rooms.find((r) => r.id === preselectedRoomId || r.number === preselectedRoomId);
       if (match) return match.number;
     }
-    return availableRooms[0]?.number || '103';
+    return availableRooms[0]?.number || '';
   });
 
   const nowStr = useMemo(() => {
@@ -87,31 +92,23 @@ export default function AddGuestModal({ isOpen, onClose, onSuccess, preselectedR
   const [checkInTime, setCheckInTime] = useState(nowStr);
   const [expectedCheckoutTime, setExpectedCheckoutTime] = useState(tomorrowStr);
   const [nights, setNights] = useState(1);
-  const [pricePerNight, setPricePerNight] = useState<number>(3500);
+  const [pricePerNight, setPricePerNight] = useState<number>(0);
   const [extraCharges, setExtraCharges] = useState<number>(0);
   const [discount, setDiscount] = useState<number>(0);
 
   // Payment
-  const [advancePaid, setAdvancePaid] = useState<number>(3500);
+  const [advancePaid, setAdvancePaid] = useState<number>(0);
   const [paymentMethod, setPaymentMethod] = useState<'Cash' | 'UPI' | 'Card' | 'Bank Transfer'>('UPI');
   const [notes, setNotes] = useState('');
 
-  // When room is selected, auto-fill room rate
+  // When room is selected, auto-fill room rate from Supabase tariff config
   const handleRoomChange = (roomNum: string) => {
     setSelectedRoomNumber(roomNum);
     const rm = rooms.find((r) => r.number === roomNum);
-    if (rm) {
-      if (rm.roomTypeName?.includes('Suite') || rm.number.startsWith('2')) {
-        setPricePerNight(6500);
-        setAdvancePaid(6500 * nights);
-      } else if (rm.roomTypeName?.includes('Standard') || rm.number.startsWith('3')) {
-        setPricePerNight(2500);
-        setAdvancePaid(2500 * nights);
-      } else {
-        setPricePerNight(3500);
-        setAdvancePaid(3500 * nights);
-      }
-    }
+    const cat = tariffData?.categories?.find((c: any) => c.id === rm?.roomTypeId);
+    const rate = Number(cat?.doubleOccupancyPrice ?? cat?.singleOccupancyPrice ?? 0);
+    setPricePerNight(rate);
+    setAdvancePaid(rate * nights);
   };
 
   // Auto calculate nights when dates change
