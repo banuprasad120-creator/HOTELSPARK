@@ -1177,7 +1177,7 @@ export async function handleSupabaseAdapter(config: AxiosRequestConfig): Promise
   }
 
   if (
-    url.match(/\/rooms(\/[^/?]+)?(\?|$)/) &&
+    url.match(/\/rooms(\/[^/?]+)?(\/status)?(\?|$)/) &&
     !url.includes('/types') &&
     !url.includes('/status-summary')
   ) {
