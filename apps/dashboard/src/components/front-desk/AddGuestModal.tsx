@@ -58,6 +58,7 @@ export default function AddGuestModal({ isOpen, onClose, onSuccess, preselectedR
   const [address, setAddress] = useState('');
   const [city, setCity] = useState('');
   const [state, setState] = useState('');
+  const [guestGstin, setGuestGstin] = useState('');
   const [adults, setAdults] = useState(1);
   const [children, setChildren] = useState(0);
 
@@ -155,6 +156,7 @@ export default function AddGuestModal({ isOpen, onClose, onSuccess, preselectedR
         address: address.trim(),
         city: city.trim(),
         state: state.trim(),
+        guestGstin: guestGstin.trim().toUpperCase(),
         adults,
         children,
         idProofType,
@@ -312,6 +314,20 @@ export default function AddGuestModal({ isOpen, onClose, onSuccess, preselectedR
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-telivity-teal text-xs"
                   />
                 </div>
+              </div>
+
+              <div className="sm:col-span-3">
+                <label className="block text-[11px] font-semibold text-telivity-slate mb-1">
+                  GST Number (GSTIN) <span className="text-gray-400 font-normal">(Optional for Business / Corporate Billing)</span>
+                </label>
+                <input
+                  type="text"
+                  value={guestGstin}
+                  onChange={(e) => setGuestGstin(e.target.value.toUpperCase())}
+                  placeholder="e.g. 36AABCU9603R1ZM"
+                  maxLength={15}
+                  className="w-full sm:w-1/2 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-telivity-teal text-xs uppercase font-mono tracking-wider"
+                />
               </div>
             </div>
           </div>

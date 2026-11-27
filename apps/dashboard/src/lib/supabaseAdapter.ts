@@ -1201,11 +1201,22 @@ export async function handleSupabaseAdapter(config: AxiosRequestConfig): Promise
       if (body.roomTypeId !== undefined) payload.room_type_id = body.roomTypeId;
       if (body.maintenanceNotes !== undefined) payload.maintenance_notes = body.maintenanceNotes;
       if (body.number !== undefined) payload.number = String(body.number);
-      const updated = await supabaseFetch<any[]>(`/rooms?id=eq.${targetId}`, {
+      if (body.amenities !== undefined) payload.amenities = Array.isArray(body.amenities) ? body.amenities : [];
+      if (body.isAccessible !== undefined) payload.is_accessible = Boolean(body.isAccessible);
+      if (body.building !== undefined) payload.building = String(body.building);
+
+      // Verify scope to the active property
+      const queryScope = `/rooms?id=eq.${targetId}&or=(hotel_id.eq.${propertyId},property_id.eq.${propertyId})`;
+      const updated = await supabaseFetch<any[]>(queryScope, {
         method: 'PATCH',
         body: JSON.stringify(payload),
       });
-      return ok(updated?.[0] || payload, config);
+
+      if (!Array.isArray(updated) || updated.length === 0) {
+        throw new Error(`Room with ID ${targetId} not found or unauthorized for property ${propertyId}. No record was updated.`);
+      }
+
+      return ok(updated[0], config);
     }
 
     if (method === 'POST') {
@@ -1220,15 +1231,25 @@ export async function handleSupabaseAdapter(config: AxiosRequestConfig): Promise
           building: body.building || 'Main',
           status: body.status || 'vacant_clean',
           is_accessible: Boolean(body.isAccessible),
-          amenities: body.amenities || [],
+          amenities: Array.isArray(body.amenities) ? body.amenities : [],
           is_active: true,
         }),
       });
-      return ok(inserted?.[0] || body, config);
+      if (!Array.isArray(inserted) || inserted.length === 0) {
+        throw new Error(`Failed to create room ${body.number} in property ${propertyId}.`);
+      }
+      return ok(inserted[0], config);
     }
 
     if (method === 'DELETE' && targetRoomId) {
-      await supabaseFetch(`/rooms?id=eq.${targetRoomId}`, { method: 'DELETE' });
+      // Check if room has active stays/reservations before deleting
+      const activeRes = await supabaseFetch<any[]>(
+        `/reservations?room_id=eq.${targetRoomId}&status=in.(checked_in,stayover,due_out)&limit=1`
+      ).catch(() => []);
+      if (Array.isArray(activeRes) && activeRes.length > 0) {
+        throw new Error('Cannot delete room with active checked-in guests. Please checkout or reassign first.');
+      }
+      await supabaseFetch(`/rooms?id=eq.${targetRoomId}&or=(hotel_id.eq.${propertyId},property_id.eq.${propertyId})`, { method: 'DELETE' });
       return ok({ success: true }, config);
     }
   }
@@ -1800,6 +1821,21 @@ export async function handleSupabaseAdapter(config: AxiosRequestConfig): Promise
 
       const allStays = await fetchStaysFromSupabase(propertyId, false);
       const createdStay = allStays.find((s) => s.id === rpcRes.reservation_id) || allStays[0];
+
+      // If guestGstin was provided, persist to guest tax_id and folio invoice
+      if (body.guestGstin && rpcRes?.guest_id) {
+        await supabaseFetch(`/guests?id=eq.${rpcRes.guest_id}`, {
+          method: 'PATCH',
+          body: JSON.stringify({ tax_id: String(body.guestGstin).trim().toUpperCase() }),
+        }).catch(() => undefined);
+      }
+      if (body.guestGstin && rpcRes?.reservation_id) {
+        await supabaseFetch(`/invoices?reservation_id=eq.${rpcRes.reservation_id}`, {
+          method: 'PATCH',
+          body: JSON.stringify({ guest_gstin: String(body.guestGstin).trim().toUpperCase() }),
+        }).catch(() => undefined);
+      }
+
       return ok({ stay: createdStay, ...rpcRes }, config);
     }
 
