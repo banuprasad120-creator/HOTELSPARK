@@ -109,18 +109,18 @@ export function RequestApplication() {
       firstName: firstName.trim(),
       lastName: lastName.trim(),
       email: email.trim(),
-      phone: phone.trim() || undefined,
+      phone: phone.trim(),
       specialRequests: specialRequests.trim() || undefined,
     };
 
     const missingCoreFields = [
       !cleanGuest.firstName ? 'request-first-name' : undefined,
       !cleanGuest.lastName ? 'request-last-name' : undefined,
-      !cleanGuest.email ? 'request-email' : undefined,
+      !cleanGuest.phone ? 'request-phone' : undefined,
     ].filter((id): id is string => Boolean(id));
     if (missingCoreFields.length > 0) {
       const issue = {
-        message: 'First name, last name and email are required.',
+        message: 'Guest name (First & Last) and mobile number are required.',
         invalidIds: missingCoreFields,
         focusId: missingCoreFields[0]!,
       };
@@ -128,7 +128,7 @@ export function RequestApplication() {
       document.getElementById(issue.focusId)?.focus();
       return;
     }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanGuest.email)) {
+    if (cleanGuest.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanGuest.email)) {
       const issue = {
         message: 'Please enter a valid email address.',
         invalidIds: ['request-email'],
@@ -239,31 +239,36 @@ export function RequestApplication() {
             />
           </Field>
         </div>
-        <Field label="Email" htmlFor="request-email" required>
-          <input
-            id="request-email"
-            type="email"
-            autoComplete="email"
-            className={inputClass}
-            value={email}
-            disabled={isSubmitting}
-            required
-            aria-required="true"
-            {...fieldErrorProps('request-email')}
-            onChange={(event) => setEmail(event.target.value)}
-          />
-        </Field>
-        <Field label="Phone" htmlFor="request-phone">
-          <input
-            id="request-phone"
-            type="tel"
-            autoComplete="tel"
-            className={inputClass}
-            value={phone}
-            disabled={isSubmitting}
-            onChange={(event) => setPhone(event.target.value)}
-          />
-        </Field>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <Field label="Mobile Number" htmlFor="request-phone" required>
+            <input
+              id="request-phone"
+              type="tel"
+              autoComplete="tel"
+              placeholder="+91 98765 43210"
+              className={inputClass}
+              value={phone}
+              disabled={isSubmitting}
+              required
+              aria-required="true"
+              {...fieldErrorProps('request-phone')}
+              onChange={(event) => setPhone(event.target.value)}
+            />
+          </Field>
+          <Field label="Email (Optional)" htmlFor="request-email">
+            <input
+              id="request-email"
+              type="email"
+              autoComplete="email"
+              placeholder="guest@example.com"
+              className={inputClass}
+              value={email}
+              disabled={isSubmitting}
+              {...fieldErrorProps('request-email')}
+              onChange={(event) => setEmail(event.target.value)}
+            />
+          </Field>
+        </div>
 
         {config.formQuestions.length > 0 && (
           <div className="space-y-5 border-t border-[#EAECF0] pt-5">

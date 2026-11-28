@@ -1471,7 +1471,12 @@ export async function handleSupabaseAdapter(config: AxiosRequestConfig): Promise
         const roomRows = await supabaseFetch<any[]>(`/rooms?id=eq.${assignRoomId}&or=(hotel_id.eq.${propertyId},property_id.eq.${propertyId})&limit=1`);
         const assignedRoom = roomRows?.[0];
         if (!assignedRoom || !['vacant_clean', 'clean', 'inspected', 'guest_ready'].includes(assignedRoom.status)) throw new Error('Selected room is not ready for check-in.');
-        if (resRow.room_id !== assignRoomId) throw new Error('Assign the selected room before check-in.');
+        if (resRow.room_id !== assignRoomId) {
+          await supabaseFetch(`/reservations?id=eq.${targetId}`, {
+            method: 'PATCH',
+            body: JSON.stringify({ room_id: assignRoomId, status: 'assigned' }),
+          });
+        }
         const checkIns = await supabaseFetch<any[]>(`/check_ins`, {
           method: 'POST',
           body: JSON.stringify({
@@ -1484,6 +1489,30 @@ export async function handleSupabaseAdapter(config: AxiosRequestConfig): Promise
             notes: body.notes || null,
           }),
         });
+
+        // Ensure room status transitions to occupied
+        await supabaseFetch(`/rooms?id=eq.${assignRoomId}`, {
+          method: 'PATCH',
+          body: JSON.stringify({ status: 'occupied' }),
+        }).catch(() => undefined);
+
+        // If ID details were submitted in the check-in modal, persist to guest record
+        if (resRow.guest_id && (body.idNumber || body.idType || body.idCountry || body.registrationData)) {
+          const reg = body.registrationData || {};
+          await supabaseFetch(`/guests?id=eq.${resRow.guest_id}`, {
+            method: 'PATCH',
+            body: JSON.stringify({
+              ...(body.idType ? { id_type: body.idType } : {}),
+              ...(body.idNumber ? { id_number: body.idNumber } : {}),
+              ...(body.idCountry ? { nationality: body.idCountry } : {}),
+              ...(reg.address ? { address: reg.address } : {}),
+              ...(reg.city ? { city: reg.city } : {}),
+              ...(reg.state ? { state: reg.state } : {}),
+              ...(reg.postalCode ? { postal_code: reg.postalCode } : {}),
+            }),
+          }).catch(() => undefined);
+        }
+
         if (!Array.isArray(checkIns) || !checkIns.length) throw new Error('Database did not confirm check-in.');
         return ok({ success: true, id: targetId, status: 'checked_in' }, config);
       }

@@ -24,11 +24,11 @@ export function GuestDetails() {
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!firstName.trim() || !lastName.trim() || !email.trim()) {
-      setError('First name, last name and email are required.');
+    if (!firstName.trim() || !lastName.trim() || !phone.trim()) {
+      setError('First name, last name and mobile number are required.');
       return;
     }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    if (email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       setError('Please enter a valid email address.');
       return;
     }
@@ -59,12 +59,14 @@ export function GuestDetails() {
             <input id="lastName" className={inputClass} value={lastName} onChange={(e) => setLastName(e.target.value)} />
           </Field>
         </div>
-        <Field label="Email" htmlFor="email" required>
-          <input id="email" type="email" className={inputClass} value={email} onChange={(e) => setEmail(e.target.value)} />
-        </Field>
-        <Field label="Phone" htmlFor="phone">
-          <input id="phone" type="tel" className={inputClass} value={phone} onChange={(e) => setPhone(e.target.value)} />
-        </Field>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <Field label="Mobile Number" htmlFor="phone" required>
+            <input id="phone" type="tel" placeholder="+91 98765 43210" className={inputClass} value={phone} onChange={(e) => setPhone(e.target.value)} />
+          </Field>
+          <Field label="Email (Optional)" htmlFor="email">
+            <input id="email" type="email" placeholder="guest@example.com" className={inputClass} value={email} onChange={(e) => setEmail(e.target.value)} />
+          </Field>
+        </div>
         <Field label="Special requests" htmlFor="requests">
           <textarea
             id="requests"
