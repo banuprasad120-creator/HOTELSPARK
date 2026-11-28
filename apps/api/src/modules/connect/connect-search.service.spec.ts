@@ -71,6 +71,7 @@ describe('ConnectSearchService', () => {
             p.limit = vi.fn().mockReturnValue({
               offset: vi.fn().mockResolvedValue([]),
             });
+            p.orderBy = vi.fn().mockResolvedValue([]);
             return p;
           }),
         })),
@@ -105,8 +106,13 @@ describe('ConnectSearchService', () => {
             callCount++;
             if (callCount === 1) return Promise.resolve([mockProperty]); // properties
             if (callCount === 2) return Promise.resolve([mockRoomType]); // room types
-            if (callCount === 3) return Promise.resolve([mockRatePlan]); // rate plans
-            if (callCount === 4) return Promise.resolve([]); // restrictions
+            if (callCount === 3) {
+              const p: any = Promise.resolve([]); // media
+              p.orderBy = vi.fn().mockResolvedValue([]);
+              return p;
+            }
+            if (callCount === 4) return Promise.resolve([mockRatePlan]); // rate plans
+            if (callCount === 5) return Promise.resolve([]); // restrictions
             return Promise.resolve([]);
           }),
         }),
@@ -132,8 +138,13 @@ describe('ConnectSearchService', () => {
             callCount++;
             if (callCount === 1) return Promise.resolve([mockProperty]);
             if (callCount === 2) return Promise.resolve([mockRoomType]);
-            if (callCount === 3) return Promise.resolve([mockRatePlan]);
-            if (callCount === 4) return Promise.resolve([]);
+            if (callCount === 3) {
+              const p: any = Promise.resolve([]);
+              p.orderBy = vi.fn().mockResolvedValue([]);
+              return p;
+            }
+            if (callCount === 4) return Promise.resolve([mockRatePlan]);
+            if (callCount === 5) return Promise.resolve([]);
             return Promise.resolve([]);
           }),
         }),
@@ -159,8 +170,13 @@ describe('ConnectSearchService', () => {
             callCount++;
             if (callCount === 1) return Promise.resolve([mockProperty]);
             if (callCount === 2) return Promise.resolve([mockRoomType]);
-            if (callCount === 3) return Promise.resolve([mockRatePlan]);
-            if (callCount === 4) return Promise.resolve([]);
+            if (callCount === 3) {
+              const p: any = Promise.resolve([]);
+              p.orderBy = vi.fn().mockResolvedValue([]);
+              return p;
+            }
+            if (callCount === 4) return Promise.resolve([mockRatePlan]);
+            if (callCount === 5) return Promise.resolve([]);
             return Promise.resolve([]);
           }),
         }),
@@ -187,8 +203,13 @@ describe('ConnectSearchService', () => {
             callCount++;
             if (callCount === 1) return Promise.resolve([mockProperty]);
             if (callCount === 2) return Promise.resolve([mockRoomType]);
-            if (callCount === 3) return Promise.resolve([mockRatePlan]);
-            if (callCount === 4) return Promise.resolve([]);
+            if (callCount === 3) {
+              const p: any = Promise.resolve([]);
+              p.orderBy = vi.fn().mockResolvedValue([]);
+              return p;
+            }
+            if (callCount === 4) return Promise.resolve([mockRatePlan]);
+            if (callCount === 5) return Promise.resolve([]);
             return Promise.resolve([]);
           }),
         }),
@@ -230,10 +251,15 @@ describe('ConnectSearchService', () => {
             callCount++;
             if (callCount === 1) return Promise.resolve([mockProperty]);
             if (callCount === 2) return Promise.resolve([mockRoomType, accessibleRoom]); // both types
-            if (callCount === 3) return Promise.resolve([mockRatePlan]); // rate for rt-1
-            if (callCount === 4) return Promise.resolve([]); // restrictions
-            if (callCount === 5) return Promise.resolve([{ ...mockRatePlan, id: 'rp-2', roomTypeId: 'rt-2' }]); // rate for rt-2
-            if (callCount === 6) return Promise.resolve([]); // restrictions
+            if (callCount === 3) {
+              const p: any = Promise.resolve([]);
+              p.orderBy = vi.fn().mockResolvedValue([]);
+              return p;
+            }
+            if (callCount === 4) return Promise.resolve([mockRatePlan]); // rate for rt-1
+            if (callCount === 5) return Promise.resolve([]); // restrictions
+            if (callCount === 6) return Promise.resolve([{ ...mockRatePlan, id: 'rp-2', roomTypeId: 'rt-2' }]); // rate for rt-2
+            if (callCount === 7) return Promise.resolve([]); // restrictions
             return Promise.resolve([]);
           }),
         }),
@@ -266,8 +292,13 @@ describe('ConnectSearchService', () => {
             callCount++;
             if (callCount === 1) return Promise.resolve([mockProperty]);
             if (callCount === 2) return Promise.resolve([mockRoomType]);
-            if (callCount === 3) return Promise.resolve([mockRatePlan]);
-            if (callCount === 4) return Promise.resolve([]);
+            if (callCount === 3) {
+              const p: any = Promise.resolve([]);
+              p.orderBy = vi.fn().mockResolvedValue([]);
+              return p;
+            }
+            if (callCount === 4) return Promise.resolve([mockRatePlan]);
+            if (callCount === 5) return Promise.resolve([]);
             return Promise.resolve([]);
           }),
         }),
@@ -292,8 +323,13 @@ describe('ConnectSearchService', () => {
             callCount++;
             if (callCount === 1) return Promise.resolve([mockProperty]);
             if (callCount === 2) return Promise.resolve([mockRoomType]);
-            if (callCount === 3) return Promise.resolve([mockRatePlan]);
-            if (callCount === 4) return Promise.resolve([{ isClosed: true, startDate: '2024-06-01', endDate: '2024-06-30' }]);
+            if (callCount === 3) {
+              const p: any = Promise.resolve([]);
+              p.orderBy = vi.fn().mockResolvedValue([]);
+              return p;
+            }
+            if (callCount === 4) return Promise.resolve([mockRatePlan]);
+            if (callCount === 5) return Promise.resolve([{ isClosed: true, startDate: '2024-06-01', endDate: '2024-06-30' }]);
             return Promise.resolve([]);
           }),
         }),

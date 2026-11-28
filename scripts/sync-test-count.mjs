@@ -27,6 +27,7 @@ const checkOnly = args.includes('--check');
 function testEnv() {
   return {
     ...process.env,
+    HAIP_BOOKING_REQUESTS: 'false',
     DATABASE_URL:
       process.env.DATABASE_URL ?? 'postgresql://haip:haip@localhost:5432/haip_test',
     REDIS_URL: process.env.REDIS_URL ?? 'redis://localhost:6379',
@@ -73,7 +74,7 @@ function discoverTestPackagePaths() {
   const result = spawnSync(
     'pnpm',
     ['-r', 'list', '--depth', '-1', '--json'],
-    { cwd: root, env: testEnv(), encoding: 'utf8' },
+    { cwd: root, env: testEnv(), encoding: 'utf8', shell: true },
   );
   if (result.status !== 0) {
     throw new Error(
@@ -95,8 +96,8 @@ function runTestsAndCollectCounts() {
 
     const result = spawnSync(
       'pnpm',
-      ['exec', 'vitest', 'run', '--reporter=json', `--outputFile=${outFile}`],
-      { cwd, env, encoding: 'utf8' },
+      ['exec', 'vitest', 'run', '--reporter=json', `--outputFile="${outFile}"`],
+      { cwd, env, encoding: 'utf8', shell: true },
     );
 
     const log = `${result.stdout ?? ''}${result.stderr ?? ''}`;

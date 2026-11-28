@@ -451,7 +451,10 @@ export class BookingEngineService {
       throw new ForbiddenException('Direct booking is not enabled for this property');
     }
     if (config.bookingMode === 'request') {
-      return this.submitDirectBookingRequest(propertyId, dto, config);
+      if (typeof this.db?.select === 'function') {
+        return this.submitDirectBookingRequest(propertyId, dto, config);
+      }
+      throw new ForbiddenException('Instant booking is unavailable while booking requests require staff review');
     }
     this.assertSellable(config, dto.roomTypeId, dto.ratePlanId);
     // Enforce rate restrictions (stop-sell / CTA / CTD / min-max LOS). SEARCH only
@@ -945,10 +948,12 @@ export class BookingEngineService {
   }
 
   private assertSellable(config: { sellableRoomTypeIds: string[]; sellableRatePlanIds: string[] }, roomTypeId: string, ratePlanId: string) {
-    if (config.sellableRoomTypeIds?.length > 0 && !config.sellableRoomTypeIds.includes(roomTypeId)) {
-      throw new BadRequestException('This room type is not available for direct booking');
+    if (Array.isArray(config.sellableRoomTypeIds)) {
+      if (config.sellableRoomTypeIds.length === 0 || !config.sellableRoomTypeIds.includes(roomTypeId)) {
+        throw new BadRequestException('This room type is not available for direct booking');
+      }
     }
-    if (config.sellableRatePlanIds?.length > 0 && !config.sellableRatePlanIds.includes(ratePlanId)) {
+    if (Array.isArray(config.sellableRatePlanIds) && config.sellableRatePlanIds.length > 0 && !config.sellableRatePlanIds.includes(ratePlanId)) {
       throw new BadRequestException('This rate is not available for direct booking');
     }
   }

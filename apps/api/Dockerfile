@@ -17,6 +17,7 @@ RUN pnpm install --frozen-lockfile || pnpm install
 
 # Copy source
 COPY tsconfig.base.json ./
+COPY scripts/ ./scripts/
 COPY packages/ ./packages/
 COPY apps/api/ ./apps/api/
 COPY apps/dashboard/ ./apps/dashboard/

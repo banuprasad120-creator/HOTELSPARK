@@ -97,10 +97,10 @@ export default function EditBillModal({
     const rawTariff = nights * pricePerNight;
     const grossTotal = Math.max(0, rawTariff + extraCharges - discount);
 
-    let taxableAmount = 0;
-    let sgstAmount = 0;
-    let cgstAmount = 0;
-    let grandTotal = grossTotal;
+    let taxableAmount: number;
+    let sgstAmount: number;
+    let cgstAmount: number;
+    let grandTotal: number;
 
     if (gstRate === 0) {
       taxableAmount = grossTotal;

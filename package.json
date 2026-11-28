@@ -10,7 +10,7 @@
   },
   "packageManager": "pnpm@9.15.4",
   "scripts": {
-    "build": "node scripts/build-unified-booking.mjs",
+    "build": "pnpm -r run build && node scripts/build-unified-booking.mjs",
     "build:all": "pnpm -r run build",
     "dev": "pnpm --filter @telivityhaip/api run dev",
     "dev:admin": "pnpm --filter @telivityhaip/dashboard run dev",
@@ -44,6 +44,7 @@
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "eslint": "^9.0.0",
+    "playwright": "^1.65.1",
     "puppeteer-core": "^25.17.0",
     "typescript-eslint": "^8.58.0"
   },

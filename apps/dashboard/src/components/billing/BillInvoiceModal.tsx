@@ -173,7 +173,7 @@ export default function BillInvoiceModal({
   // Tax calculations:
   // As in the official Hotel Spark invoice photo:
   // Rate: 1524.00, Taxable: 1524.00, SGST 2.50%: 38.00, CGST 2.50%: 38.00 -> Total: 1600.00
-  let taxableRoomCharges = 0;
+  let taxableRoomCharges: number;
   let roomSgst = 0;
   let roomCgst = 0;
   let totalRoomCharges = rawRoomTariff;
@@ -182,8 +182,8 @@ export default function BillInvoiceModal({
   let extraSgst = 0;
   let extraCgst = 0;
 
-  let grandTotal = 0;
-  let totalCharges = 0;
+  let grandTotal: number;
+  let totalCharges: number;
   let totalSgst = 0;
   let totalCgst = 0;
 

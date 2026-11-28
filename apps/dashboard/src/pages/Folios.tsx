@@ -190,7 +190,7 @@ function FolioList() {
 
   // KPI Metrics Calculations
   const stats = useMemo(() => {
-    let totalInvoices = staysList.length;
+    const totalInvoices = staysList.length;
     let totalBilled = 0;
     let totalCollected = 0;
     let totalBalanceDue = 0;

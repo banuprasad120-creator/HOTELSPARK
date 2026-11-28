@@ -10,7 +10,7 @@ import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { execSync } from 'node:child_process';
 import { join } from 'node:path';
 import request from 'supertest';
-import { AppModule } from './app.module';
+import { preloadBookingRequestsModules } from './booking-requests.bootstrap';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 
 const runSmoke = process.env.RELEASE_SMOKE === '1';
@@ -54,6 +54,9 @@ describe.runIf(runSmoke)('release smoke (migrate → reservation lifecycle)', ()
       stdio: 'inherit',
     });
 
+    await preloadBookingRequestsModules();
+
+    const { AppModule } = await import('./app.module');
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
     app = moduleRef.createNestApplication();
     app.setGlobalPrefix('api/v1');
