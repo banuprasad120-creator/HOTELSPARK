@@ -133,9 +133,11 @@ export default function CheckoutModal({ stay, isOpen, onClose, onCheckoutSuccess
       queryClient.invalidateQueries({ queryKey: ['staff-notifications-unread'] });
 
       const validStayId = (updatedStay && updatedStay.id) ? updatedStay.id : (stay?.id || `stay-${Date.now()}`);
+      const rawNum = String(stay?.id || '').replace(/\D/g, '');
+      const seqSuffix = rawNum.length > 0 ? rawNum.slice(-3).padStart(3, '0') : '001';
       const validBillNum = (updatedStay && updatedStay.billNumber)
         ? updatedStay.billNumber
-        : (stay?.billNumber || `INV-SPARK-2026-${stay?.roomNumber || '101'}-${String(Math.floor(1000 + Math.random() * 9000))}`);
+        : (stay?.billNumber || `INV-SPARK-${seqSuffix}`);
 
       const finalRecord: StoredStay = {
         ...stay!,

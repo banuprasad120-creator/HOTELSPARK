@@ -116,7 +116,7 @@ export function FullScreenScrollVideo({ children, heroContent, roomsSection }: F
       <div className="fixed inset-0 -z-10 h-screen w-screen overflow-hidden bg-gray-950">
         <video
           ref={videoRef}
-          src="/spark.mp4"
+          src={`${import.meta.env.BASE_URL}spark.mp4`}
           playsInline
           muted={isMuted}
           loop
@@ -130,8 +130,8 @@ export function FullScreenScrollVideo({ children, heroContent, roomsSection }: F
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/65 via-black/40 to-black/85" />
       </div>
 
-      {/* Floating Controls HUD in Bottom Right */}
-      <div className="fixed bottom-6 right-6 z-40 flex items-center gap-2 rounded-full border border-white/20 bg-black/60 px-3.5 py-2 shadow-2xl backdrop-blur-xl">
+      {/* Floating Controls HUD in Bottom Left (avoids overlap with AI Assistant on right) */}
+      <div className="fixed bottom-6 left-6 z-40 flex items-center gap-2 rounded-full border border-white/20 bg-black/60 px-3.5 py-2 shadow-2xl backdrop-blur-xl">
         {/* Timestamp & Progress */}
         <div className="text-[11px] font-mono tracking-wider text-gray-300 pr-2 border-r border-white/20">
           {(scrollProgress * videoDuration).toFixed(1)}s / {videoDuration.toFixed(0)}s

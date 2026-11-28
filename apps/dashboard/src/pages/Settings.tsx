@@ -178,17 +178,17 @@ function PropertySettings({ propertyId, queryClient }: { propertyId: string; que
         </div>
         <div className="grid grid-cols-3 gap-3">
           <div>
-            <label className="block text-xs font-medium text-telivity-mid-grey mb-1">País / Country (ISO)</label>
+            <label className="block text-xs font-medium text-telivity-mid-grey mb-1">Country (ISO)</label>
             <input
               type="text"
               maxLength={2}
               value={countryCode}
               onChange={(e) => setCountryCode(e.target.value.toUpperCase())}
-              placeholder="US"
+              placeholder="IN"
               className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm uppercase focus:outline-none focus:border-telivity-teal font-medium"
             />
           </div>
-          <div><label className="block text-xs font-medium text-telivity-mid-grey mb-1">{t('settings.timezone')}</label><input type="text" value={timezone} onChange={(e) => setTimezone(e.target.value)} placeholder="America/New_York" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-telivity-teal" /></div>
+          <div><label className="block text-xs font-medium text-telivity-mid-grey mb-1">{t('settings.timezone')}</label><input type="text" value={timezone || 'Asia/Kolkata'} onChange={(e) => setTimezone(e.target.value)} placeholder="Asia/Kolkata" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-telivity-teal" /></div>
           <div><label className="block text-xs font-medium text-telivity-mid-grey mb-1">{t('settings.currency')}</label><input type="text" value={currency} onChange={(e) => setCurrency(e.target.value)} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-telivity-teal" /></div>
         </div>
         <div className="grid grid-cols-2 gap-3">

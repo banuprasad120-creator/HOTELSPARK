@@ -138,7 +138,17 @@ export default function RoomTariffSettings() {
   };
 
   // Simulator Calculation
-  const selectedSimCat = config.categories[simCategoryIndex] || config.categories[0];
+  const selectedSimCat = config.categories[simCategoryIndex] || config.categories[0] || {
+    id: '',
+    name: 'Standard Room',
+    code: 'STD',
+    description: '',
+    assignedRoomsCount: 0,
+    maxOccupancy: 2,
+    singleOccupancyPrice: 0,
+    doubleOccupancyPrice: 0,
+    extraPersonCharge: config.extraPersonCharge,
+  };
   const simCalc = useMemo(() => {
     if (!selectedSimCat) {
       return calculateTariffInvoice({
@@ -161,9 +171,9 @@ export default function RoomTariffSettings() {
       });
     }
     const effOccupancy =
-      selectedSimCat.singleOccupancyPrice === null
+      selectedSimCat?.singleOccupancyPrice === null
         ? 'double'
-        : selectedSimCat.doubleOccupancyPrice === null
+        : selectedSimCat?.doubleOccupancyPrice === null
         ? 'single'
         : simOccupancy;
 
@@ -381,27 +391,22 @@ export default function RoomTariffSettings() {
                   {/* Double Occupancy */}
                   <div className="flex items-center justify-between gap-2">
                     <span className="text-xs font-semibold text-telivity-slate">Double Occupancy:</span>
-                    {hasDouble ? (
-                      <div className="flex items-center gap-1">
-                        <span className="text-xs font-bold text-telivity-navy">₹</span>
-                        <input
-                          type="number"
-                          value={cat.doubleOccupancyPrice ?? ''}
-                          onChange={(e) =>
-                            handleUpdatePrice(
-                              cat.id,
-                              'doubleOccupancyPrice',
-                              e.target.value === '' ? null : Number(e.target.value)
-                            )
-                          }
-                          className="w-24 px-2 py-1 text-xs font-bold border border-gray-300 focus:border-telivity-teal rounded-lg text-right"
-                        />
-                      </div>
-                    ) : (
-                      <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-gray-100 text-gray-500 border border-gray-200">
-                        Not configured
-                      </span>
-                    )}
+                    <div className="flex items-center gap-1">
+                      <span className="text-xs font-bold text-telivity-navy">₹</span>
+                      <input
+                        type="number"
+                        placeholder="Set price"
+                        value={cat.doubleOccupancyPrice ?? ''}
+                        onChange={(e) =>
+                          handleUpdatePrice(
+                            cat.id,
+                            'doubleOccupancyPrice',
+                            e.target.value === '' ? null : Number(e.target.value)
+                          )
+                        }
+                        className="w-24 px-2 py-1 text-xs font-bold border border-gray-300 focus:border-telivity-teal rounded-lg text-right"
+                      />
+                    </div>
                   </div>
 
                   {/* Inventory Room Allocation */}
@@ -828,25 +833,25 @@ export default function RoomTariffSettings() {
               <div className="flex items-center gap-2">
                 <button
                   type="button"
-                  disabled={selectedSimCat.singleOccupancyPrice === null}
+                  disabled={selectedSimCat?.singleOccupancyPrice === null}
                   onClick={() => setSimOccupancy('single')}
                   className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold border transition ${
-                    selectedSimCat.singleOccupancyPrice === null
+                    selectedSimCat?.singleOccupancyPrice === null
                       ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
                       : simOccupancy === 'single'
                       ? 'bg-telivity-navy text-white border-telivity-navy shadow-xs'
                       : 'bg-white text-telivity-navy border-gray-200 hover:bg-gray-100'
                   }`}
                 >
-                  Single Occupancy {selectedSimCat.singleOccupancyPrice ? `(₹${selectedSimCat.singleOccupancyPrice})` : '(Not Configured)'}
+                  Single Occupancy {selectedSimCat?.singleOccupancyPrice ? `(₹${selectedSimCat.singleOccupancyPrice})` : '(Not Configured)'}
                 </button>
 
                 <button
                   type="button"
-                  disabled={selectedSimCat.doubleOccupancyPrice === null}
+                  disabled={selectedSimCat?.doubleOccupancyPrice === null}
                   onClick={() => setSimOccupancy('double')}
                   className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold border transition ${
-                    selectedSimCat.doubleOccupancyPrice === null
+                    selectedSimCat?.doubleOccupancyPrice === null
                       ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
                       : simOccupancy === 'double'
                       ? 'bg-telivity-navy text-white border-telivity-navy shadow-xs'

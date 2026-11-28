@@ -49,7 +49,7 @@ export function GuestChatWidget() {
       {
         id: 'welcome-1',
         sender: 'ai',
-        text: 'Namaste! Welcome to Hotel Spark, Hyderabad 🏨✨\n\nI am Spark, your 24/7 AI Receptionist. I can assist you in English, हिन्दी (Hindi), or తెలుగు (Telugu)!\n\nAsk me about room availability, prices in ₹, hotel amenities in Banjara Hills, or booking a stay.',
+        text: 'Namaste! Welcome to Hotel Spark, Karimnagar 🏨✨\n\nI am Spark, your 24/7 AI Receptionist. I can assist you in English, हिन्दी (Hindi), or తెలుగు (Telugu)!\n\nAsk me about room availability, prices in ₹, hotel amenities, or booking a stay.',
         timestamp: new Date(),
       },
     ];
@@ -167,7 +167,7 @@ export function GuestChatWidget() {
                   <span className="flex h-2 w-2 rounded-full bg-emerald-400" />
                 </div>
                 <p className="text-[10px] text-teal-100 leading-tight">
-                  EN • हिन्दी • తెలుగు | Banjara Hills, Hyderabad
+                  EN • हिन्दी • తెలుగు | Market Road, Karimnagar
                 </p>
               </div>
             </div>

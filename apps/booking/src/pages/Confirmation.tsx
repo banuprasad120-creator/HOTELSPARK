@@ -152,7 +152,7 @@ export function Confirmation() {
           </Button>
         </Link>
         <a
-          href="https://wa.me/919876543210?text=Hello%20Hotel%20Spark,%20I%20have%20submitted%20booking%20request%20"
+          href={`https://wa.me/919876543210?text=${encodeURIComponent(`Hello Hotel Spark, I have submitted booking request ${referenceCode} for approval.`)}`}
           target="_blank"
           rel="noopener noreferrer"
           className="flex-1"

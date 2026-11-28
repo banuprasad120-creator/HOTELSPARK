@@ -175,7 +175,7 @@ export default function DirectBookings() {
     onSuccess: (data) => {
       playBookingChime();
       setActionSuccessMessage(
-        `Booking approved successfully! Assigned Room ${data.roomNumber}. Confirmed Ref: ${data.confirmationNumber}. Guest notified via WhatsApp.`,
+        `Booking approved successfully! Assigned Room ${data.roomNumber}. Confirmed Ref: ${data.confirmationNumber}.`,
       );
       setSelectedBookingForApprove(null);
       setSelectedRoomId('');
@@ -199,7 +199,7 @@ export default function DirectBookings() {
       return res.data;
     },
     onSuccess: (data) => {
-      setActionSuccessMessage(`Booking request rejected. Guest notified via WhatsApp.`);
+      setActionSuccessMessage(`Booking request rejected.`);
       setSelectedBookingForReject(null);
       setRejectionReason('');
       queryClient.invalidateQueries({ queryKey: ['direct-bookings'] });

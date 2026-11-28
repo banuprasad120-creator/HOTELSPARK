@@ -755,9 +755,10 @@ export default function FrontDesk() {
     );
   };
 
-  const arrList: Reservation[] = Array.isArray(arrivals?.data)
+  const arrList: Reservation[] = (Array.isArray(arrivals?.data)
     ? arrivals.data
-    : (Array.isArray(arrivals) ? arrivals : (Array.isArray(arrivals?.items) ? arrivals.items : []));
+    : (Array.isArray(arrivals) ? arrivals : (Array.isArray(arrivals?.items) ? arrivals.items : [])))
+    .filter((r: Reservation) => r.status !== 'checked_in' && r.status !== 'checked_out' && r.status !== 'cancelled');
   const ihList: Reservation[] = Array.isArray(inHouse?.data)
     ? inHouse.data
     : (Array.isArray(inHouse) ? inHouse : (Array.isArray(inHouse?.items) ? inHouse.items : []));

@@ -265,6 +265,7 @@ export default function WalkInCheckInModal({ open, onClose, onSuccess }: WalkInC
         },
         { skipErrorToast: true }
       );
+      if (!res.data?.confirmationNumber && !res.data?.confirmation_number) throw new Error('No confirmed check-in reference returned.');
       return res.data;
     },
     onSuccess: (data) => {
@@ -275,9 +276,9 @@ export default function WalkInCheckInModal({ open, onClose, onSuccess }: WalkInC
 
       const assignedRoom = rooms.find((r) => r.id === selectedRoomId);
       setConfirmedBooking({
-        confirmationNumber: data.confirmationNumber || `SPARK-WALKIN-${Date.now().toString(36).toUpperCase()}`,
+        confirmationNumber: data.confirmationNumber || data.confirmation_number,
         guestName: `${firstName} ${lastName}`.trim(),
-        roomNumber: assignedRoom?.number || '101',
+        roomNumber: data.roomNumber || data.room_number || assignedRoom?.number || '',
         checkInDate,
         checkOutDate,
         grandTotal,

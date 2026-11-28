@@ -37,12 +37,12 @@ export default function AdminLogin() {
       if (currentPath.includes('manager')) {
         navigate(`/manager${search}`);
       } else {
-        navigate(`/admin${search}`);
+        navigate(`/admin/dashboard${search}`);
       }
     } else if (user?.roles.includes('manager')) {
       navigate(`/manager${search}`);
     } else {
-      navigate(`/front-office${search}`);
+      navigate(`/employee/dashboard${search}`);
     }
   };
 

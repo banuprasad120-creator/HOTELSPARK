@@ -423,9 +423,11 @@ function FolioList() {
               {filteredStays.map((stay, index) => {
                 const totalPaid = (stay.advancePaid || 0) + (stay.previousPayments || 0);
                 const isPaid = (stay.balance || 0) <= 0;
+                const rawNum = String(stay.id || '').replace(/\D/g, '');
+                const seqSuffix = rawNum.length > 0 ? rawNum.slice(-3).padStart(3, '0') : '001';
                 const invoiceNumber =
                   stay.billNumber ||
-                  `INV-SPARK-${stay.roomNumber}-${String(stay.id).slice(-4)}`;
+                  `INV-SPARK-${seqSuffix}`;
 
                 const checkInDate = stay.checkInTime
                   ? new Date(stay.checkInTime).toLocaleDateString('en-GB')

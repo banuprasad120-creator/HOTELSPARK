@@ -32,6 +32,16 @@ export function Layout({ children }: { children: React.ReactNode }) {
             </Link>
 
             <div className="flex items-center gap-3">
+              <a
+                href="https://wa.me/919876543210?text=Hello%20Hotel%20Spark%2C%20I%20would%20like%20to%20inquire%20about%20room%20booking"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1.5 rounded-full bg-emerald-600/90 hover:bg-emerald-500 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:scale-105 active:scale-95 border border-emerald-400/40"
+                title="Chat on official Hotel Spark WhatsApp"
+              >
+                <span>💬</span>
+                <span className="hidden sm:inline">WhatsApp</span>
+              </a>
               <button
                 type="button"
                 onClick={() => {
@@ -89,6 +99,16 @@ export function Layout({ children }: { children: React.ReactNode }) {
               {displayName}
             </Link>
             <div className="flex items-center gap-3">
+              <a
+                href="https://wa.me/919876543210?text=Hello%20Hotel%20Spark%2C%20I%20would%20like%20to%20inquire%20about%20room%20booking"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1.5 rounded-full bg-emerald-600 px-3 py-1 text-xs font-semibold text-white shadow-xs transition hover:bg-emerald-500"
+                title="Chat on official Hotel Spark WhatsApp"
+              >
+                <span>💬</span>
+                <span className="hidden sm:inline">WhatsApp</span>
+              </a>
               {!isRequestFlow && (
                 <Link
                   to="/manage"

@@ -1,4 +1,4 @@
-import { useState, useMemo, ChangeEvent } from 'react';
+import { useState, useEffect, useMemo, ChangeEvent } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   X,
@@ -101,6 +101,23 @@ export default function AddGuestModal({ isOpen, onClose, onSuccess, preselectedR
   const [advancePaid, setAdvancePaid] = useState<number>(0);
   const [paymentMethod, setPaymentMethod] = useState<'Cash' | 'UPI' | 'Card' | 'Bank Transfer'>('UPI');
   const [notes, setNotes] = useState('');
+
+  // Auto-select initial room if none selected yet, and auto-populate price from tariffs
+  useEffect(() => {
+    const targetRoomNum = selectedRoomNumber || (preselectedRoomId ? (rooms.find(r => r.id === preselectedRoomId || r.number === preselectedRoomId)?.number || '') : availableRooms[0]?.number);
+    if (!selectedRoomNumber && targetRoomNum) {
+      setSelectedRoomNumber(targetRoomNum);
+    }
+    if (targetRoomNum && pricePerNight === 0) {
+      const rm = rooms.find((r) => r.number === targetRoomNum);
+      const cat = tariffData?.categories?.find((c: any) => c.id === rm?.roomTypeId);
+      const rate = Number(cat?.doubleOccupancyPrice ?? cat?.singleOccupancyPrice ?? 0);
+      if (rate > 0) {
+        setPricePerNight(rate);
+        setAdvancePaid(rate * nights);
+      }
+    }
+  }, [availableRooms, selectedRoomNumber, rooms, preselectedRoomId, tariffData, pricePerNight, nights]);
 
   // When room is selected, auto-fill room rate from Supabase tariff config
   const handleRoomChange = (roomNum: string) => {

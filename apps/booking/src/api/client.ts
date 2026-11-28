@@ -439,8 +439,11 @@ async function submitRequestSupabase(body: SubmitBookingRequest): Promise<Bookin
     }),
   });
 
+  if (rpcResult?.success !== true || typeof rpcResult.id !== 'string' || !rpcResult.id.trim()) {
+    throw new Error('Booking request was not confirmed by the hotel database. Please retry using the same booking details.');
+  }
   return {
-    requestId: rpcResult?.id || idempotencyKey,
+    requestId: rpcResult.id,
     status: 'pending',
     message: rpcResult?.message || 'Booking request submitted successfully! Awaiting hotel confirmation.',
   };

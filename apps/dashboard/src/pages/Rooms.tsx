@@ -58,14 +58,14 @@ interface StatusCount {
 }
 
 const STATUS_CARD_COLORS: Record<string, string> = {
-  occupied: 'border-telivity-teal bg-telivity-teal/5',
-  vacant_clean: 'border-telivity-dark-teal bg-telivity-dark-teal/5',
-  vacant_dirty: 'border-telivity-orange bg-telivity-orange/5',
-  clean: 'border-telivity-dark-teal bg-telivity-dark-teal/5',
-  inspected: 'border-telivity-deep-blue bg-telivity-deep-blue/5',
-  guest_ready: 'border-telivity-dark-teal bg-telivity-dark-teal/5',
-  out_of_order: 'border-telivity-yellow bg-telivity-yellow/5',
-  out_of_service: 'border-telivity-mid-grey bg-gray-50',
+  occupied: 'border-rose-500 bg-rose-50 shadow-rose-100',
+  vacant_clean: 'border-emerald-500 bg-emerald-50 shadow-emerald-100',
+  vacant_dirty: 'border-amber-500 bg-amber-50 shadow-amber-100',
+  clean: 'border-emerald-500 bg-emerald-50 shadow-emerald-100',
+  inspected: 'border-blue-500 bg-blue-50 shadow-blue-100',
+  guest_ready: 'border-emerald-500 bg-emerald-50 shadow-emerald-100',
+  out_of_order: 'border-purple-500 bg-purple-50 shadow-purple-100',
+  out_of_service: 'border-gray-400 bg-gray-50',
 };
 
 const VALID_TRANSITIONS: Record<string, string[]> = {
@@ -706,7 +706,29 @@ function RoomList() {
                       <p className="text-[11px] text-telivity-slate font-medium truncate mt-0.5">
                         {room.roomTypeName || safeTypes.find((t) => t.id === room.roomTypeId)?.name || 'Deluxe King Room'}
                       </p>
-                      <StatusBadge status={room.status} label={t(`dashboard.roomStatuses.${room.status}`, { defaultValue: room.status })} className="mt-1.5 text-[9px] px-1.5 py-0" />
+                      <div className="flex items-center justify-between mt-1.5 gap-1">
+                        <StatusBadge status={room.status} label={t(`dashboard.roomStatuses.${room.status}`, { defaultValue: room.status })} className="text-[9px] px-1.5 py-0" />
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const nextStatus = room.status === 'vacant_clean'
+                              ? 'vacant_dirty'
+                              : room.status === 'vacant_dirty'
+                                ? 'clean'
+                                : room.status === 'clean'
+                                  ? 'vacant_clean'
+                                  : room.status === 'occupied'
+                                    ? 'vacant_dirty'
+                                    : 'vacant_clean';
+                            statusMutation.mutate({ roomId: room.id, newStatus: nextStatus });
+                          }}
+                          title="Click to toggle room status color"
+                          className="text-[10px] px-1.5 py-0.5 rounded bg-white/80 hover:bg-white text-telivity-slate border border-gray-200 shadow-xs font-semibold cursor-pointer"
+                        >
+                          Toggle ↻
+                        </button>
+                      </div>
                       {diary ? (
                         <>
                           <p className="text-[10px] text-telivity-slate mt-1 truncate font-medium">{diary.guestName ?? t('rooms.none')}</p>

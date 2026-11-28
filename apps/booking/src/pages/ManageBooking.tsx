@@ -22,7 +22,7 @@ export function ManageBooking() {
   const [cancelled, setCancelled] = useState(false);
 
   const lookup = useMutation({
-    mutationFn: () => bookingApi.getBooking(confirmationNumber.trim()),
+    mutationFn: () => bookingApi.getBooking(confirmationNumber.trim(), email.trim()),
     onSuccess: (b) => {
       setBooking(b);
       setCancelled(false);

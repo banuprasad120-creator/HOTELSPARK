@@ -82,7 +82,7 @@ export function HeroVideo() {
       <div className="relative aspect-[16/9] w-full overflow-hidden sm:aspect-[21/9] max-h-[380px]">
         <video
           ref={videoRef}
-          src="/spark.mp4"
+          src={`${import.meta.env.BASE_URL}spark.mp4`}
           autoPlay
           loop
           muted

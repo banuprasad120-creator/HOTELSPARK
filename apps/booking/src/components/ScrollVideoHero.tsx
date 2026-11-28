@@ -244,7 +244,7 @@ export function ScrollVideoHero({ onBookNowClick }: { onBookNowClick?: () => voi
               {/* Video Player */}
               <video
                 ref={videoRef}
-                src="/spark.mp4"
+                src={`${import.meta.env.BASE_URL}spark.mp4`}
                 playsInline
                 muted={isMuted}
                 loop={isAutoPlayMode}

@@ -218,7 +218,7 @@ export default function EditBillModal({
                 </span>
               </h2>
               <p className="text-xs text-teal-100/70">
-                Invoice #{stay.billNumber || `INV-SPARK-${stay.roomNumber}-${String(stay.id).slice(-4)}`} • {stay.guestName}
+                Invoice #{stay.billNumber || `INV-SPARK-${String(stay.id || '').replace(/\D/g, '').slice(-3).padStart(3, '0') || '001'}`} • {stay.guestName}
               </p>
             </div>
           </div>

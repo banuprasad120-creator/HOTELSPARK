@@ -1,21 +1,7 @@
 import type { Handler } from '@netlify/functions';
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://erzzqhzjtdhzrwpzbflr.supabase.co';
-const SECRET_KEY_B64 = 'c2Jfc2VjcmV0X0tuV3ZJOUlWTWdacVdoYUNOY095dHdfSG5wV3BCYUI=';
-const SUPABASE_SECRET_KEY =
-  process.env.SUPABASE_SECRET_KEY ||
-  process.env.SUPABASE_SERVICE_ROLE_KEY ||
-  (typeof Buffer !== 'undefined' ? Buffer.from(SECRET_KEY_B64, 'base64').toString('utf8') : '');
-
-const ROOM_TYPE_NAMES: Record<string, { name: string; code: string }> = {
-  'b0000001-0000-4000-a000-000000000001': { name: 'Budget', code: 'BGT' },
-  'b0000002-0000-4000-a000-000000000002': { name: 'Deluxe Room', code: 'DLX' },
-  'b0000003-0000-4000-a000-000000000003': { name: 'Executive Room', code: 'EXE' },
-  'b0000004-0000-4000-a000-000000000004': { name: 'Suite', code: 'SUT' },
-  // Legacy aliases
-  'b0000002-0000-4000-a000-000000000001': { name: 'Suite', code: 'SUT' },
-  'b0000003-0000-4000-a000-000000000001': { name: 'Executive Room', code: 'EXE' },
-};
+const PUBLIC_KEY = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_PUBLISHABLE_KEY || process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
 export const handler: Handler = async (event) => {
   const headers = {
@@ -29,141 +15,36 @@ export const handler: Handler = async (event) => {
     return { statusCode: 204, headers, body: '' };
   }
 
-  const path = event.path || '';
-
+  const reply = (statusCode: number, data: unknown) => ({ statusCode, headers, body: JSON.stringify(data) });
+  const token = event.headers.authorization || event.headers.Authorization;
+  if (!token || !/^Bearer [^ ]+$/.test(token)) return reply(401, { error: 'Staff sign-in required.' });
+  if (!PUBLIC_KEY) return reply(503, { error: 'Booking API public key is not configured.' });
+  const dbHeaders = { apikey: PUBLIC_KEY, Authorization: token, 'Content-Type': 'application/json' };
+  const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   try {
-    // 1. Approve a direct booking
-    if (event.httpMethod === 'POST' && path.includes('/approve')) {
-      const match = path.match(/direct-bookings\/([^/]+)\/approve/);
-      const requestId = match ? match[1] : '';
-      const body = event.body ? JSON.parse(event.body) : {};
-      const roomId = body.roomId || '5aca9c61-49d7-42db-885c-58d30dfceac7';
-
-      if (requestId) {
-        await fetch(`${SUPABASE_URL}/rest/v1/booking_requests?id=eq.${requestId}`, {
-          method: 'PATCH',
-          headers: {
-            apikey: SUPABASE_SECRET_KEY,
-            Authorization: `Bearer ${SUPABASE_SECRET_KEY}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            status: 'accepted',
-            decided_at: new Date().toISOString(),
-            decided_by: 'Hotel Spark Admin',
-          }),
-        });
-
-        await fetch(`${SUPABASE_URL}/rest/v1/rooms?id=eq.${roomId}`, {
-          method: 'PATCH',
-          headers: {
-            apikey: SUPABASE_SECRET_KEY,
-            Authorization: `Bearer ${SUPABASE_SECRET_KEY}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ status: 'occupied' }),
-        });
-      }
-
-      return {
-        statusCode: 200,
-        headers,
-        body: JSON.stringify({ success: true, roomNumber: '101' }),
-      };
+    const user = await fetch(SUPABASE_URL + '/auth/v1/user', { headers: dbHeaders });
+    if (!user.ok) return reply(401, { error: 'Invalid staff session.' });
+    const body = event.body ? JSON.parse(event.body) : {};
+    const propertyId = event.queryStringParameters?.propertyId || body.propertyId;
+    if (typeof propertyId !== 'string' || !uuid.test(propertyId)) return reply(400, { error: 'Valid property ID required.' });
+    const requestPath = event.path || '';
+    const match = requestPath.match(/direct-bookings\/([^/]+)\/(approve|reject|deny)\/?$/);
+    if (event.httpMethod === 'POST' && match) {
+      const [, id, action] = match;
+      if (!uuid.test(id)) return reply(400, { error: 'Invalid booking ID.' });
+      if (action === 'approve' && (!body.roomId || !uuid.test(body.roomId))) return reply(400, { error: 'Select an available room.' });
+      if (action !== 'approve' && !String(body.reason || '').trim()) return reply(400, { error: 'Rejection reason required.' });
+      const payload = action === 'approve' ? { p_booking_request_id: id, p_hotel_id: propertyId, p_room_id: body.roomId, p_custom_total: body.customTotal ?? null, p_custom_price_reason: body.customPriceReason ?? null } : { p_booking_request_id: id, p_hotel_id: propertyId, p_reason: String(body.reason).trim() };
+      const res = await fetch(SUPABASE_URL + '/rest/v1/rpc/' + (action === 'approve' ? 'approve_direct_booking' : 'reject_direct_booking'), { method: 'POST', headers: dbHeaders, body: JSON.stringify(payload) });
+      if (!res.ok) return reply(res.status, { error: 'Booking update rejected by database.' });
+      const result = await res.json();
+      if (result?.success !== true || (action === 'approve' && !result.reservation_id)) return reply(502, { error: 'Database did not confirm booking update.' });
+      return reply(200, { ...result, roomNumber: result.room_number, confirmationNumber: result.confirmation_number });
     }
-
-    // 2. Reject/deny a direct booking
-    if (event.httpMethod === 'POST' && (path.includes('/reject') || path.includes('/deny'))) {
-      const match = path.match(/direct-bookings\/([^/]+)\/(?:reject|deny)/);
-      const requestId = match ? match[1] : '';
-      const body = event.body ? JSON.parse(event.body) : {};
-
-      if (requestId) {
-        await fetch(`${SUPABASE_URL}/rest/v1/booking_requests?id=eq.${requestId}`, {
-          method: 'PATCH',
-          headers: {
-            apikey: SUPABASE_SECRET_KEY,
-            Authorization: `Bearer ${SUPABASE_SECRET_KEY}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            status: 'denied',
-            denial_reason: body.reason || 'Requested room is unavailable for selected dates.',
-            decided_at: new Date().toISOString(),
-            decided_by: 'Hotel Spark Admin',
-          }),
-        });
-      }
-
-      return {
-        statusCode: 200,
-        headers,
-        body: JSON.stringify({ success: true }),
-      };
-    }
-
-    // 3. GET all booking requests
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/booking_requests?select=*&order=created_at.desc`, {
-      headers: {
-        apikey: SUPABASE_SECRET_KEY,
-        Authorization: `Bearer ${SUPABASE_SECRET_KEY}`,
-        'Content-Type': 'application/json',
-      },
-    });
-
-    if (!res.ok) {
-      const errText = await res.text();
-      return {
-        statusCode: res.status,
-        headers,
-        body: JSON.stringify({ error: `Supabase error: ${errText}` }),
-      };
-    }
-
+    if (event.httpMethod !== 'GET' || !/direct-bookings\/?$/.test(requestPath)) return reply(404, { error: 'Unknown booking endpoint.' });
+    const res = await fetch(SUPABASE_URL + '/rest/v1/booking_requests?select=*&or=(hotel_id.eq.' + propertyId + ',property_id.eq.' + propertyId + ')&order=created_at.desc', { headers: dbHeaders });
+    if (!res.ok) return reply(res.status, { error: 'Unable to load booking requests.' });
     const rows = await res.json();
-    const items = (rows || []).map((r: any) => {
-      const rt = ROOM_TYPE_NAMES[r.room_type_id] || { name: 'Deluxe King Room', code: 'DLX' };
-      return {
-        id: r.id,
-        propertyId: r.property_id || r.hotel_id || 'a0000001-0000-4000-a000-000000000001',
-        status: r.status,
-        reference: r.submission_idempotency_key || `SPARK-${r.id.slice(0, 8).toUpperCase()}`,
-        submissionIdempotencyKey: r.submission_idempotency_key || `SPARK-${r.id.slice(0, 8).toUpperCase()}`,
-        arrivalDate: r.arrival_date,
-        departureDate: r.departure_date,
-        roomTypeId: r.room_type_id,
-        roomTypeName: rt.name,
-        roomTypeCode: rt.code,
-        ratePlanId: r.rate_plan_id || 'c0000001-0000-4000-a000-000000000001',
-        ratePlanName: 'Best Available Rate',
-        adults: r.adults || 2,
-        children: r.children || 0,
-        guestFirstName: r.guest_first_name,
-        guestLastName: r.guest_last_name,
-        guestEmail: r.guest_email,
-        guestPhone: r.guest_phone || '',
-        specialRequests: r.special_requests || '',
-        submittedTotal: String(r.submitted_total || '3500.00'),
-        currencyCode: r.currency_code || 'INR',
-        confirmedReservationNumber: r.accepted_reservation_id,
-        assignedRoomNumber: r.status === 'accepted' ? '101' : null,
-        availableRoomsCount: 4,
-        denialReason: r.denial_reason,
-        decidedAt: r.decided_at,
-        createdAt: r.created_at,
-      };
-    });
-
-    return {
-      statusCode: 200,
-      headers,
-      body: JSON.stringify(items),
-    };
-  } catch (error: any) {
-    return {
-      statusCode: 500,
-      headers,
-      body: JSON.stringify({ error: error.message || 'Internal Server Error' }),
-    };
-  }
+    return reply(200, rows.map((r: any) => ({ id: r.id, propertyId: r.property_id || r.hotel_id, status: r.status, reference: r.submission_idempotency_key, submissionIdempotencyKey: r.submission_idempotency_key, arrivalDate: r.arrival_date, departureDate: r.departure_date, roomTypeId: r.room_type_id, ratePlanId: r.rate_plan_id, adults: r.adults, children: r.children, guestFirstName: r.guest_first_name, guestLastName: r.guest_last_name, guestEmail: r.guest_email, guestPhone: r.guest_phone, specialRequests: r.special_requests, submittedTotal: String(r.accepted_total ?? r.submitted_total ?? 0), currencyCode: r.currency_code, acceptedReservationId: r.accepted_reservation_id, denialReason: r.denial_reason, decidedAt: r.decided_at, createdAt: r.created_at })));
+  } catch { return reply(500, { error: 'Booking request failed.' }); }
 };

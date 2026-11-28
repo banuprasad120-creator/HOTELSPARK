@@ -445,7 +445,7 @@ export default function AdminPanel() {
               Hotel Staff Roster & Monthly Payroll Governance
             </h2>
             <p className="text-xs text-telivity-mid-grey">
-              7 Active Employees • Monthly Payroll: ₹{monthlyPayrollTotal.toLocaleString('en-IN')} • Shift allocations & designations.
+              {staffList.length} Active Employees • Monthly Payroll: ₹{monthlyPayrollTotal.toLocaleString('en-IN')} • Shift allocations & designations.
             </p>
           </div>
 

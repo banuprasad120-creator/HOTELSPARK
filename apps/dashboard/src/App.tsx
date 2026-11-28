@@ -137,6 +137,24 @@ export default function App() {
           <PropertyScopeBoundary>
             <Routes>
               <Route path="/" element={<RootRedirect />} />
+              <Route path="/admin/login" element={<Navigate to="/" replace />} />
+              <Route path="/employee/login" element={<Navigate to="/" replace />} />
+              <Route
+                path="/admin/dashboard"
+                element={
+                  <RoleGuard allowedRoles={['admin']}>
+                    <AdminPanel />
+                  </RoleGuard>
+                }
+              />
+              <Route
+                path="/employee/dashboard"
+                element={
+                  <RoleGuard allowedRoles={['front_office', 'front_desk', 'receptionist', 'manager', 'admin']}>
+                    <FrontOfficePanel />
+                  </RoleGuard>
+                }
+              />
               <Route
                 path="/admin"
                 element={

@@ -255,7 +255,7 @@ export default function MediaGallery({ propertyId, ownerType, ownerId, canManage
             <ImageIcon size={32} className="mx-auto mb-2 text-gray-300" />
             <p className="font-medium text-gray-600">{t('media.noImagesYet')}</p>
             <p className="text-xs text-gray-400 mt-1">
-              Upload photos from your computer or phone above to show this room to guests and staff.
+              Upload photos from your computer or phone above to display this hotel and rooms to guests and staff.
             </p>
           </div>
         ) : (

@@ -132,11 +132,12 @@ export default function BillInvoiceModal({
     URL.revokeObjectURL(url);
   };
 
-  const safeId = currentStay.id ? String(currentStay.id) : String(Date.now());
-  const safeRoomNumber = currentStay.roomNumber ? String(currentStay.roomNumber) : '101';
+  const safeId = currentStay.id ? String(currentStay.id) : '1';
+  const rawNum = safeId.replace(/\D/g, '');
+  const seqSuffix = rawNum.length > 0 ? rawNum.slice(-3).padStart(3, '0') : '001';
   const invoiceNumber =
     currentStay.billNumber ||
-    `INV-SPARK-${safeRoomNumber}-${safeId.length >= 4 ? safeId.slice(-4) : safeId.padStart(4, '0')}`;
+    `INV-SPARK-${seqSuffix}`;
 
   const formatInvoiceDateTime = (isoDate?: string) => {
     if (!isoDate) return new Date().toLocaleString('en-IN', { dateStyle: 'short', timeStyle: 'short' });
@@ -252,6 +253,9 @@ export default function BillInvoiceModal({
             </span>
             <span className="text-xs bg-white/10 px-2 py-0.5 rounded-md font-mono">
               Room {currentStay.roomNumber}
+            </span>
+            <span className="text-xs bg-teal-400/20 text-teal-300 px-2 py-0.5 rounded-md font-mono font-bold">
+              {invoiceNumber}
             </span>
           </div>
 
@@ -450,17 +454,17 @@ export default function BillInvoiceModal({
                     <span>{currentStay.rateType || currentStay.roomTypeName || 'Budget'}</span>
                   </div>
                   <div className="flex">
-                    <span className="w-28 sm:w-32 font-bold shrink-0">NoofNights</span>
+                    <span className="w-28 sm:w-32 font-bold shrink-0">No of Nights</span>
                     <span className="shrink-0 mr-1">:</span>
                     <span>{currentStay.nights || 1}</span>
                   </div>
                   <div className="flex">
-                    <span className="w-28 sm:w-32 font-bold shrink-0">DateofArrival</span>
+                    <span className="w-28 sm:w-32 font-bold shrink-0">Date of Arrival</span>
                     <span className="shrink-0 mr-1">:</span>
                     <span>{checkInFormatted}</span>
                   </div>
                   <div className="flex">
-                    <span className="w-28 sm:w-32 font-bold shrink-0">DateofDeparture</span>
+                    <span className="w-28 sm:w-32 font-bold shrink-0">Date of Departure</span>
                     <span className="shrink-0 mr-1">:</span>
                     <span>{checkOutFormatted}</span>
                   </div>
@@ -490,8 +494,8 @@ export default function BillInvoiceModal({
                     {/* Row 1: Room Charges */}
                     <tr className="border-b border-black">
                       <td className="py-1.5 px-1 border-r border-black">1</td>
-                      <td className="py-1.5 px-2 border-r border-black text-left font-medium">RoomCharges</td>
-                      <td className="py-1.5 px-1 border-r border-black font-mono">988457</td>
+                      <td className="py-1.5 px-2 border-r border-black text-left font-medium">Room Charges</td>
+                      <td className="py-1.5 px-1 border-r border-black font-mono">996311</td>
                       <td className="py-1.5 px-1 border-r border-black">{nights}</td>
                       <td className="py-1.5 px-1.5 border-r border-black text-right">{taxableRoomCharges.toFixed(2)}</td>
                       <td className="py-1.5 px-1.5 border-r border-black text-right">{taxableRoomCharges.toFixed(2)}</td>
@@ -563,7 +567,7 @@ export default function BillInvoiceModal({
                 {/* Left Half: Words & Payment Breakdown */}
                 <div className="p-2 border-r border-black flex flex-col justify-between">
                   <div className="border border-black p-2 mb-2">
-                    <div className="font-bold text-xs">TotalPayableAmount</div>
+                    <div className="font-bold text-xs">Total Payable Amount</div>
                     <div className="text-xs font-medium capitalize mt-1">
                       {amountInWords}
                     </div>
@@ -593,55 +597,55 @@ export default function BillInvoiceModal({
                 {/* Right Half: Bordered Ledger Box (Exact lines from photo, clean CSS block rows preventing border-collapse strikethrough) */}
                 <div className="text-xs flex flex-col justify-start">
                   <div className="grid grid-cols-[60%_40%] border-b border-black min-h-[24px]">
-                    <div className="py-1.5 px-2.5 font-bold border-r border-black flex items-center">TotalCharges(Rs):</div>
+                    <div className="py-1.5 px-2.5 font-bold border-r border-black flex items-center">Total Charges (Rs):</div>
                     <div className="py-1.5 px-2.5 text-right font-medium flex items-center justify-end">{totalCharges.toFixed(2)}</div>
                   </div>
                   <div className="grid grid-cols-[60%_40%] border-b border-black min-h-[24px]">
-                    <div className="py-1.5 px-2.5 font-bold border-r border-black flex items-center">TotalDiscount(Rs):</div>
+                    <div className="py-1.5 px-2.5 font-bold border-r border-black flex items-center">Total Discount (Rs):</div>
                     <div className="py-1.5 px-2.5 text-right flex items-center justify-end">{discount.toFixed(2)}</div>
                   </div>
                   <div className="grid grid-cols-[60%_40%] border-b border-black min-h-[24px]">
-                    <div className="py-1.5 px-2.5 font-bold border-r border-black flex items-center">TotalSGST(Rs):</div>
+                    <div className="py-1.5 px-2.5 font-bold border-r border-black flex items-center">Total SGST (Rs):</div>
                     <div className="py-1.5 px-2.5 text-right flex items-center justify-end">{totalSgst.toFixed(2)}</div>
                   </div>
                   <div className="grid grid-cols-[60%_40%] border-b border-black min-h-[24px]">
-                    <div className="py-1.5 px-2.5 font-bold border-r border-black flex items-center">TotalCGST(Rs):</div>
+                    <div className="py-1.5 px-2.5 font-bold border-r border-black flex items-center">Total CGST (Rs):</div>
                     <div className="py-1.5 px-2.5 text-right flex items-center justify-end">{totalCgst.toFixed(2)}</div>
                   </div>
                   <div className="grid grid-cols-[60%_40%] border-b border-black min-h-[24px]">
-                    <div className="py-1.5 px-2.5 font-bold border-r border-black flex items-center">TotalIGST(Rs):</div>
+                    <div className="py-1.5 px-2.5 font-bold border-r border-black flex items-center">Total IGST (Rs):</div>
                     <div className="py-1.5 px-2.5 text-right flex items-center justify-end">0.00</div>
                   </div>
                   <div className="grid grid-cols-[60%_40%] border-b border-black min-h-[24px]">
-                    <div className="py-1.5 px-2.5 font-bold border-r border-black flex items-center">TotalOtherTax(Rs):</div>
+                    <div className="py-1.5 px-2.5 font-bold border-r border-black flex items-center">Total Other Tax (Rs):</div>
                     <div className="py-1.5 px-2.5 text-right flex items-center justify-end">0.00</div>
                   </div>
                   <div className="grid grid-cols-[60%_40%] border-b border-black min-h-[24px]">
-                    <div className="py-1.5 px-2.5 font-bold border-r border-black flex items-center">TotalBalanceTransfer(Rs):</div>
+                    <div className="py-1.5 px-2.5 font-bold border-r border-black flex items-center">Total Balance Transfer (Rs):</div>
                     <div className="py-1.5 px-2.5 text-right flex items-center justify-end">0.00</div>
                   </div>
                   <div className="grid grid-cols-[60%_40%] border-b border-black min-h-[24px] font-bold">
-                    <div className="py-1.5 px-2.5 font-bold border-r border-black flex items-center">Total(Rs):</div>
+                    <div className="py-1.5 px-2.5 font-bold border-r border-black flex items-center">Total (Rs):</div>
                     <div className="py-1.5 px-2.5 text-right font-bold flex items-center justify-end">{grandTotal.toFixed(2)}</div>
                   </div>
                   <div className="grid grid-cols-[60%_40%] border-b border-black min-h-[24px]">
-                    <div className="py-1.5 px-2.5 font-bold border-r border-black flex items-center">FlatDiscount(Rs):</div>
+                    <div className="py-1.5 px-2.5 font-bold border-r border-black flex items-center">Flat Discount (Rs):</div>
                     <div className="py-1.5 px-2.5 text-right flex items-center justify-end">{discount.toFixed(2)}</div>
                   </div>
                   <div className="grid grid-cols-[60%_40%] border-b border-black min-h-[24px]">
-                    <div className="py-1.5 px-2.5 font-bold border-r border-black flex items-center">Adjustment(Rs):</div>
+                    <div className="py-1.5 px-2.5 font-bold border-r border-black flex items-center">Adjustment (Rs):</div>
                     <div className="py-1.5 px-2.5 text-right flex items-center justify-end">0.00</div>
                   </div>
                   <div className="grid grid-cols-[60%_40%] border-b border-black min-h-[24px] font-bold">
-                    <div className="py-1.5 px-2.5 font-bold border-r border-black flex items-center">TotalPayable(Rs):</div>
+                    <div className="py-1.5 px-2.5 font-bold border-r border-black flex items-center">Total Payable (Rs):</div>
                     <div className="py-1.5 px-2.5 text-right font-bold flex items-center justify-end">{grandTotal.toFixed(2)}</div>
                   </div>
                   <div className="grid grid-cols-[60%_40%] border-b border-black min-h-[24px] font-bold">
-                    <div className="py-1.5 px-2.5 font-bold border-r border-black flex items-center">TotalPayment(Rs):</div>
+                    <div className="py-1.5 px-2.5 font-bold border-r border-black flex items-center">Total Payment (Rs):</div>
                     <div className="py-1.5 px-2.5 text-right font-bold flex items-center justify-end">{totalPaid.toFixed(2)}</div>
                   </div>
                   <div className="grid grid-cols-[60%_40%] min-h-[24px] font-bold">
-                    <div className="py-1.5 px-2.5 font-bold border-r border-black flex items-center">Balance(Rs):</div>
+                    <div className="py-1.5 px-2.5 font-bold border-r border-black flex items-center">Balance (Rs):</div>
                     <div className="py-1.5 px-2.5 text-right font-bold flex items-center justify-end">{balanceDue.toFixed(2)}</div>
                   </div>
                 </div>
@@ -660,18 +664,18 @@ export default function BillInvoiceModal({
             <div className="pt-4 border-t border-black flex justify-between items-end text-xs">
               <div className="space-y-1">
                 <p>
-                  <span className="font-bold">Cashier(C/O)</span>
-                  <span className="ml-6 font-semibold">: {currentStay.cashierName || 'madhu'}</span>
+                  <span className="font-bold">Cashier (C/O)</span>
+                  <span className="ml-4 font-semibold">: {currentStay.cashierName || 'Front Office'}</span>
                 </p>
                 <p>
                   <span className="font-bold">Page</span>
-                  <span className="ml-16 font-semibold">: Page1of</span>
+                  <span className="ml-14 font-semibold">: Page 1 of 1</span>
                 </p>
               </div>
 
               <div className="text-center pb-1">
                 <div className="w-56 border-b border-black mb-1"></div>
-                <p className="font-bold text-xs">(GuestSignature)</p>
+                <p className="font-bold text-xs">(Guest Signature)</p>
               </div>
             </div>
           </div>

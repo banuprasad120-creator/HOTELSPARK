@@ -405,7 +405,7 @@ async function fetchStaysFromSupabase(propertyId: string, onlyActive = false): P
           : r.status === 'confirmed' || r.status === 'pending' || r.status === 'assigned'
             ? 'confirmed'
             : 'in_house',
-      billNumber: inv?.invoice_number || folio?.folio_number || booking.confirmation_number,
+      billNumber: inv?.invoice_number || (folio?.folio_number?.startsWith('INV-SPARK-') ? folio.folio_number : 'INV-SPARK-001'),
       cashierName: inv?.cashier_name || undefined,
       notes: r.special_requests || r.notes || '',
     };
@@ -898,8 +898,8 @@ export async function handleSupabaseAdapter(config: AxiosRequestConfig): Promise
   }
 
   // 4. DIRECT BOOKING REQUESTS & ATOMIC APPROVAL / REJECTION
-  if (url.includes('/direct-bookings') && url.includes('/available-rooms')) {
-    const m = url.match(/\/direct-bookings\/([^/]+)\/available-rooms/);
+  if ((url.includes('/direct-bookings') || url.includes('/booking-requests')) && url.includes('/available-rooms')) {
+    const m = url.match(/\/(?:direct-bookings|booking-requests)\/([^/]+)\/available-rooms/);
     const reqId = m?.[1];
     if (!reqId) return ok({ availableRooms: [] }, config);
 
@@ -927,8 +927,8 @@ export async function handleSupabaseAdapter(config: AxiosRequestConfig): Promise
     return ok({ availableRooms: list }, config);
   }
 
-  if (url.includes('/direct-bookings') && url.includes('/approve') && method === 'POST') {
-    const m = url.match(/\/direct-bookings\/([^/]+)\/approve/);
+  if ((url.includes('/direct-bookings') || url.includes('/booking-requests')) && url.includes('/approve') && method === 'POST') {
+    const m = url.match(/\/(?:direct-bookings|booking-requests)\/([^/]+)\/approve/);
     const reqId = m?.[1];
     const roomId = body.roomId;
     if (!reqId || !roomId) {
@@ -946,11 +946,12 @@ export async function handleSupabaseAdapter(config: AxiosRequestConfig): Promise
         p_custom_price_reason: body.customPriceReason || null,
       }),
     });
-    return ok(res, config);
+    if (res?.success !== true || !res.reservation_id) throw new Error('Database did not confirm booking approval.');
+    return ok({ ...res, roomNumber: res.room_number, confirmationNumber: res.confirmation_number }, config);
   }
 
-  if (url.includes('/direct-bookings') && (url.includes('/reject') || url.includes('/deny')) && method === 'POST') {
-    const m = url.match(/\/direct-bookings\/([^/]+)\/(?:reject|deny)/);
+  if ((url.includes('/direct-bookings') || url.includes('/booking-requests')) && (url.includes('/reject') || url.includes('/deny')) && method === 'POST') {
+    const m = url.match(/\/(?:direct-bookings|booking-requests)\/([^/]+)\/(?:reject|deny)/);
     const reqId = m?.[1];
     const reason = (body.reason || body.denialReason || '').trim();
     if (!reqId || !reason) {
@@ -966,10 +967,11 @@ export async function handleSupabaseAdapter(config: AxiosRequestConfig): Promise
         p_decided_by: session?.user?.id || null,
       }),
     });
+    if (res?.success !== true) throw new Error('Database did not confirm booking rejection.');
     return ok(res, config);
   }
 
-  if (url.includes('/direct-bookings') && method === 'GET') {
+  if ((url.includes('/direct-bookings') || url.includes('/booking-requests')) && method === 'GET') {
     if (url.includes('/history/audit')) {
       const logs = await supabaseFetch<any[]>(
         `/audit_logs?select=*&or=(hotel_id.eq.${propertyId},property_id.eq.${propertyId})&order=occurred_at.desc&limit=50`
@@ -1004,7 +1006,7 @@ export async function handleSupabaseAdapter(config: AxiosRequestConfig): Promise
       supabaseFetch<any[]>(`/room_types?select=id,name,code`).catch(() => []),
       supabaseFetch<any[]>(`/rate_plans?select=id,name`).catch(() => []),
       supabaseFetch<any[]>(`/reservations?select=id,room_id,booking_id,bookings(confirmation_number)`).catch(() => []),
-      supabaseFetch<any[]>(`/rooms?select=id,number,floor`).catch(() => []),
+      supabaseFetch<any[]>(`/rooms?select=id,number,floor,room_type_id,status&or=(hotel_id.eq.${propertyId},property_id.eq.${propertyId})`).catch(() => []),
     ]);
 
     const rtMap = new Map((roomTypes || []).map((rt) => [rt.id, rt]));
@@ -1012,12 +1014,41 @@ export async function handleSupabaseAdapter(config: AxiosRequestConfig): Promise
     const resMap = new Map((reservations || []).map((r) => [r.id, r]));
     const roomMap = new Map((rooms || []).map((r) => [r.id, r]));
 
+    // Fetch availability for pending requests
+    const pendingReqs = (requests || []).filter((req) => req.status === 'pending');
+    const availMap = new Map<string, number>();
+    await Promise.all(
+      pendingReqs.map(async (req) => {
+        try {
+          const avail = await supabaseFetch<any[]>(`/rpc/revalidate_room_availability`, {
+            method: 'POST',
+            body: JSON.stringify({
+              p_hotel_id: propertyId,
+              p_room_type_id: req.room_type_id,
+              p_arrival_date: req.arrival_date,
+              p_departure_date: req.departure_date,
+            }),
+          });
+          const availableCount = (avail || []).filter((r) => r.is_available).length;
+          availMap.set(req.id, availableCount);
+        } catch {
+          // Fallback to room count of the same room type if RPC fails
+          const typeRooms = (rooms || []).filter((r) => r.room_type_id === req.room_type_id && r.status !== 'out_of_order');
+          availMap.set(req.id, typeRooms.length);
+        }
+      })
+    );
+
     const items = (requests || []).map((req) => {
       const rt = rtMap.get(req.room_type_id);
       const rp = rpMap.get(req.rate_plan_id);
       const linkedRes = req.accepted_reservation_id ? resMap.get(req.accepted_reservation_id) : null;
       const linkedRoom = linkedRes?.room_id ? roomMap.get(linkedRes.room_id) : null;
       const snap = req.form_snapshot && typeof req.form_snapshot === 'object' && !Array.isArray(req.form_snapshot) ? req.form_snapshot : {};
+
+      const dynamicAvailableCount = req.status === 'pending'
+        ? (availMap.get(req.id) ?? (rooms || []).filter((r) => r.room_type_id === req.room_type_id).length)
+        : 0;
 
       return {
         id: req.id,
@@ -1047,14 +1078,14 @@ export async function handleSupabaseAdapter(config: AxiosRequestConfig): Promise
         confirmedReservationNumber: linkedRes?.bookings?.confirmation_number || null,
         assignedRoomNumber: linkedRoom?.number || null,
         assignedRoomFloor: linkedRoom?.floor || null,
-        availableRoomsCount: 0,
+        availableRoomsCount: dynamicAvailableCount,
         denialReason: req.denial_reason,
         decidedAt: req.decided_at,
         createdAt: req.created_at,
       };
     });
 
-    return ok({ items, requests: items }, config);
+    return ok({ data: items, items, requests: items }, config);
   }
 
   // 5. ROOM TYPES & ROOMS
@@ -1244,12 +1275,13 @@ export async function handleSupabaseAdapter(config: AxiosRequestConfig): Promise
     if (method === 'DELETE' && targetRoomId) {
       // Check if room has active stays/reservations before deleting
       const activeRes = await supabaseFetch<any[]>(
-        `/reservations?room_id=eq.${targetRoomId}&status=in.(checked_in,stayover,due_out)&limit=1`
-      ).catch(() => []);
+        `/reservations?room_id=eq.${targetRoomId}&status=in.(pending,confirmed,checked_in,stayover,due_out)&limit=1`
+      );
       if (Array.isArray(activeRes) && activeRes.length > 0) {
-        throw new Error('Cannot delete room with active checked-in guests. Please checkout or reassign first.');
+        throw new Error('Cannot delete room with active reservations or guests. Please reassign or check out first.');
       }
-      await supabaseFetch(`/rooms?id=eq.${targetRoomId}&or=(hotel_id.eq.${propertyId},property_id.eq.${propertyId})`, { method: 'DELETE' });
+      const deleted = await supabaseFetch<any[]>(`/rooms?id=eq.${targetRoomId}&or=(hotel_id.eq.${propertyId},property_id.eq.${propertyId})`, { method: 'DELETE' });
+      if (!Array.isArray(deleted) || deleted.length === 0) throw new Error('No room was deleted. Check room permissions and availability.');
       return ok({ success: true }, config);
     }
   }
@@ -1428,13 +1460,19 @@ export async function handleSupabaseAdapter(config: AxiosRequestConfig): Promise
         return ok(updated?.[0] || { success: true }, config);
       }
 
-      if (url.includes('/check-in') && method === 'POST') {
-        const resRows = await supabaseFetch<any[]>(`/reservations?id=eq.${targetId}&limit=1`);
+      if (url.includes('/check-in') && (method === 'POST' || method === 'PATCH')) {
+        const resRows = await supabaseFetch<any[]>(`/reservations?id=eq.${targetId}&or=(hotel_id.eq.${propertyId},property_id.eq.${propertyId})&limit=1`);
         const resRow = resRows?.[0];
         if (!resRow) throw new Error('Reservation not found.');
         const assignRoomId = body.roomId || resRow.room_id;
         if (!assignRoomId) throw new Error('Assign a physical room before check-in.');
-        await supabaseFetch(`/check_ins`, {
+        if (resRow.status === 'checked_in') return ok({ success: true, id: targetId, status: 'checked_in' }, config);
+        if (!['confirmed', 'assigned'].includes(resRow.status)) throw new Error('Only a confirmed reservation can be checked in.');
+        const roomRows = await supabaseFetch<any[]>(`/rooms?id=eq.${assignRoomId}&or=(hotel_id.eq.${propertyId},property_id.eq.${propertyId})&limit=1`);
+        const assignedRoom = roomRows?.[0];
+        if (!assignedRoom || !['vacant_clean', 'clean', 'inspected', 'guest_ready'].includes(assignedRoom.status)) throw new Error('Selected room is not ready for check-in.');
+        if (resRow.room_id !== assignRoomId) throw new Error('Assign the selected room before check-in.');
+        const checkIns = await supabaseFetch<any[]>(`/check_ins`, {
           method: 'POST',
           body: JSON.stringify({
             hotel_id: propertyId,
@@ -1446,6 +1484,7 @@ export async function handleSupabaseAdapter(config: AxiosRequestConfig): Promise
             notes: body.notes || null,
           }),
         });
+        if (!Array.isArray(checkIns) || !checkIns.length) throw new Error('Database did not confirm check-in.');
         return ok({ success: true, id: targetId, status: 'checked_in' }, config);
       }
 
@@ -1457,8 +1496,37 @@ export async function handleSupabaseAdapter(config: AxiosRequestConfig): Promise
             p_reservation_id: targetId,
             p_final_payment: Number(body.finalPayment || 0),
             p_payment_method: body.paymentMethod || 'cash',
+            p_nights: body.nights != null ? Number(body.nights) : null,
+            p_price_per_night: body.pricePerNight != null ? Number(body.pricePerNight) : null,
+            p_extra_charges: Number(body.extraCharges || 0),
+            p_discount: Number(body.discount || 0),
+            p_tax_mode: body.taxMode || 'inclusive',
+            p_gst_rate: Number(body.gstRate ?? 5),
           }),
         });
+
+        // Ensure invoice number adheres strictly to INV-SPARK-001 format
+        try {
+          const invList = await supabaseFetch<any[]>(`/invoices?select=invoice_number&order=created_at.desc&limit=100`).catch(() => []);
+          let maxSeq = 0;
+          for (const inv of invList) {
+            const match = (inv.invoice_number || '').match(/^INV-SPARK-(\d+)$/);
+            if (match) {
+              const n = parseInt(match[1], 10);
+              if (n > maxSeq) maxSeq = n;
+            }
+          }
+          const nextSeq = maxSeq + 1;
+          const formattedInv = `INV-SPARK-${String(nextSeq).padStart(3, '0')}`;
+          await supabaseFetch(`/invoices?reservation_id=eq.${targetId}`, {
+            method: 'PATCH',
+            body: JSON.stringify({ invoice_number: formattedInv }),
+          }).catch(() => undefined);
+          if (res) res.invoice_number = formattedInv;
+        } catch {
+          // Keep existing or generated billNumber
+        }
+
         return ok(res, config);
       }
 
@@ -1819,8 +1887,9 @@ export async function handleSupabaseAdapter(config: AxiosRequestConfig): Promise
         }),
       });
 
-      const allStays = await fetchStaysFromSupabase(propertyId, false);
-      const createdStay = allStays.find((s) => s.id === rpcRes.reservation_id) || allStays[0];
+      if (rpcRes?.success !== true || !rpcRes.reservation_id) throw new Error('Database did not confirm walk-in check-in.');
+      const allStays = await fetchStaysFromSupabase(propertyId, false).catch(() => []);
+      const createdStay = allStays.find((s) => s.id === rpcRes.reservation_id);
 
       // If guestGstin was provided, persist to guest tax_id and folio invoice
       if (body.guestGstin && rpcRes?.guest_id) {
@@ -1836,7 +1905,7 @@ export async function handleSupabaseAdapter(config: AxiosRequestConfig): Promise
         }).catch(() => undefined);
       }
 
-      return ok({ stay: createdStay, ...rpcRes }, config);
+      return ok({ stay: createdStay, ...rpcRes, confirmationNumber: rpcRes.confirmation_number, roomNumber: rpcRes.room_number }, config);
     }
 
     if (method === 'POST' && url.includes('/checkout')) {
@@ -1862,6 +1931,31 @@ export async function handleSupabaseAdapter(config: AxiosRequestConfig): Promise
 
       const allStays = await fetchStaysFromSupabase(propertyId, false);
       const updatedStay = allStays.find((s) => s.id === stayId);
+
+      // Ensure invoice number adheres strictly to INV-SPARK-001 format
+      if (updatedStay) {
+        try {
+          const invList = await supabaseFetch<any[]>(`/invoices?select=invoice_number&order=created_at.desc&limit=100`).catch(() => []);
+          let maxSeq = 0;
+          for (const inv of invList) {
+            const match = (inv.invoice_number || '').match(/^INV-SPARK-(\d+)$/);
+            if (match) {
+              const n = parseInt(match[1], 10);
+              if (n > maxSeq) maxSeq = n;
+            }
+          }
+          const nextSeq = maxSeq + 1;
+          const formattedInv = `INV-SPARK-${String(nextSeq).padStart(3, '0')}`;
+          await supabaseFetch(`/invoices?reservation_id=eq.${stayId}`, {
+            method: 'PATCH',
+            body: JSON.stringify({ invoice_number: formattedInv }),
+          }).catch(() => undefined);
+          updatedStay.billNumber = formattedInv;
+        } catch {
+          // Keep existing or generated billNumber
+        }
+      }
+
       return ok({ success: true, stay: updatedStay, ...rpcRes }, config);
     }
 

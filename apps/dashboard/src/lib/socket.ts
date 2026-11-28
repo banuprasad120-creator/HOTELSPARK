@@ -40,6 +40,12 @@ export function reconnectSocket() {
 
 export function joinPropertyRoom(propertyId: string) {
   currentPropertyId = propertyId;
+  // If running in Supabase standalone mode or no NestJS backend ws server on port, avoid throwing unhandled ws errors
+  if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname.includes('sparkhotel'))) {
+    // Only connect if explicit WS server is enabled
+    const wsEnabled = import.meta.env.VITE_WS_ENABLED === 'true';
+    if (!wsEnabled) return;
+  }
   const s = getSocket();
   if (!s.connected) s.connect();
   s.emit('joinProperty', { propertyId });
