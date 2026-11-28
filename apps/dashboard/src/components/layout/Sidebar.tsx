@@ -57,7 +57,7 @@ type NavSection = {
 
 const DEPT_ALLOWED_ROUTES: Record<string, string[]> = {
   admin: ['/', '/admin-panel', '/manager-panel', '/front-office-panel', '/tariff-settings', '/departments', '/current-guests', '/front-desk', '/reservations', '/guests', '/rooms', '/rooms/types', '/housekeeping', '/staff', '/folios', '/guest-history', '/direct-bookings', '/direct-bookings/pending', '/direct-bookings/approved', '/direct-bookings/rejected', '/direct-bookings/history', '/reports', '/settings'],
-  manager: ['/', '/admin-panel', '/manager-panel', '/front-office-panel', '/tariff-settings', '/departments', '/staff', '/current-guests', '/front-desk', '/reservations', '/guests', '/rooms', '/rooms/types', '/housekeeping', '/direct-bookings', '/direct-bookings/pending', '/direct-bookings/approved', '/direct-bookings/history', '/reports', '/settings', '/folios'],
+  manager: ['/', '/admin-panel', '/manager-panel', '/front-office-panel', '/tariff-settings', '/departments', '/staff', '/current-guests', '/front-desk', '/reservations', '/guests', '/rooms', '/rooms/types', '/housekeeping', '/direct-bookings', '/direct-bookings/pending', '/direct-bookings/approved', '/direct-bookings/history', '/reports', '/settings', '/folios', '/guest-history'],
   front_office: ['/', '/front-office-panel', '/tariff-settings', '/departments', '/current-guests', '/front-desk', '/reservations', '/guests', '/rooms', '/rooms/types', '/guest-history', '/direct-bookings', '/direct-bookings/pending', '/direct-bookings/approved', '/direct-bookings/history', '/folios'],
   housekeeping: ['/', '/departments', '/rooms', '/rooms/types', '/housekeeping', '/staff'],
   accounts: ['/', '/departments', '/folios', '/guest-history', '/reports'],
@@ -154,6 +154,7 @@ export default function Sidebar({ mobileOpen, onClose }: SidebarProps) {
             { to: '/front-desk', icon: ConciergeBell, labelKey: '🛎️ Front Desk & Check-In' },
             { to: '/current-guests', icon: UsersRound, labelKey: '👥 In-House Guests' },
             { to: '/folios', icon: Receipt, labelKey: '🧾 Billing & Invoices' },
+            { to: '/guest-history', icon: History, labelKey: '📜 Guest Stay History' },
             { to: '/cashier', icon: Banknote, labelKey: '💳 Payments & Refunds' },
             { to: '/staff', icon: Briefcase, labelKey: '👔 Employees & Credentials' },
             { to: '/reports', icon: BarChart3, labelKey: '📊 Reports & Analytics' },
@@ -173,6 +174,7 @@ export default function Sidebar({ mobileOpen, onClose }: SidebarProps) {
             { to: '/front-desk', icon: ConciergeBell, labelKey: '🛎️ Front Desk Check-in' },
             { to: '/current-guests', icon: Users, labelKey: '👥 In-House & Checkout' },
             { to: '/folios', icon: Receipt, labelKey: '🧾 Folios & Billing' },
+            { to: '/guest-history', icon: History, labelKey: '📜 Guest Stay History' },
             { to: '/reports', icon: BarChart3, labelKey: '📊 Occupancy & Revenue' },
           ],
         },

@@ -47,15 +47,17 @@ export default function CheckoutModal({ stay, isOpen, onClose, onCheckoutSuccess
       const initRate = stay.pricePerNight || 0;
       const initExtras = stay.extraCharges || 0;
       const initDiscount = stay.discount || 0;
+      const initTaxMode = stay.taxMode || 'inclusive';
 
       setNights(initNights);
       setRatePerNight(initRate);
       setExtraCharges(initExtras);
       setDiscount(initDiscount);
+      setTaxMode(initTaxMode);
 
       const rawRoomCharges = initNights * initRate;
       const netBase = Math.max(0, rawRoomCharges + initExtras - initDiscount);
-      const gross = taxMode === 'inclusive' ? netBase : netBase + Math.round(netBase * 0.05);
+      const gross = initTaxMode === 'inclusive' ? netBase : netBase + Math.round(netBase * 0.05);
       const paidSoFar = (stay.advancePaid || 0) + (stay.previousPayments || 0);
       const initialBalance = Math.max(0, gross - paidSoFar);
 

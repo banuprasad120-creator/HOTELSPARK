@@ -375,6 +375,10 @@ export default function InHouseGuests() {
           stay={invoiceStay}
           isOpen={Boolean(invoiceStay)}
           onClose={() => setInvoiceStay(null)}
+          onStayUpdated={(updatedStay) => {
+            queryClient.invalidateQueries({ queryKey: ['stays'] });
+            setInvoiceStay(updatedStay);
+          }}
         />
       )}
 
