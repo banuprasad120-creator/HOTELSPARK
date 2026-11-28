@@ -24,8 +24,9 @@ export function GuestDetails() {
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!firstName.trim() || !lastName.trim() || !phone.trim()) {
-      setError('First name, last name and mobile number are required.');
+    const hasContact = Boolean(email.trim() || phone.trim());
+    if (!firstName.trim() || !lastName.trim() || !hasContact) {
+      setError('First name, last name and email are required.');
       return;
     }
     if (email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
@@ -60,11 +61,11 @@ export function GuestDetails() {
           </Field>
         </div>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <Field label="Mobile Number" htmlFor="phone" required>
-            <input id="phone" type="tel" placeholder="+91 98765 43210" className={inputClass} value={phone} onChange={(e) => setPhone(e.target.value)} />
-          </Field>
-          <Field label="Email (Optional)" htmlFor="email">
+          <Field label="Email" htmlFor="email" required>
             <input id="email" type="email" placeholder="guest@example.com" className={inputClass} value={email} onChange={(e) => setEmail(e.target.value)} />
+          </Field>
+          <Field label="Mobile Number" htmlFor="phone">
+            <input id="phone" type="tel" placeholder="+91 98765 43210" className={inputClass} value={phone} onChange={(e) => setPhone(e.target.value)} />
           </Field>
         </div>
         <Field label="Special requests" htmlFor="requests">

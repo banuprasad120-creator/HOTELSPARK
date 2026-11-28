@@ -57,11 +57,12 @@ export function ManageBooking() {
             onChange={(e) => setConfirmationNumber(e.target.value)}
           />
         </Field>
-        <Field label="Email on booking" htmlFor="email">
+        <Field label="Mobile number or Email on booking" htmlFor="email" required>
           <input
             id="email"
-            type="email"
+            type="text"
             className={inputClass}
+            placeholder="e.g. +91 98765 43210 or guest@example.com"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
           />

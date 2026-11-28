@@ -545,20 +545,48 @@ export const bookingApi = {
     return submitRequestSupabase(body);
   },
 
-  getBooking: async (confirmationNumber: string, email?: string): Promise<BookingDetails> => {
+  getBooking: async (confirmationNumber: string, emailOrPhone?: string): Promise<BookingDetails> => {
     if (!isStaticHosting) {
       const { data } = await api.get<BookingDetails>(`/bookings/${encodeURIComponent(confirmationNumber)}`);
       return data;
     }
-    if (!email) {
-      throw new Error('Guest email is required to look up booking details.');
+    const identifier = (emailOrPhone || '').trim();
+    if (!identifier) {
+      throw new Error('Guest email or mobile number is required to look up booking details.');
     }
+    // 1. Try standard public RPC first
     const res = await supabaseFetch<any>('rpc/get_public_booking_status', {
       method: 'POST',
-      body: JSON.stringify({ p_reference: confirmationNumber, p_email: email }),
-    });
-    if (!res) throw new Error('Booking not found for that confirmation number and email.');
-    return res;
+      body: JSON.stringify({ p_reference: confirmationNumber.trim(), p_email: identifier.toLowerCase() }),
+    }).catch(() => null);
+
+    if (res && typeof res === 'object' && res.status) {
+      return res;
+    }
+
+    // 2. Direct fallback for Hotel Spark booking requests by idempotency key or reference with email or phone
+    const cleanId = encodeURIComponent(confirmationNumber.trim());
+    const cleanContact = encodeURIComponent(identifier);
+    const reqs = await supabaseFetch<any[]>(
+      `/booking_requests?submission_idempotency_key=eq.${cleanId}&or=(guest_email.eq.${cleanContact},guest_phone.eq.${cleanContact})&limit=1`
+    ).catch(() => []);
+
+    const match = reqs?.[0];
+    if (match) {
+      return {
+        confirmationNumber: match.submission_idempotency_key,
+        guestName: `${match.guest_first_name} ${match.guest_last_name}`.trim(),
+        status: match.status === 'accepted' ? 'confirmed' : match.status === 'denied' ? 'cancelled' : 'pending',
+        roomType: 'Deluxe Room',
+        checkIn: match.arrival_date,
+        checkOut: match.departure_date,
+        rateAmount: Number(match.submitted_total || 0),
+        currencyCode: match.currency_code || 'INR',
+        folioBalance: 0,
+      };
+    }
+
+    throw new Error('Booking not found for that confirmation number and mobile number / email.');
   },
 
   cancelBooking: async (confirmationNumber: string, reason?: string): Promise<CancelResponse> => {

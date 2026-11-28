@@ -113,14 +113,17 @@ export function RequestApplication() {
       specialRequests: specialRequests.trim() || undefined,
     };
 
+    // Both mobile number and email are accepted for contact; email is required if phone is empty, and vice-versa
+    const hasContact = Boolean(cleanGuest.email || cleanGuest.phone);
     const missingCoreFields = [
       !cleanGuest.firstName ? 'request-first-name' : undefined,
       !cleanGuest.lastName ? 'request-last-name' : undefined,
-      !cleanGuest.phone ? 'request-phone' : undefined,
+      !hasContact ? (!cleanGuest.email ? 'request-email' : 'request-phone') : undefined,
     ].filter((id): id is string => Boolean(id));
+
     if (missingCoreFields.length > 0) {
       const issue = {
-        message: 'Guest name (First & Last) and mobile number are required.',
+        message: 'First name, last name and email are required.',
         invalidIds: missingCoreFields,
         focusId: missingCoreFields[0]!,
       };
@@ -240,22 +243,7 @@ export function RequestApplication() {
           </Field>
         </div>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <Field label="Mobile Number" htmlFor="request-phone" required>
-            <input
-              id="request-phone"
-              type="tel"
-              autoComplete="tel"
-              placeholder="+91 98765 43210"
-              className={inputClass}
-              value={phone}
-              disabled={isSubmitting}
-              required
-              aria-required="true"
-              {...fieldErrorProps('request-phone')}
-              onChange={(event) => setPhone(event.target.value)}
-            />
-          </Field>
-          <Field label="Email (Optional)" htmlFor="request-email">
+          <Field label="Email" htmlFor="request-email" required>
             <input
               id="request-email"
               type="email"
@@ -264,8 +252,23 @@ export function RequestApplication() {
               className={inputClass}
               value={email}
               disabled={isSubmitting}
+              required
+              aria-required="true"
               {...fieldErrorProps('request-email')}
               onChange={(event) => setEmail(event.target.value)}
+            />
+          </Field>
+          <Field label="Mobile Number" htmlFor="request-phone">
+            <input
+              id="request-phone"
+              type="tel"
+              autoComplete="tel"
+              placeholder="+91 98765 43210"
+              className={inputClass}
+              value={phone}
+              disabled={isSubmitting}
+              {...fieldErrorProps('request-phone')}
+              onChange={(event) => setPhone(event.target.value)}
             />
           </Field>
         </div>

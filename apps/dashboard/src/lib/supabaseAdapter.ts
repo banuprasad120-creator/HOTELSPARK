@@ -1534,24 +1534,29 @@ export async function handleSupabaseAdapter(config: AxiosRequestConfig): Promise
           }),
         });
 
-        // Ensure invoice number adheres strictly to INV-SPARK-001 format
+        // Ensure invoice number adheres strictly to sequential INV-SPARK-XXX format
         try {
           const invList = await supabaseFetch<any[]>(`/invoices?select=invoice_number&order=created_at.desc&limit=100`).catch(() => []);
-          let maxSeq = 0;
-          for (const inv of invList) {
-            const match = (inv.invoice_number || '').match(/^INV-SPARK-(\d+)$/);
-            if (match) {
-              const n = parseInt(match[1], 10);
-              if (n > maxSeq) maxSeq = n;
+          const existingResInv = await supabaseFetch<any[]>(`/invoices?reservation_id=eq.${targetId}&limit=1`).catch(() => []);
+          let currentInvNum = existingResInv?.[0]?.invoice_number;
+
+          if (!currentInvNum || !/^INV-SPARK-\d+$/.test(currentInvNum)) {
+            let maxSeq = 0;
+            for (const inv of invList) {
+              const match = (inv.invoice_number || '').match(/^INV-SPARK-(\d+)$/);
+              if (match) {
+                const n = parseInt(match[1], 10);
+                if (n > maxSeq) maxSeq = n;
+              }
             }
+            const nextSeq = maxSeq + 1;
+            currentInvNum = `INV-SPARK-${String(nextSeq).padStart(3, '0')}`;
+            await supabaseFetch(`/invoices?reservation_id=eq.${targetId}`, {
+              method: 'PATCH',
+              body: JSON.stringify({ invoice_number: currentInvNum }),
+            }).catch(() => undefined);
           }
-          const nextSeq = maxSeq + 1;
-          const formattedInv = `INV-SPARK-${String(nextSeq).padStart(3, '0')}`;
-          await supabaseFetch(`/invoices?reservation_id=eq.${targetId}`, {
-            method: 'PATCH',
-            body: JSON.stringify({ invoice_number: formattedInv }),
-          }).catch(() => undefined);
-          if (res) res.invoice_number = formattedInv;
+          if (res) res.invoice_number = currentInvNum;
         } catch {
           // Keep existing or generated billNumber
         }
@@ -1961,25 +1966,30 @@ export async function handleSupabaseAdapter(config: AxiosRequestConfig): Promise
       const allStays = await fetchStaysFromSupabase(propertyId, false);
       const updatedStay = allStays.find((s) => s.id === stayId);
 
-      // Ensure invoice number adheres strictly to INV-SPARK-001 format
+      // Ensure invoice number adheres strictly to sequential INV-SPARK-XXX format
       if (updatedStay) {
         try {
           const invList = await supabaseFetch<any[]>(`/invoices?select=invoice_number&order=created_at.desc&limit=100`).catch(() => []);
-          let maxSeq = 0;
-          for (const inv of invList) {
-            const match = (inv.invoice_number || '').match(/^INV-SPARK-(\d+)$/);
-            if (match) {
-              const n = parseInt(match[1], 10);
-              if (n > maxSeq) maxSeq = n;
+          const existingResInv = await supabaseFetch<any[]>(`/invoices?reservation_id=eq.${stayId}&limit=1`).catch(() => []);
+          let currentInvNum = existingResInv?.[0]?.invoice_number;
+
+          if (!currentInvNum || !/^INV-SPARK-\d+$/.test(currentInvNum)) {
+            let maxSeq = 0;
+            for (const inv of invList) {
+              const match = (inv.invoice_number || '').match(/^INV-SPARK-(\d+)$/);
+              if (match) {
+                const n = parseInt(match[1], 10);
+                if (n > maxSeq) maxSeq = n;
+              }
             }
+            const nextSeq = maxSeq + 1;
+            currentInvNum = `INV-SPARK-${String(nextSeq).padStart(3, '0')}`;
+            await supabaseFetch(`/invoices?reservation_id=eq.${stayId}`, {
+              method: 'PATCH',
+              body: JSON.stringify({ invoice_number: currentInvNum }),
+            }).catch(() => undefined);
           }
-          const nextSeq = maxSeq + 1;
-          const formattedInv = `INV-SPARK-${String(nextSeq).padStart(3, '0')}`;
-          await supabaseFetch(`/invoices?reservation_id=eq.${stayId}`, {
-            method: 'PATCH',
-            body: JSON.stringify({ invoice_number: formattedInv }),
-          }).catch(() => undefined);
-          updatedStay.billNumber = formattedInv;
+          updatedStay.billNumber = currentInvNum;
         } catch {
           // Keep existing or generated billNumber
         }
